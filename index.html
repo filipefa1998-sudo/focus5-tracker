@@ -3,916 +3,1175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Focus 5 Missionary Tracker with KPIs</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <title>Focus 5 Missionary Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <style>
-        body {
-            margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
-        .indicator-popup {
-            position: fixed;
-            background: white;
-            border: 2px solid #3b82f6;
-            border-radius: 8px;
-            padding: 12px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-            z-index: 10000;
-            min-width: 280px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .indicator-btn {
-            transition: all 0.2s;
-        }
-        .indicator-btn:hover {
-            transform: scale(1.05);
-        }
-        .kpi-card {
-            transition: transform 0.2s;
-        }
-        .kpi-card:hover {
-            transform: translateY(-2px);
-        }
+        
         @media print {
-            .no-print {
-                display: none;
-            }
+            .no-print { display: none !important; }
+            .print-break { page-break-after: always; }
+        }
+        
+        .month-cell {
+            min-width: 45px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+        
+        .month-cell:hover {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .month-cell:hover .activity-badge {
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .activity-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            margin: 1px;
+            border-radius: 6px;
+            font-size: 9px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+        }
+        
+        .gradient-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+        }
+        
+        .pulse-dot {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .auto-save-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        
+        input:focus {
+            outline: none;
+            ring: 2px;
+            ring-color: #667eea;
+            border-color: #667eea;
+        }
+        
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        .kpi-icon {
+            font-size: 2.5rem;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
         }
     </style>
 </head>
-<body>
+<body class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 min-h-screen p-2 md:p-6">
     <div id="root"></div>
+    
+    <!-- Auto-save indicator -->
+    <div id="autoSaveIndicator" class="auto-save-indicator no-print"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+    <script>
+        // ===== FIREBASE CONFIGURATION =====
+        const firebaseConfig = {
+            apiKey: "AIzaSyAMTk39-yO86IA36-ZzBCtpLswW4skCIH4",
+            authDomain: "focus5-cd663.firebaseapp.com",
+            databaseURL: "https://focus5-cd663-default-rtdb.firebaseio.com",
+            projectId: "focus5-cd663",
+            storageBucket: "focus5-cd663.firebasestorage.app",
+            messagingSenderId: "408021579800",
+            appId: "1:408021579800:web:e064f6e4c13b7ac2d9eb6d",
+            measurementId: "G-T07538ZP4B"
+        };
 
-        // Indicators for Current Investigators - Invitations Extended
-        const INVESTIGATOR_INDICATORS = [
-            { id: 'RB', label: 'Read Book of Mormon', color: 'bg-red-600' },
-            { id: 'AC', label: 'Attend Church', color: 'bg-blue-600' },
-            { id: 'AA', label: 'Attend Activity', color: 'bg-green-600' },
-            { id: 'FHE', label: 'Attend FHE', color: 'bg-purple-600' },
-            { id: 'TM', label: 'Taught by Missionaries', color: 'bg-indigo-600' },
-            { id: 'PB', label: 'Pray about BOM', color: 'bg-pink-600' },
-            { id: 'BD', label: 'Baptismal Date Set', color: 'bg-orange-600' },
-            { id: 'BC', label: 'Baptism Completed', color: 'bg-yellow-500' },
-        ];
+        // Initialize Firebase
+        let db = null;
+        let saveTimeout = null;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.database();
+            console.log("✅ Firebase connected successfully");
+        } catch (error) {
+            console.error("⚠️ Firebase initialization error:", error);
+        }
 
-        // Indicators for Less Active/Part Member Families - Fellowship Activities
-        const FELLOWSHIP_INDICATORS = [
-            { id: 'SRV', label: 'Service', color: 'bg-green-600' },
-            { id: 'AI', label: 'Activity Invited', color: 'bg-blue-600' },
-            { id: 'AAT', label: 'Activity Attended', color: 'bg-teal-600' },
-            { id: 'VIS', label: 'Visit', color: 'bg-purple-600' },
-            { id: 'IFH', label: 'Invited to do Family History', color: 'bg-indigo-600' },
-            { id: 'TXT', label: 'Text/Call', color: 'bg-pink-600' },
-        ];
-
+        // ===== GLOBAL STATE =====
         const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        const INVITATION_TYPES = {
+            'RB': 'Read Book of Mormon',
+            'AC': 'Attend Church',
+            'AA': 'Attend Activity',
+            'FHE': 'Attend FHE',
+            'TM': 'Taught by Missionaries',
+            'PB': 'Pray about BOM',
+            'BD': 'Baptismal Date Set',
+            'BC': 'Baptism Completed'
+        };
 
-        const COVENANT_PATH_ITEMS = [
-            'Make Friends with Members of Your Ward',
-            'Improve Gospel Study',
-            'Learn about the Aaronic Priesthood and the Young Men Program',
-            'Learn about Young Women Program',
-            'Learn about the Relief Society',
-            'Learn about Primary—Serving Children',
-            'Receive a Temple Recommend for Proxy Baptisms and Confirmations',
-            'Help Ancestors Receive Sacred Ordinances',
-            'Keep the Sabbath Day Holy',
-            'Serve Others',
-            'Share the Gospel',
-            'Participate in a Home Evening',
-            'Follow the Prophet',
-            'Obey the Commandments',
-            'Be Self-Reliant',
-            'Overcome Discouragement and Setbacks',
-            'Learn about the Melchizedek Priesthood',
-            'Receive a Patriarchal Blessing',
-            'Receive Your Endowment',
-            'Be Sealed to Your Family'
-        ];
+        const FELLOWSHIP_TYPES = {
+            'SRV': 'Service',
+            'AI': 'Activity Invited',
+            'AAT': 'Activity Attended',
+            'VIS': 'Visit',
+            'IFH': 'Invited to do Family History',
+            'TXT': 'Text/Call'
+        };
 
-        function Focus5Tracker() {
-            const [investigators, setInvestigators] = useState([
-                { id: 1, name: '', assignment: '', notes: '', months: {}, covenantPath: [] },
-                { id: 2, name: '', assignment: '', notes: '', months: {}, covenantPath: [] },
-                { id: 3, name: '', assignment: '', notes: '', months: {}, covenantPath: [] },
-                { id: 4, name: '', assignment: '', notes: '', months: {}, covenantPath: [] },
-                { id: 5, name: '', assignment: '', notes: '', months: {}, covenantPath: [] },
-            ]);
+        let state = {
+            investigators: [],
+            lessActive: [],
+            kpiView: 'thisMonth',
+            customDateRange: { start: '', end: '' },
+            lastSaved: null,
+            isSaving: false
+        };
 
-            const [lessActives, setLessActives] = useState([
-                { id: 6, name: '', assignment: '', notes: '', months: {} },
-                { id: 7, name: '', assignment: '', notes: '', months: {} },
-                { id: 8, name: '', assignment: '', notes: '', months: {} },
-                { id: 9, name: '', assignment: '', notes: '', months: {} },
-                { id: 10, name: '', assignment: '', notes: '', months: {} },
-            ]);
+        // ===== AUTO-SAVE WITH DEBOUNCE =====
+        function triggerAutoSave() {
+            if (saveTimeout) clearTimeout(saveTimeout);
+            
+            saveTimeout = setTimeout(() => {
+                syncToFirebase();
+            }, 1000); // Save 1 second after last change
+        }
 
-            const [showPopup, setShowPopup] = useState(null);
-            const [lastSaved, setLastSaved] = useState(null);
-            const [kpiView, setKpiView] = useState('current'); // current, 3month, ytd, custom
-            const [customStartDate, setCustomStartDate] = useState('');
-            const [customEndDate, setCustomEndDate] = useState('');
-            const popupRef = useRef(null);
+        function showSaveIndicator(status) {
+            const indicator = document.getElementById('autoSaveIndicator');
+            if (!indicator) return;
+            
+            if (status === 'saving') {
+                indicator.innerHTML = `
+                    <div class="glass-card px-4 py-2 rounded-full flex items-center gap-2 shadow-lg">
+                        <div class="pulse-dot w-2 h-2 bg-yellow-500 rounded-full"></div>
+                        <span class="text-sm font-medium text-gray-700">Saving...</span>
+                    </div>
+                `;
+            } else if (status === 'saved') {
+                indicator.innerHTML = `
+                    <div class="glass-card px-4 py-2 rounded-full flex items-center gap-2 shadow-lg">
+                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span class="text-sm font-medium text-gray-700">All changes saved</span>
+                    </div>
+                `;
+                setTimeout(() => {
+                    indicator.style.opacity = '0';
+                    setTimeout(() => {
+                        indicator.innerHTML = '';
+                        indicator.style.opacity = '1';
+                    }, 300);
+                }, 2000);
+            }
+        }
 
-            // Load data from localStorage on mount
-            useEffect(() => {
-                const savedInvestigators = localStorage.getItem('focus5-investigators');
-                const savedLessActives = localStorage.getItem('focus5-lessActives');
-                const savedTime = localStorage.getItem('focus5-lastSaved');
+        // ===== FIREBASE SYNC =====
+        function syncToFirebase() {
+            if (!db) {
+                syncToLocalStorage();
+                return;
+            }
+            
+            showSaveIndicator('saving');
+            state.isSaving = true;
+            
+            const data = {
+                investigators: state.investigators,
+                lessActive: state.lessActive,
+                kpiView: state.kpiView,
+                customDateRange: state.customDateRange,
+                lastSaved: new Date().toISOString()
+            };
 
-                if (savedInvestigators) {
-                    const parsed = JSON.parse(savedInvestigators);
-                    // Ensure backward compatibility - add covenantPath if it doesn't exist
-                    const withCovenantPath = parsed.map(p => ({
-                        ...p,
-                        covenantPath: p.covenantPath || []
-                    }));
-                    setInvestigators(withCovenantPath);
+            db.ref('focus5data').set(data)
+                .then(() => {
+                    state.lastSaved = data.lastSaved;
+                    state.isSaving = false;
+                    showSaveIndicator('saved');
+                    updateSaveStatus();
+                })
+                .catch(error => {
+                    console.error("Firebase sync error:", error);
+                    state.isSaving = false;
+                    syncToLocalStorage();
+                });
+        }
+
+        function loadFromFirebase() {
+            if (!db) {
+                loadFromLocalStorage();
+                return;
+            }
+
+            db.ref('focus5data').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    state.investigators = data.investigators || [];
+                    state.lessActive = data.lessActive || [];
+                    state.kpiView = data.kpiView || 'thisMonth';
+                    state.customDateRange = data.customDateRange || { start: '', end: '' };
+                    state.lastSaved = data.lastSaved;
+                    render();
                 }
-                if (savedLessActives) setLessActives(JSON.parse(savedLessActives));
-                if (savedTime) setLastSaved(new Date(savedTime));
-            }, []);
+            }, (error) => {
+                console.error("Firebase load error:", error);
+                loadFromLocalStorage();
+            });
+        }
 
-            // Auto-save every 30 seconds
-            useEffect(() => {
-                const interval = setInterval(() => {
-                    saveProgress();
-                }, 30000);
-
-                return () => clearInterval(interval);
-            }, [investigators, lessActives]);
-
-            // Close popup when clicking outside
-            useEffect(() => {
-                function handleClickOutside(event) {
-                    if (popupRef.current && !popupRef.current.contains(event.target)) {
-                        setShowPopup(null);
-                    }
-                }
-
-                document.addEventListener('mousedown', handleClickOutside);
-                return () => document.removeEventListener('mousedown', handleClickOutside);
-            }, []);
-
-            const saveProgress = () => {
-                localStorage.setItem('focus5-investigators', JSON.stringify(investigators));
-                localStorage.setItem('focus5-lessActives', JSON.stringify(lessActives));
-                const now = new Date();
-                localStorage.setItem('focus5-lastSaved', now.toISOString());
-                setLastSaved(now);
+        function syncToLocalStorage() {
+            const data = {
+                investigators: state.investigators,
+                lessActive: state.lessActive,
+                kpiView: state.kpiView,
+                customDateRange: state.customDateRange,
+                lastSaved: new Date().toISOString()
             };
+            localStorage.setItem('focus5data', JSON.stringify(data));
+            state.lastSaved = data.lastSaved;
+            showSaveIndicator('saved');
+            updateSaveStatus();
+        }
 
-            const updatePerson = (list, setList, id, field, value) => {
-                setList(list.map(person => 
-                    person.id === id ? { ...person, [field]: value } : person
-                ));
-            };
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('focus5data');
+            if (saved) {
+                const data = JSON.parse(saved);
+                state.investigators = data.investigators || [];
+                state.lessActive = data.lessActive || [];
+                state.kpiView = data.kpiView || 'thisMonth';
+                state.customDateRange = data.customDateRange || { start: '', end: '' };
+                state.lastSaved = data.lastSaved;
+            }
+            render();
+        }
 
-            const toggleIndicator = (list, setList, personId, month, indicatorId) => {
-                setList(list.map(person => {
-                    if (person.id === personId) {
-                        const monthData = person.months[month] || [];
-                        const hasIndicator = monthData.includes(indicatorId);
-                        
-                        return {
-                            ...person,
-                            months: {
-                                ...person.months,
-                                [month]: hasIndicator 
-                                    ? monthData.filter(i => i !== indicatorId)
-                                    : [...monthData, indicatorId]
-                            }
-                        };
-                    }
-                    return person;
-                }));
-            };
+        function updateSaveStatus() {
+            const statusEl = document.getElementById('saveStatus');
+            if (statusEl && state.lastSaved) {
+                const date = new Date(state.lastSaved);
+                statusEl.innerHTML = `
+                    <span class="text-xs text-white/80">
+                        Auto-saved ${date.toLocaleTimeString()}
+                    </span>
+                `;
+            }
+        }
 
-            const toggleCovenantPathItem = (personId, item) => {
-                setInvestigators(investigators.map(person => {
-                    if (person.id === personId) {
-                        const covenantPath = person.covenantPath || [];
-                        const hasItem = covenantPath.includes(item);
-                        
-                        return {
-                            ...person,
-                            covenantPath: hasItem 
-                                ? covenantPath.filter(i => i !== item)
-                                : [...covenantPath, item]
-                        };
-                    }
-                    return person;
-                }));
-            };
-
-            const hasBaptismCompleted = (person) => {
-                return Object.values(person.months || {}).some(monthActivities => 
-                    monthActivities.includes('BC')
-                );
-            };
-
-            const exportData = () => {
-                const data = {
-                    investigators,
-                    lessActives,
-                    exportDate: new Date().toISOString()
-                };
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `focus5-backup-${new Date().toISOString().split('T')[0]}.json`;
-                a.click();
-            };
-
-            const importData = (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        try {
-                            const data = JSON.parse(e.target.result);
-                            if (data.investigators) setInvestigators(data.investigators);
-                            if (data.lessActives) setLessActives(data.lessActives);
-                            saveProgress();
-                            alert('Data imported successfully!');
-                        } catch (error) {
-                            alert('Error importing data. Please check the file format.');
-                        }
-                    };
-                    reader.readAsText(file);
+        // ===== DATA MANAGEMENT =====
+        function addInvestigator() {
+            const newInv = {
+                id: Date.now(),
+                name: '',
+                assignedTo: '',
+                monthlyData: Array(12).fill(null).map(() => []),
+                notes: '',
+                covenantPath: {
+                    confirmation: false,
+                    holyGhost: false,
+                    sacrament: false,
+                    priesthood: false,
+                    temple: false,
+                    calling: false
                 }
             };
+            state.investigators.push(newInv);
+            triggerAutoSave();
+            render();
+        }
 
-            // KPI Calculation Functions
-            const getMonthsToAnalyze = () => {
-                const now = new Date();
-                const currentMonth = MONTHS[now.getMonth()];
+        function addLessActive() {
+            const newPerson = {
+                id: Date.now(),
+                name: '',
+                assignedTo: '',
+                monthlyData: Array(12).fill(null).map(() => []),
+                notes: ''
+            };
+            state.lessActive.push(newPerson);
+            triggerAutoSave();
+            render();
+        }
+
+        function updateField(type, id, field, value) {
+            const list = type === 'investigator' ? state.investigators : state.lessActive;
+            const item = list.find(i => i.id === id);
+            if (item) {
+                if (field.startsWith('covenant_')) {
+                    const covenantField = field.replace('covenant_', '');
+                    item.covenantPath[covenantField] = value;
+                } else {
+                    item[field] = value;
+                }
+                triggerAutoSave();
+                render();
+            }
+        }
+
+        function toggleActivity(type, id, monthIndex, activityCode) {
+            const list = type === 'investigator' ? state.investigators : state.lessActive;
+            const item = list.find(i => i.id === id);
+            if (item) {
+                const monthData = item.monthlyData[monthIndex];
+                const index = monthData.indexOf(activityCode);
                 
-                if (kpiView === 'current') {
+                if (index > -1) {
+                    monthData.splice(index, 1);
+                } else {
+                    monthData.push(activityCode);
+                }
+                
+                triggerAutoSave();
+                render();
+            }
+        }
+
+        function deleteItem(type, id) {
+            if (!confirm('Are you sure you want to delete this entry?')) return;
+            
+            if (type === 'investigator') {
+                state.investigators = state.investigators.filter(i => i.id !== id);
+            } else {
+                state.lessActive = state.lessActive.filter(i => i.id !== id);
+            }
+            triggerAutoSave();
+            render();
+        }
+
+        function changeKPIView(view) {
+            state.kpiView = view;
+            triggerAutoSave();
+            render();
+        }
+
+        // ===== ANALYTICS CALCULATIONS =====
+        function getActiveMonths() {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            
+            switch(state.kpiView) {
+                case 'thisMonth':
                     return [currentMonth];
-                } else if (kpiView === '3month') {
-                    const monthIndex = now.getMonth();
-                    const months = [];
-                    for (let i = 2; i >= 0; i--) {
-                        const index = (monthIndex - i + 12) % 12;
-                        months.push(MONTHS[index]);
-                    }
-                    return months;
-                } else if (kpiView === 'ytd') {
-                    return MONTHS.slice(0, now.getMonth() + 1);
-                } else if (kpiView === 'custom' && customStartDate && customEndDate) {
-                    // For custom, we'll use all months for now (can be enhanced)
-                    return MONTHS;
+                case 'last3Months':
+                    return [
+                        (currentMonth - 2 + 12) % 12,
+                        (currentMonth - 1 + 12) % 12,
+                        currentMonth
+                    ];
+                case 'yearToDate':
+                    return Array.from({length: currentMonth + 1}, (_, i) => i);
+                default:
+                    return [currentMonth];
+            }
+        }
+
+        function calculateKPIs() {
+            const activeMonths = getActiveMonths();
+            
+            const invitationCounts = {};
+            let totalInvitations = 0;
+            let baptismsCompleted = 0;
+            
+            state.investigators.forEach(inv => {
+                activeMonths.forEach(month => {
+                    inv.monthlyData[month].forEach(code => {
+                        invitationCounts[code] = (invitationCounts[code] || 0) + 1;
+                        totalInvitations++;
+                        if (code === 'BC') baptismsCompleted++;
+                    });
+                });
+            });
+
+            const fellowshipCounts = {};
+            let totalFellowship = 0;
+            let peopleEngaged = 0;
+            
+            state.lessActive.forEach(person => {
+                let hasActivity = false;
+                activeMonths.forEach(month => {
+                    person.monthlyData[month].forEach(code => {
+                        fellowshipCounts[code] = (fellowshipCounts[code] || 0) + 1;
+                        totalFellowship++;
+                        hasActivity = true;
+                    });
+                });
+                if (hasActivity) peopleEngaged++;
+            });
+
+            const mostActiveInvitation = Object.keys(invitationCounts).reduce((a, b) => 
+                invitationCounts[a] > invitationCounts[b] ? a : b, 'None');
+            
+            const mostCommonFellowship = Object.keys(fellowshipCounts).reduce((a, b) => 
+                fellowshipCounts[a] > fellowshipCounts[b] ? a : b, 'None');
+
+            const activeFocus5 = state.investigators.filter(inv => 
+                activeMonths.some(month => inv.monthlyData[month].length > 0)
+            ).length + state.lessActive.filter(person => 
+                activeMonths.some(month => person.monthlyData[month].length > 0)
+            ).length;
+
+            const totalActivities = totalInvitations + totalFellowship;
+            const totalPeople = state.investigators.length + state.lessActive.length;
+            const engagementRate = totalPeople > 0 ? 
+                Math.round(((state.investigators.filter(inv => 
+                    activeMonths.some(month => inv.monthlyData[month].length > 0)
+                ).length + peopleEngaged) / totalPeople) * 100) : 0;
+
+            return {
+                totalPeople,
+                activeFocus5,
+                totalActivities,
+                engagementRate,
+                investigators: {
+                    totalInvitations,
+                    baptismsCompleted,
+                    mostActiveInvitation,
+                    avgPerPerson: state.investigators.length > 0 ? 
+                        (totalInvitations / state.investigators.length).toFixed(1) : 0,
+                    breakdown: invitationCounts
+                },
+                lessActive: {
+                    totalFellowship,
+                    peopleEngaged,
+                    mostCommonFellowship,
+                    avgPerFamily: state.lessActive.length > 0 ? 
+                        (totalFellowship / state.lessActive.length).toFixed(1) : 0,
+                    breakdown: fellowshipCounts
                 }
-                return [currentMonth];
             };
+        }
 
-            const calculateKPIs = () => {
-                const monthsToAnalyze = getMonthsToAnalyze();
-                
-                // Investigators KPIs
-                let totalInvitations = 0;
-                let baptismReady = 0;
-                let invitationCounts = {};
-                let peopleWithActivity = new Set();
-                
-                investigators.forEach(person => {
-                    if (!person.name) return;
-                    
-                    let hasBaptism = false;
-                    monthsToAnalyze.forEach(month => {
-                        const activities = person.months[month] || [];
-                        activities.forEach(indicator => {
-                            totalInvitations++;
-                            invitationCounts[indicator] = (invitationCounts[indicator] || 0) + 1;
-                            if (indicator === 'BC') hasBaptism = true;
-                            if (activities.length > 0) peopleWithActivity.add(person.id);
-                        });
-                    });
-                    
-                    if (hasBaptism) baptismReady++;
-                });
+        // ===== EXPORT/IMPORT/PRINT =====
+        function exportData() {
+            const data = {
+                investigators: state.investigators,
+                lessActive: state.lessActive,
+                exportDate: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `focus5-export-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
 
-                const avgInvitationsPerPerson = investigators.filter(p => p.name).length > 0 
-                    ? (totalInvitations / investigators.filter(p => p.name).length).toFixed(1)
-                    : 0;
-
-                const mostActiveInvitation = Object.keys(invitationCounts).length > 0
-                    ? Object.keys(invitationCounts).reduce((a, b) => invitationCounts[a] > invitationCounts[b] ? a : b)
-                    : 'N/A';
-
-                // Less Active KPIs
-                let totalFellowship = 0;
-                let fellowshipCounts = {};
-                let lessActiveWithActivity = new Set();
-                
-                lessActives.forEach(person => {
-                    if (!person.name) return;
-                    
-                    monthsToAnalyze.forEach(month => {
-                        const activities = person.months[month] || [];
-                        activities.forEach(indicator => {
-                            totalFellowship++;
-                            fellowshipCounts[indicator] = (fellowshipCounts[indicator] || 0) + 1;
-                            if (activities.length > 0) lessActiveWithActivity.add(person.id);
-                        });
-                    });
-                });
-
-                const avgFellowshipPerFamily = lessActives.filter(p => p.name).length > 0
-                    ? (totalFellowship / lessActives.filter(p => p.name).length).toFixed(1)
-                    : 0;
-
-                const mostCommonFellowship = Object.keys(fellowshipCounts).length > 0
-                    ? Object.keys(fellowshipCounts).reduce((a, b) => fellowshipCounts[a] > fellowshipCounts[b] ? a : b)
-                    : 'N/A';
-
-                // Overall metrics
-                const totalPeopleTracked = investigators.filter(p => p.name).length + lessActives.filter(p => p.name).length;
-                const totalActivities = totalInvitations + totalFellowship;
-
-                return {
-                    investigators: {
-                        total: totalInvitations,
-                        baptismReady,
-                        mostActive: mostActiveInvitation,
-                        avgPerPerson: avgInvitationsPerPerson,
-                        peopleEngaged: peopleWithActivity.size,
-                        breakdown: invitationCounts
-                    },
-                    lessActive: {
-                        total: totalFellowship,
-                        mostCommon: mostCommonFellowship,
-                        avgPerFamily: avgFellowshipPerFamily,
-                        peopleEngaged: lessActiveWithActivity.size,
-                        breakdown: fellowshipCounts
-                    },
-                    overall: {
-                        totalPeople: totalPeopleTracked,
-                        totalActivities,
-                        engagementRate: totalPeopleTracked > 0 
-                            ? ((peopleWithActivity.size + lessActiveWithActivity.size) / totalPeopleTracked * 100).toFixed(0)
-                            : 0
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'application/json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        if (confirm('This will replace all current data. Continue?')) {
+                            state.investigators = data.investigators || [];
+                            state.lessActive = data.lessActive || [];
+                            triggerAutoSave();
+                            render();
+                            alert('Data imported successfully!');
+                        }
+                    } catch (error) {
+                        alert('Error importing file. Please check the file format.');
                     }
                 };
+                reader.readAsText(file);
             };
+            input.click();
+        }
 
+        function printTracker() {
+            window.print();
+        }
+
+        // ===== RENDER FUNCTIONS =====
+        function render() {
             const kpis = calculateKPIs();
+            
+            document.getElementById('root').innerHTML = `
+                <div class="max-w-[1600px] mx-auto space-y-6">
+                    ${renderHeader()}
+                    ${renderKPIView()}
+                    ${renderKPIDashboard(kpis)}
+                    ${renderChartsSection(kpis)}
+                    ${renderLegends()}
+                    ${renderInvestigatorsSection()}
+                    ${renderLessActiveSection()}
+                    ${renderInstructions()}
+                </div>
+            `;
 
-            const renderPersonRow = (person, list, setList, indicators) => (
-                <tr key={person.id} className="border-b hover:bg-gray-50">
-                    <td className="p-2 border-r">
-                        <input
-                            type="text"
-                            value={person.name}
-                            onChange={(e) => updatePerson(list, setList, person.id, 'name', e.target.value)}
-                            placeholder="Enter name..."
-                            className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </td>
-                    <td className="p-2 border-r">
-                        <input
-                            type="text"
-                            value={person.assignment}
-                            onChange={(e) => updatePerson(list, setList, person.id, 'assignment', e.target.value)}
-                            placeholder="Assigned to..."
-                            className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                    </td>
-                    {MONTHS.map(month => (
-                        <td 
-                            key={month}
-                            className="p-1 border-r text-center relative cursor-pointer hover:bg-blue-50 transition-colors"
-                            onClick={(e) => {
-                                const rect = e.currentTarget.getBoundingClientRect();
-                                setShowPopup({
-                                    personId: person.id,
-                                    month,
-                                    x: rect.left,
-                                    y: rect.bottom,
-                                    list,
-                                    setList,
-                                    indicators
-                                });
-                            }}
-                        >
-                            <div className="flex flex-wrap gap-1 justify-center min-h-[30px] items-center">
-                                {(person.months[month] || []).map(indicatorId => {
-                                    const indicator = indicators.find(i => i.id === indicatorId);
-                                    if (!indicator) return null;
-                                    return (
-                                        <span
-                                            key={indicatorId}
-                                            className={`${indicator.color} text-white text-xs px-1.5 py-0.5 rounded font-semibold`}
-                                            title={indicator.label}
-                                        >
-                                            {indicator.id}
-                                        </span>
-                                    );
-                                })}
-                            </div>
-                        </td>
-                    ))}
-                    <td className="p-2">
-                        <textarea
-                            value={person.notes}
-                            onChange={(e) => updatePerson(list, setList, person.id, 'notes', e.target.value)}
-                            placeholder="Add notes..."
-                            className="w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                            rows="2"
-                        />
-                    </td>
-                </tr>
-            );
+            updateSaveStatus();
+            renderCharts(kpis);
+        }
 
-            const getViewLabel = () => {
-                if (kpiView === 'current') return 'This Month';
-                if (kpiView === '3month') return 'Last 3 Months';
-                if (kpiView === 'ytd') return 'Year to Date';
-                if (kpiView === 'custom') return 'Custom Range';
-                return 'This Month';
-            };
-
-            return (
-                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-                    <div className="max-w-[1600px] mx-auto bg-white rounded-xl shadow-2xl overflow-hidden">
-                        {/* Header */}
-                        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6">
-                            <h1 className="text-4xl font-bold mb-2">📋 Focus 5 Missionary Tracker</h1>
-                            <p className="text-blue-100 text-lg">Track your ward's missionary efforts and fellowship activities</p>
-                            <p className="text-blue-200 text-sm mt-2 italic">"And if it so be that you should labor all your days in crying repentance unto this people, and bring, save it be one soul unto me, how great shall be your joy with him in the kingdom of my Father!" - D&C 18:15</p>
+        function renderHeader() {
+            return `
+                <div class="glass-card rounded-2xl shadow-2xl p-6 md:p-8 gradient-header text-white">
+                    <div class="text-center">
+                        <div class="inline-block mb-4">
+                            <div class="text-6xl mb-2">📋</div>
                         </div>
-
-                        {/* Action Buttons */}
-                        <div className="bg-gray-50 p-4 border-b flex flex-wrap gap-3 items-center justify-between no-print">
-                            <div className="flex gap-3 flex-wrap">
-                                <button
-                                    onClick={saveProgress}
-                                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-semibold shadow-md transition-all flex items-center gap-2"
-                                >
-                                    💾 Save Progress
-                                </button>
-                                <button
-                                    onClick={exportData}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold shadow-md transition-all flex items-center gap-2"
-                                >
-                                    📥 Export Data
-                                </button>
-                                <label className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold shadow-md transition-all flex items-center gap-2 cursor-pointer">
-                                    📤 Import Data
-                                    <input
-                                        type="file"
-                                        accept=".json"
-                                        onChange={importData}
-                                        className="hidden"
-                                    />
-                                </label>
-                                <button
-                                    onClick={() => window.print()}
-                                    className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-semibold shadow-md transition-all flex items-center gap-2"
-                                >
-                                    🖨️ Print
-                                </button>
-                            </div>
-                            {lastSaved && (
-                                <div className="text-sm text-gray-600">
-                                    Last saved: {lastSaved.toLocaleString()}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* KPI View Selector */}
-                        <div className="bg-white p-4 border-b no-print">
-                            <div className="flex flex-wrap gap-2 items-center">
-                                <span className="font-semibold text-gray-700">KPI View:</span>
-                                <button
-                                    onClick={() => setKpiView('current')}
-                                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${kpiView === 'current' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-                                >
-                                    📅 This Month
-                                </button>
-                                <button
-                                    onClick={() => setKpiView('3month')}
-                                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${kpiView === '3month' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-                                >
-                                    📊 Last 3 Months
-                                </button>
-                                <button
-                                    onClick={() => setKpiView('ytd')}
-                                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${kpiView === 'ytd' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-                                >
-                                    📈 Year to Date
-                                </button>
-                                <button
-                                    onClick={() => setKpiView('custom')}
-                                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${kpiView === 'custom' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-                                >
-                                    🔧 Custom Range
-                                </button>
-                            </div>
-                            {kpiView === 'custom' && (
-                                <div className="mt-3 flex gap-3 items-center">
-                                    <input
-                                        type="date"
-                                        value={customStartDate}
-                                        onChange={(e) => setCustomStartDate(e.target.value)}
-                                        className="px-3 py-2 border rounded"
-                                        placeholder="Start Date"
-                                    />
-                                    <span>to</span>
-                                    <input
-                                        type="date"
-                                        value={customEndDate}
-                                        onChange={(e) => setCustomEndDate(e.target.value)}
-                                        className="px-3 py-2 border rounded"
-                                        placeholder="End Date"
-                                    />
-                                </div>
-                            )}
-                        </div>
-
-                        {/* KPI Dashboard - Summary Cards */}
-                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 no-print">
-                            <h2 className="text-2xl font-bold mb-4 text-gray-800">📊 KPI Dashboard - {getViewLabel()}</h2>
-                            
-                            {/* Overall Metrics */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                                <div className="bg-white rounded-lg shadow-md p-4 kpi-card">
-                                    <div className="text-sm text-gray-600 font-semibold">Total People Tracked</div>
-                                    <div className="text-3xl font-bold text-blue-600 mt-2">{kpis.overall.totalPeople}</div>
-                                    <div className="text-xs text-gray-500 mt-1">Active Focus 5</div>
-                                </div>
-                                <div className="bg-white rounded-lg shadow-md p-4 kpi-card">
-                                    <div className="text-sm text-gray-600 font-semibold">Total Activities</div>
-                                    <div className="text-3xl font-bold text-green-600 mt-2">{kpis.overall.totalActivities}</div>
-                                    <div className="text-xs text-gray-500 mt-1">Invitations + Fellowship</div>
-                                </div>
-                                <div className="bg-white rounded-lg shadow-md p-4 kpi-card">
-                                    <div className="text-sm text-gray-600 font-semibold">Engagement Rate</div>
-                                    <div className="text-3xl font-bold text-purple-600 mt-2">{kpis.overall.engagementRate}%</div>
-                                    <div className="text-xs text-gray-500 mt-1">People with activity</div>
-                                </div>
-                            </div>
-
-                            {/* Investigators Metrics */}
-                            <div className="mb-6">
-                                <h3 className="text-xl font-bold mb-3 text-gray-800">🎯 Current Investigators</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    <div className="bg-white rounded-lg shadow-md p-4 kpi-card">
-                                        <div className="text-sm text-gray-600 font-semibold">Total Invitations</div>
-                                        <div className="text-2xl font-bold text-blue-600 mt-2">{kpis.investigators.total}</div>
-                                    </div>
-                                    <div className="bg-white rounded-lg shadow-md p-4 kpi-card">
-                                        <div className="text-sm text-gray-600 font-semibold">Baptisms Completed</div>
-                                        <div className="text-2xl font-bold text-yellow-600 mt-2">{kpis.investigators.baptismReady}</div>
-                                    </div>
-                                    <div className="bg-white rounded-lg shadow-md p-4 kpi-card">
-                                        <div className="text-sm text-gray-600 font-semibold">Most Active Invitation</div>
-                                        <div className="text-2xl font-bold text-indigo-600 mt-2">{kpis.investigators.mostActive}</div>
-                                    </div>
-                                    <div className="bg-white rounded-lg shadow-md p-4 kpi-card">
-                                        <div className="text-sm text-gray-600 font-semibold">Avg per Person</div>
-                                        <div className="text-2xl font-bold text-green-600 mt-2">{kpis.investigators.avgPerPerson}</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Less Active Metrics */}
-                            <div>
-                                <h3 className="text-xl font-bold mb-3 text-gray-800">💙 Less Active / Part Member Families</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                    <div className="bg-white rounded-lg shadow-md p-4 kpi-card">
-                                        <div className="text-sm text-gray-600 font-semibold">Total Fellowship</div>
-                                        <div className="text-2xl font-bold text-blue-600 mt-2">{kpis.lessActive.total}</div>
-                                    </div>
-                                    <div className="bg-white rounded-lg shadow-md p-4 kpi-card">
-                                        <div className="text-sm text-gray-600 font-semibold">People Engaged</div>
-                                        <div className="text-2xl font-bold text-green-600 mt-2">{kpis.lessActive.peopleEngaged}</div>
-                                    </div>
-                                    <div className="bg-white rounded-lg shadow-md p-4 kpi-card">
-                                        <div className="text-sm text-gray-600 font-semibold">Most Common Activity</div>
-                                        <div className="text-2xl font-bold text-purple-600 mt-2">{kpis.lessActive.mostCommon}</div>
-                                    </div>
-                                    <div className="bg-white rounded-lg shadow-md p-4 kpi-card">
-                                        <div className="text-sm text-gray-600 font-semibold">Avg per Family</div>
-                                        <div className="text-2xl font-bold text-pink-600 mt-2">{kpis.lessActive.avgPerFamily}</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Legend for Investigators */}
-                        <div className="bg-blue-50 p-4 border-b no-print">
-                            <h3 className="font-bold text-lg mb-2 text-gray-800">🎯 Invitations Extended (for Investigators)</h3>
-                            <div className="flex flex-wrap gap-3">
-                                {INVESTIGATOR_INDICATORS.map(indicator => (
-                                    <div key={indicator.id} className="flex items-center gap-2">
-                                        <span className={`${indicator.color} text-white px-2 py-1 rounded font-semibold text-sm`}>
-                                            {indicator.id}
-                                        </span>
-                                        <span className="text-sm text-gray-700">{indicator.label}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Legend for Less Active */}
-                        <div className="bg-indigo-50 p-4 border-b no-print">
-                            <h3 className="font-bold text-lg mb-2 text-gray-800">💙 Fellowship Activities (for Less Active/Part Member Families)</h3>
-                            <div className="flex flex-wrap gap-3">
-                                {FELLOWSHIP_INDICATORS.map(indicator => (
-                                    <div key={indicator.id} className="flex items-center gap-2">
-                                        <span className={`${indicator.color} text-white px-2 py-1 rounded font-semibold text-sm`}>
-                                            {indicator.id}
-                                        </span>
-                                        <span className="text-sm text-gray-700">{indicator.label}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Investigators Table */}
-                        <div className="p-6">
-                            <h2 className="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
-                                🎯 Current Investigators (Focus 5)
-                            </h2>
-                            <div className="overflow-x-auto border rounded-lg">
-                                <table className="w-full border-collapse">
-                                    <thead className="bg-blue-600 text-white">
-                                        <tr>
-                                            <th className="p-3 text-left border-r w-48">Name</th>
-                                            <th className="p-3 text-left border-r w-48">Assigned To</th>
-                                            {MONTHS.map(month => (
-                                                <th key={month} className="p-3 text-center border-r w-24">{month}</th>
-                                            ))}
-                                            <th className="p-3 text-left w-64">Notes</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {investigators.map(person => renderPersonRow(person, investigators, setInvestigators, INVESTIGATOR_INDICATORS))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        {/* Covenant Path Section - Only show for baptized members */}
-                        {investigators.some(p => p.name && hasBaptismCompleted(p)) && (
-                            <div className="p-6 bg-gradient-to-r from-yellow-50 to-orange-50">
-                                <h2 className="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
-                                    ⛪ The Covenant Path - New Member Progress
-                                </h2>
-                                <p className="text-gray-600 mb-4 italic">Track each new member's journey along the covenant path</p>
-                                
-                                <div className="space-y-6">
-                                    {investigators.filter(p => p.name && hasBaptismCompleted(p)).map(person => (
-                                        <div key={person.id} className="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
-                                            <h3 className="text-xl font-bold mb-4 text-gray-800 flex items-center gap-2">
-                                                🌟 {person.name}
-                                            </h3>
-                                            <div className="mb-3">
-                                                <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                    <span className="font-semibold">Progress:</span>
-                                                    <div className="flex-1 bg-gray-200 rounded-full h-3">
-                                                        <div 
-                                                            className="bg-gradient-to-r from-yellow-500 to-orange-500 h-3 rounded-full transition-all duration-500"
-                                                            style={{
-                                                                width: `${((person.covenantPath || []).length / COVENANT_PATH_ITEMS.length * 100).toFixed(0)}%`
-                                                            }}
-                                                        />
-                                                    </div>
-                                                    <span className="font-bold text-yellow-700">
-                                                        {(person.covenantPath || []).length} / {COVENANT_PATH_ITEMS.length}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                {COVENANT_PATH_ITEMS.map((item, index) => {
-                                                    const isCompleted = (person.covenantPath || []).includes(item);
-                                                    return (
-                                                        <div 
-                                                            key={index}
-                                                            onClick={() => toggleCovenantPathItem(person.id, item)}
-                                                            className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all ${
-                                                                isCompleted 
-                                                                    ? 'bg-green-50 border-2 border-green-500' 
-                                                                    : 'bg-gray-50 border-2 border-gray-300 hover:border-yellow-400'
-                                                            }`}
-                                                        >
-                                                            <div className={`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center ${
-                                                                isCompleted 
-                                                                    ? 'bg-green-500 border-green-500' 
-                                                                    : 'bg-white border-gray-400'
-                                                            }`}>
-                                                                {isCompleted && (
-                                                                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
-                                                                    </svg>
-                                                                )}
-                                                            </div>
-                                                            <span className={`text-sm flex-1 ${
-                                                                isCompleted ? 'text-green-900 font-semibold' : 'text-gray-700'
-                                                            }`}>
-                                                                {item}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Covenant Path Scripture */}
-                                <div className="bg-yellow-50 p-4 mt-6 rounded-lg border-l-4 border-yellow-600">
-                                    <p className="text-yellow-900 italic text-sm">
-                                        "And now, my beloved brethren, after ye have gotten into this strait and narrow path, I would ask if all is done? Behold, I say unto you, Nay; for ye have not come thus far save it were by the word of Christ with unshaken faith in him, relying wholly upon the merits of him who is mighty to save." - 2 Nephi 31:19
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Less Active / Part Member Families Table */}
-                        <div className="p-6">
-                            <h2 className="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
-                                💙 Less Active / Part Member Families (Focus 5)
-                            </h2>
-                            <div className="overflow-x-auto border rounded-lg">
-                                <table className="w-full border-collapse">
-                                    <thead className="bg-indigo-600 text-white">
-                                        <tr>
-                                            <th className="p-3 text-left border-r w-48">Name</th>
-                                            <th className="p-3 text-left border-r w-48">Assigned To</th>
-                                            {MONTHS.map(month => (
-                                                <th key={month} className="p-3 text-center border-r w-24">{month}</th>
-                                            ))}
-                                            <th className="p-3 text-left w-64">Notes</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {lessActives.map(person => renderPersonRow(person, lessActives, setLessActives, FELLOWSHIP_INDICATORS))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        {/* Detailed Analytics Section */}
-                        <div className="bg-gray-50 p-6 no-print">
-                            <h2 className="text-2xl font-bold mb-4 text-gray-800">📈 Detailed Analytics - {getViewLabel()}</h2>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Invitation Breakdown */}
-                                <div className="bg-white rounded-lg shadow-md p-4">
-                                    <h3 className="font-bold text-lg mb-3 text-gray-800">Invitation Type Breakdown</h3>
-                                    <div className="space-y-2">
-                                        {Object.entries(kpis.investigators.breakdown).map(([key, value]) => {
-                                            const indicator = INVESTIGATOR_INDICATORS.find(i => i.id === key);
-                                            if (!indicator) return null;
-                                            const percentage = kpis.investigators.total > 0 
-                                                ? ((value / kpis.investigators.total) * 100).toFixed(0)
-                                                : 0;
-                                            return (
-                                                <div key={key} className="flex items-center gap-3">
-                                                    <span className={`${indicator.color} text-white px-2 py-1 rounded font-semibold text-xs w-16 text-center`}>
-                                                        {indicator.id}
-                                                    </span>
-                                                    <div className="flex-1">
-                                                        <div className="flex justify-between text-sm mb-1">
-                                                            <span className="text-gray-700">{indicator.label}</span>
-                                                            <span className="font-semibold">{value}</span>
-                                                        </div>
-                                                        <div className="w-full bg-gray-200 rounded-full h-2">
-                                                            <div 
-                                                                className={`${indicator.color} h-2 rounded-full`}
-                                                                style={{width: `${percentage}%`}}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                        {Object.keys(kpis.investigators.breakdown).length === 0 && (
-                                            <p className="text-gray-500 text-sm">No invitations recorded yet</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Fellowship Breakdown */}
-                                <div className="bg-white rounded-lg shadow-md p-4">
-                                    <h3 className="font-bold text-lg mb-3 text-gray-800">Fellowship Activity Breakdown</h3>
-                                    <div className="space-y-2">
-                                        {Object.entries(kpis.lessActive.breakdown).map(([key, value]) => {
-                                            const indicator = FELLOWSHIP_INDICATORS.find(i => i.id === key);
-                                            if (!indicator) return null;
-                                            const percentage = kpis.lessActive.total > 0 
-                                                ? ((value / kpis.lessActive.total) * 100).toFixed(0)
-                                                : 0;
-                                            return (
-                                                <div key={key} className="flex items-center gap-3">
-                                                    <span className={`${indicator.color} text-white px-2 py-1 rounded font-semibold text-xs w-16 text-center`}>
-                                                        {indicator.id}
-                                                    </span>
-                                                    <div className="flex-1">
-                                                        <div className="flex justify-between text-sm mb-1">
-                                                            <span className="text-gray-700">{indicator.label}</span>
-                                                            <span className="font-semibold">{value}</span>
-                                                        </div>
-                                                        <div className="w-full bg-gray-200 rounded-full h-2">
-                                                            <div 
-                                                                className={`${indicator.color} h-2 rounded-full`}
-                                                                style={{width: `${percentage}%`}}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                        {Object.keys(kpis.lessActive.breakdown).length === 0 && (
-                                            <p className="text-gray-500 text-sm">No fellowship activities recorded yet</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Instructions */}
-                        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-6 m-6 rounded-lg no-print">
-                            <h3 className="font-bold text-lg text-yellow-900 mb-2">💡 How to Use:</h3>
-                            <ul className="text-sm text-yellow-800 space-y-1 list-disc list-inside">
-                                <li><strong>Enter names</strong> of investigators or less-active members</li>
-                                <li><strong>Click on any month cell</strong> to mark invitations extended or fellowship activities</li>
-                                <li><strong>Mark "BC" (Baptism Completed)</strong> - The Covenant Path section will automatically appear</li>
-                                <li><strong>Track new member progress</strong> - Click checkboxes in the Covenant Path section to mark completed items</li>
-                                <li><strong>Switch KPI views</strong> to see current month, 3-month trends, or year-to-date metrics</li>
-                                <li><strong>Review KPI dashboard</strong> before ward council meetings to identify areas needing attention</li>
-                                <li><strong>Add notes and assignments</strong> for ward members to follow up</li>
-                                <li><strong>Click "Save Progress"</strong> regularly (auto-saves every 30 seconds)</li>
-                                <li><strong>Export data weekly</strong> and share with ward council via email</li>
-                                <li><strong>Print</strong> before meetings to have physical copies for discussion</li>
-                            </ul>
-                        </div>
-
-                        {/* Missionary Scripture */}
-                        <div className="bg-blue-50 p-6 m-6 rounded-lg border-l-4 border-blue-600">
-                            <h3 className="font-bold text-lg text-blue-900 mb-2">📖 Remember:</h3>
-                            <p className="text-blue-800 italic">
-                                "For behold the field is white already to harvest; and lo, he that thrusteth in his sickle with his might, the same layeth up in store that he perisheth not, but bringeth salvation to his soul" - D&C 4:4
+                        <h1 class="text-3xl md:text-5xl font-bold mb-3 tracking-tight">
+                            Focus 5 Missionary Tracker
+                        </h1>
+                        <p class="text-lg md:text-xl text-indigo-100 mb-4 font-light">
+                            Track your ward's missionary efforts and fellowship activities
+                        </p>
+                        <div class="max-w-3xl mx-auto bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-4">
+                            <p class="text-sm md:text-base italic leading-relaxed">
+                                "And if it so be that you should labor all your days in crying repentance unto this people, 
+                                and bring, save it be one soul unto me, how great shall be your joy with him in the kingdom of my Father!"
                             </p>
+                            <p class="text-xs md:text-sm mt-2 text-indigo-200">— Doctrine & Covenants 18:15</p>
+                        </div>
+                        
+                        <div class="flex flex-wrap justify-center gap-3 no-print">
+                            <button onclick="exportData()" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105 shadow-lg">
+                                📥 Export Data
+                            </button>
+                            <button onclick="importData()" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105 shadow-lg">
+                                📤 Import Data
+                            </button>
+                            <button onclick="printTracker()" class="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:scale-105 shadow-lg">
+                                🖨️ Print
+                            </button>
+                        </div>
+                        
+                        <div class="mt-4 flex items-center justify-center gap-3">
+                            <div class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${db ? 'bg-green-500/20 text-green-100 border border-green-300/30' : 'bg-yellow-500/20 text-yellow-100 border border-yellow-300/30'}">
+                                ${db ? '🔄 Live Sync Active' : '⚠️ Offline Mode'}
+                            </div>
+                            <div id="saveStatus"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderKPIView() {
+            return `
+                <div class="glass-card rounded-2xl shadow-xl p-4 md:p-6 no-print">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <span class="font-semibold text-gray-700 text-sm md:text-base">📊 View:</span>
+                        <button onclick="changeKPIView('thisMonth')" class="${state.kpiView === 'thisMonth' ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} px-4 py-2.5 rounded-xl text-sm font-semibold transition-all transform hover:scale-105">
+                            📅 This Month
+                        </button>
+                        <button onclick="changeKPIView('last3Months')" class="${state.kpiView === 'last3Months' ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} px-4 py-2.5 rounded-xl text-sm font-semibold transition-all transform hover:scale-105">
+                            📊 Last 3 Months
+                        </button>
+                        <button onclick="changeKPIView('yearToDate')" class="${state.kpiView === 'yearToDate' ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} px-4 py-2.5 rounded-xl text-sm font-semibold transition-all transform hover:scale-105">
+                            📈 Year to Date
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderKPIDashboard(kpis) {
+            const viewLabel = {
+                'thisMonth': 'This Month',
+                'last3Months': 'Last 3 Months',
+                'yearToDate': 'Year to Date'
+            }[state.kpiView];
+
+            return `
+                <div class="glass-card rounded-2xl shadow-xl p-6 md:p-8">
+                    <h2 class="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-6">
+                        📊 KPI Dashboard — ${viewLabel}
+                    </h2>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
+                        ${renderKPICard('Total People', kpis.totalPeople, '👥', 'from-blue-500 to-cyan-500')}
+                        ${renderKPICard('Active Focus 5', kpis.activeFocus5, '⭐', 'from-green-500 to-emerald-500')}
+                        ${renderKPICard('Total Activities', kpis.totalActivities, '📈', 'from-purple-500 to-pink-500')}
+                        ${renderKPICard('Engagement', kpis.engagementRate + '%', '🎯', 'from-orange-500 to-red-500')}
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-100">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="text-4xl">🎯</div>
+                                <h3 class="font-bold text-indigo-900 text-lg">Current Investigators</h3>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div class="bg-white/60 backdrop-blur-sm rounded-xl p-4 text-center">
+                                    <div class="text-xs text-gray-600 mb-1">Total Invitations</div>
+                                    <div class="text-3xl font-bold text-indigo-600">${kpis.investigators.totalInvitations}</div>
+                                </div>
+                                <div class="bg-white/60 backdrop-blur-sm rounded-xl p-4 text-center">
+                                    <div class="text-xs text-gray-600 mb-1">Baptisms</div>
+                                    <div class="text-3xl font-bold text-green-600">${kpis.investigators.baptismsCompleted}</div>
+                                </div>
+                                <div class="bg-white/60 backdrop-blur-sm rounded-xl p-4 text-center">
+                                    <div class="text-xs text-gray-600 mb-1">Most Active</div>
+                                    <div class="text-2xl font-bold text-purple-600">${kpis.investigators.mostActiveInvitation}</div>
+                                </div>
+                                <div class="bg-white/60 backdrop-blur-sm rounded-xl p-4 text-center">
+                                    <div class="text-xs text-gray-600 mb-1">Avg/Person</div>
+                                    <div class="text-2xl font-bold text-orange-600">${kpis.investigators.avgPerPerson}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-100">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="text-4xl">💙</div>
+                                <h3 class="font-bold text-blue-900 text-lg">Less Active Members</h3>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div class="bg-white/60 backdrop-blur-sm rounded-xl p-4 text-center">
+                                    <div class="text-xs text-gray-600 mb-1">Total Fellowship</div>
+                                    <div class="text-3xl font-bold text-blue-600">${kpis.lessActive.totalFellowship}</div>
+                                </div>
+                                <div class="bg-white/60 backdrop-blur-sm rounded-xl p-4 text-center">
+                                    <div class="text-xs text-gray-600 mb-1">People Engaged</div>
+                                    <div class="text-3xl font-bold text-cyan-600">${kpis.lessActive.peopleEngaged}</div>
+                                </div>
+                                <div class="bg-white/60 backdrop-blur-sm rounded-xl p-4 text-center">
+                                    <div class="text-xs text-gray-600 mb-1">Most Common</div>
+                                    <div class="text-2xl font-bold text-purple-600">${kpis.lessActive.mostCommonFellowship}</div>
+                                </div>
+                                <div class="bg-white/60 backdrop-blur-sm rounded-xl p-4 text-center">
+                                    <div class="text-xs text-gray-600 mb-1">Avg/Family</div>
+                                    <div class="text-2xl font-bold text-orange-600">${kpis.lessActive.avgPerFamily}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderKPICard(label, value, icon, gradient) {
+            return `
+                <div class="stat-card bg-gradient-to-br ${gradient} rounded-2xl p-6 text-white shadow-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="kpi-icon">${icon}</div>
+                    </div>
+                    <p class="text-sm font-medium opacity-90 mb-1">${label}</p>
+                    <p class="text-4xl font-bold">${value}</p>
+                </div>
+            `;
+        }
+
+        function renderChartsSection(kpis) {
+            return `
+                <div class="glass-card rounded-2xl shadow-xl p-6 md:p-8">
+                    <h2 class="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-6">
+                        📊 Visual Analytics
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-6">
+                            <h3 class="font-bold text-indigo-900 mb-4 text-center">Invitation Types</h3>
+                            <div class="chart-container">
+                                <canvas id="invitationPieChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-6">
+                            <h3 class="font-bold text-blue-900 mb-4 text-center">Fellowship Activities</h3>
+                            <div class="chart-container">
+                                <canvas id="fellowshipPieChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6">
+                            <h3 class="font-bold text-green-900 mb-4 text-center">Progress Overview</h3>
+                            <div class="chart-container">
+                                <canvas id="progressBarChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderLegends() {
+            return `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="glass-card rounded-2xl shadow-xl p-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="text-3xl">🎯</div>
+                            <h3 class="font-bold text-indigo-900 text-lg">Invitations Extended</h3>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 text-xs md:text-sm">
+                            ${Object.entries(INVITATION_TYPES).map(([code, label]) => `
+                                <div class="flex items-center gap-2 bg-gradient-to-r from-indigo-50 to-purple-50 px-3 py-2 rounded-lg">
+                                    <span class="font-bold text-indigo-700 bg-white px-2 py-1 rounded">${code}</span>
+                                    <span class="text-gray-700">${label}</span>
+                                </div>
+                            `).join('')}
                         </div>
                     </div>
 
-                    {/* Indicator Popup */}
-                    {showPopup && (
-                        <div
-                            ref={popupRef}
-                            className="indicator-popup"
-                            style={{
-                                left: `${showPopup.x}px`,
-                                top: `${showPopup.y + 5}px`
-                            }}
-                        >
-                            <div className="text-sm font-bold text-gray-700 mb-3">
-                                Select Activities for {showPopup.month}:
-                            </div>
-                            <div className="space-y-2">
-                                {showPopup.indicators.map(indicator => {
-                                    const person = showPopup.list.find(p => p.id === showPopup.personId);
-                                    const isActive = (person.months[showPopup.month] || []).includes(indicator.id);
-                                    
-                                    return (
-                                        <button
-                                            key={indicator.id}
-                                            onClick={() => toggleIndicator(
-                                                showPopup.list,
-                                                showPopup.setList,
-                                                showPopup.personId,
-                                                showPopup.month,
-                                                indicator.id
-                                            )}
-                                            className={`indicator-btn w-full ${indicator.color} ${isActive ? 'opacity-100 ring-2 ring-offset-2 ring-blue-500' : 'opacity-60'} text-white px-3 py-2 rounded text-sm font-semibold text-left flex items-center justify-between`}
-                                        >
-                                            <span>{indicator.label}</span>
-                                            <span className="font-bold">{indicator.id}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                    <div class="glass-card rounded-2xl shadow-xl p-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="text-3xl">💙</div>
+                            <h3 class="font-bold text-blue-900 text-lg">Fellowship Activities</h3>
                         </div>
-                    )}
+                        <div class="grid grid-cols-2 gap-3 text-xs md:text-sm">
+                            ${Object.entries(FELLOWSHIP_TYPES).map(([code, label]) => `
+                                <div class="flex items-center gap-2 bg-gradient-to-r from-blue-50 to-cyan-50 px-3 py-2 rounded-lg">
+                                    <span class="font-bold text-blue-700 bg-white px-2 py-1 rounded">${code}</span>
+                                    <span class="text-gray-700">${label}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
                 </div>
-            );
+            `;
         }
 
-        ReactDOM.render(<Focus5Tracker />, document.getElementById('root'));
+        function renderInvestigatorsSection() {
+            return `
+                <div class="glass-card rounded-2xl shadow-xl p-6 md:p-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="text-3xl">🎯</div>
+                            <h2 class="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                                Current Investigators
+                            </h2>
+                        </div>
+                        <button onclick="addInvestigator()" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all transform hover:scale-105 shadow-lg no-print">
+                            + Add Investigator
+                        </button>
+                    </div>
+                    
+                    <div class="overflow-x-auto rounded-xl">
+                        <table class="w-full text-xs md:text-sm">
+                            <thead>
+                                <tr>
+                                    <th class="p-3 text-left rounded-tl-xl">Name</th>
+                                    <th class="p-3 text-left">Assigned To</th>
+                                    ${MONTHS.map(month => `<th class="p-2 text-center">${month}</th>`).join('')}
+                                    <th class="p-3 text-left">Notes</th>
+                                    <th class="p-3 rounded-tr-xl no-print"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white">
+                                ${state.investigators.length === 0 ? `
+                                    <tr><td colspan="15" class="text-center py-12 text-gray-400">
+                                        <div class="text-6xl mb-4">📝</div>
+                                        <div>No investigators yet. Click "+ Add Investigator" to get started.</div>
+                                    </td></tr>
+                                ` : state.investigators.map(inv => renderInvestigatorRow(inv)).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderInvestigatorRow(inv) {
+            const hasBaptism = inv.monthlyData.some(month => month.includes('BC'));
+            
+            return `
+                <tr class="border-b border-gray-100 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-purple-50 transition-all">
+                    <td class="p-3">
+                        <input type="text" value="${inv.name}" 
+                            onchange="updateField('investigator', ${inv.id}, 'name', this.value)"
+                            placeholder="Enter name..."
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-indigo-500 transition-all">
+                    </td>
+                    <td class="p-3">
+                        <input type="text" value="${inv.assignedTo}" 
+                            onchange="updateField('investigator', ${inv.id}, 'assignedTo', this.value)"
+                            placeholder="Assigned to..."
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-indigo-500 transition-all">
+                    </td>
+                    ${inv.monthlyData.map((activities, monthIndex) => `
+                        <td class="p-2 text-center month-cell" onclick="showActivityModal('investigator', ${inv.id}, ${monthIndex})">
+                            ${activities.length > 0 ? activities.map(code => `
+                                <span class="activity-badge bg-gradient-to-r from-indigo-500 to-purple-500 text-white">${code}</span>
+                            `).join('') : '<span class="text-gray-300">+</span>'}
+                        </td>
+                    `).join('')}
+                    <td class="p-3">
+                        <input type="text" value="${inv.notes}" 
+                            onchange="updateField('investigator', ${inv.id}, 'notes', this.value)"
+                            placeholder="Add notes..."
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:border-indigo-500 transition-all">
+                    </td>
+                    <td class="p-3 no-print">
+                        <button onclick="deleteItem('investigator', ${inv.id})" 
+                            class="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg p-2 transition-all">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+                ${hasBaptism ? renderCovenantPathRow(inv) : ''}
+            `;
+        }
+
+        function renderCovenantPathRow(inv) {
+            return `
+                <tr class="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
+                    <td colspan="15" class="p-6">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="text-2xl">📖</div>
+                            <div class="font-bold text-green-900">Covenant Path Progress for ${inv.name}</div>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                            ${[
+                                { key: 'confirmation', label: 'Confirmation', icon: '✋' },
+                                { key: 'holyGhost', label: 'Holy Ghost Gift', icon: '🕊️' },
+                                { key: 'sacrament', label: 'Sacrament', icon: '🍞' },
+                                { key: 'priesthood', label: 'Priesthood', icon: '👔' },
+                                { key: 'temple', label: 'Temple', icon: '🏛️' },
+                                { key: 'calling', label: 'Calling', icon: '📞' }
+                            ].map(item => `
+                                <label class="flex items-center gap-3 cursor-pointer bg-white/60 backdrop-blur-sm rounded-xl p-3 hover:bg-white transition-all">
+                                    <input type="checkbox" ${inv.covenantPath[item.key] ? 'checked' : ''}
+                                        onchange="updateField('investigator', ${inv.id}, 'covenant_${item.key}', this.checked)"
+                                        class="w-5 h-5 text-green-600 rounded focus:ring-2 focus:ring-green-500">
+                                    <div>
+                                        <div class="text-xl">${item.icon}</div>
+                                        <div class="text-xs font-medium text-gray-700">${item.label}</div>
+                                    </div>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function renderLessActiveSection() {
+            return `
+                <div class="glass-card rounded-2xl shadow-xl p-6 md:p-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <div class="flex items-center gap-3">
+                            <div class="text-3xl">💙</div>
+                            <h2 class="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                                Less Active / Part Member Families
+                            </h2>
+                        </div>
+                        <button onclick="addLessActive()" class="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all transform hover:scale-105 shadow-lg no-print">
+                            + Add Family
+                        </button>
+                    </div>
+                    
+                    <div class="overflow-x-auto rounded-xl">
+                        <table class="w-full text-xs md:text-sm">
+                            <thead>
+                                <tr>
+                                    <th class="p-3 text-left rounded-tl-xl">Name</th>
+                                    <th class="p-3 text-left">Assigned To</th>
+                                    ${MONTHS.map(month => `<th class="p-2 text-center">${month}</th>`).join('')}
+                                    <th class="p-3 text-left">Notes</th>
+                                    <th class="p-3 rounded-tr-xl no-print"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white">
+                                ${state.lessActive.length === 0 ? `
+                                    <tr><td colspan="15" class="text-center py-12 text-gray-400">
+                                        <div class="text-6xl mb-4">💙</div>
+                                        <div>No families yet. Click "+ Add Family" to get started.</div>
+                                    </td></tr>
+                                ` : state.lessActive.map(person => renderLessActiveRow(person)).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderLessActiveRow(person) {
+            return `
+                <tr class="border-b border-gray-100 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 transition-all">
+                    <td class="p-3">
+                        <input type="text" value="${person.name}" 
+                            onchange="updateField('lessActive', ${person.id}, 'name', this.value)"
+                            placeholder="Enter name..."
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 transition-all">
+                    </td>
+                    <td class="p-3">
+                        <input type="text" value="${person.assignedTo}" 
+                            onchange="updateField('lessActive', ${person.id}, 'assignedTo', this.value)"
+                            placeholder="Assigned to..."
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 transition-all">
+                    </td>
+                    ${person.monthlyData.map((activities, monthIndex) => `
+                        <td class="p-2 text-center month-cell" onclick="showActivityModal('lessActive', ${person.id}, ${monthIndex})">
+                            ${activities.length > 0 ? activities.map(code => `
+                                <span class="activity-badge bg-gradient-to-r from-blue-500 to-cyan-500 text-white">${code}</span>
+                            `).join('') : '<span class="text-gray-300">+</span>'}
+                        </td>
+                    `).join('')}
+                    <td class="p-3">
+                        <input type="text" value="${person.notes}" 
+                            onchange="updateField('lessActive', ${person.id}, 'notes', this.value)"
+                            placeholder="Add notes..."
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:border-blue-500 transition-all">
+                    </td>
+                    <td class="p-3 no-print">
+                        <button onclick="deleteItem('lessActive', ${person.id})" 
+                            class="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg p-2 transition-all">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function renderInstructions() {
+            return `
+                <div class="glass-card rounded-2xl shadow-xl p-6 md:p-8 no-print">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="text-3xl">💡</div>
+                        <h3 class="font-bold text-indigo-900 text-xl">How to Use This Tracker</h3>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 gap-4 mb-6">
+                        ${[
+                            { icon: '📝', text: 'Enter names of investigators or less-active members' },
+                            { icon: '📅', text: 'Click month cells to mark activities and invitations' },
+                            { icon: '✅', text: 'Mark BC (Baptism) to unlock Covenant Path tracking' },
+                            { icon: '📊', text: 'Switch KPI views to analyze different time periods' },
+                            { icon: '💾', text: 'Changes auto-save every second - no manual saving needed!' },
+                            { icon: '📤', text: 'Export data weekly to backup and share with leadership' }
+                        ].map(item => `
+                            <div class="flex items-start gap-3 bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl">
+                                <div class="text-2xl">${item.icon}</div>
+                                <p class="text-sm text-gray-700 pt-1">${item.text}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 rounded-2xl">
+                        <div class="flex items-start gap-3 mb-2">
+                            <div class="text-2xl">📖</div>
+                            <p class="font-bold text-lg">Remember:</p>
+                        </div>
+                        <p class="text-sm italic leading-relaxed pl-11">
+                            "For behold the field is white already to harvest; and lo, he that thrusteth in his sickle with his might, 
+                            the same layeth up in store that he perisheth not, but bringeth salvation to his soul"
+                        </p>
+                        <p class="text-xs mt-2 pl-11 text-indigo-200">— Doctrine & Covenants 4:4</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ===== CHARTS RENDERING =====
+        function renderCharts(kpis) {
+            setTimeout(() => {
+                const invCtx = document.getElementById('invitationPieChart');
+                if (invCtx && Object.keys(kpis.investigators.breakdown).length > 0) {
+                    new Chart(invCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: Object.keys(kpis.investigators.breakdown),
+                            datasets: [{
+                                data: Object.values(kpis.investigators.breakdown),
+                                backgroundColor: [
+                                    '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b',
+                                    '#10b981', '#3b82f6', '#ef4444', '#14b8a6'
+                                ],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'bottom', labels: { padding: 15, font: { size: 11 } } }
+                            }
+                        }
+                    });
+                }
+
+                const felCtx = document.getElementById('fellowshipPieChart');
+                if (felCtx && Object.keys(kpis.lessActive.breakdown).length > 0) {
+                    new Chart(felCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: Object.keys(kpis.lessActive.breakdown),
+                            datasets: [{
+                                data: Object.values(kpis.lessActive.breakdown),
+                                backgroundColor: [
+                                    '#3b82f6', '#06b6d4', '#10b981', '#f59e0b',
+                                    '#ec4899', '#8b5cf6', '#ef4444', '#14b8a6'
+                                ],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'bottom', labels: { padding: 15, font: { size: 11 } } }
+                            }
+                        }
+                    });
+                }
+
+                const progCtx = document.getElementById('progressBarChart');
+                if (progCtx) {
+                    new Chart(progCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ['Investigators', 'Less Active', 'Total Activities'],
+                            datasets: [{
+                                label: 'Count',
+                                data: [
+                                    state.investigators.length,
+                                    state.lessActive.length,
+                                    kpis.totalActivities
+                                ],
+                                backgroundColor: [
+                                    'rgba(99, 102, 241, 0.8)',
+                                    'rgba(59, 130, 246, 0.8)',
+                                    'rgba(16, 185, 129, 0.8)'
+                                ],
+                                borderRadius: 8,
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                                },
+                                x: {
+                                    grid: { display: false }
+                                }
+                            }
+                        }
+                    });
+                }
+            }, 100);
+        }
+
+        // ===== ACTIVITY MODAL =====
+        function showActivityModal(type, id, monthIndex) {
+            const list = type === 'investigator' ? state.investigators : state.lessActive;
+            const item = list.find(i => i.id === id);
+            const activities = item.monthlyData[monthIndex];
+            const activityTypes = type === 'investigator' ? INVITATION_TYPES : FELLOWSHIP_TYPES;
+            
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4';
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+            
+            modal.innerHTML = `
+                <div class="glass-card rounded-2xl p-8 max-w-md w-full max-h-[80vh] overflow-y-auto shadow-2xl">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="text-3xl">${type === 'investigator' ? '🎯' : '💙'}</div>
+                        <div>
+                            <h3 class="font-bold text-xl text-gray-900">${MONTHS[monthIndex]}</h3>
+                            <p class="text-sm text-gray-600">${item.name}</p>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        ${Object.entries(activityTypes).map(([code, label]) => `
+                            <label class="flex items-center gap-4 p-4 hover:bg-gradient-to-r ${type === 'investigator' ? 'from-indigo-50 to-purple-50' : 'from-blue-50 to-cyan-50'} rounded-xl cursor-pointer transition-all">
+                                <input type="checkbox" 
+                                    ${activities.includes(code) ? 'checked' : ''}
+                                    onchange="toggleActivity('${type}', ${id}, ${monthIndex}, '${code}'); this.closest('.fixed').remove();"
+                                    class="w-6 h-6 text-${type === 'investigator' ? 'indigo' : 'blue'}-600 rounded-lg focus:ring-2 focus:ring-${type === 'investigator' ? 'indigo' : 'blue'}-500">
+                                <div class="flex-1">
+                                    <span class="font-bold text-${type === 'investigator' ? 'indigo' : 'blue'}-700 bg-white px-3 py-1 rounded-lg text-sm">${code}</span>
+                                    <span class="text-gray-700 ml-2">${label}</span>
+                                </div>
+                            </label>
+                        `).join('')}
+                    </div>
+                    <button onclick="this.closest('.fixed').remove()" 
+                        class="mt-6 w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg">
+                        Close
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        // ===== EXPOSE TO WINDOW =====
+        window.addInvestigator = addInvestigator;
+        window.addLessActive = addLessActive;
+        window.updateField = updateField;
+        window.toggleActivity = toggleActivity;
+        window.deleteItem = deleteItem;
+        window.changeKPIView = changeKPIView;
+        window.exportData = exportData;
+        window.importData = importData;
+        window.printTracker = printTracker;
+        window.showActivityModal = showActivityModal;
+
+        // ===== INITIALIZE =====
+        loadFromFirebase();
     </script>
 </body>
 </html>
+
+           
