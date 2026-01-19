@@ -24,7 +24,6 @@
             min-width: 45px;
             cursor: pointer;
             transition: all 0.15s ease;
-            position: relative;
         }
         
         .month-cell:hover {
@@ -46,7 +45,6 @@
             font-size: 9px;
             font-weight: 600;
             letter-spacing: 0.3px;
-            backdrop-filter: blur(10px);
         }
         
         .glass-card {
@@ -88,9 +86,8 @@
         
         input:focus {
             outline: none;
-            ring: 2px;
-            ring-color: #667eea;
             border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
         
         table {
@@ -115,10 +112,31 @@
             font-size: 2.5rem;
             filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
         }
+        
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 min-h-screen p-2 md:p-6">
-    <div id="root"></div>
+    <div id="root">
+        <!-- Loading state -->
+        <div class="flex items-center justify-center min-h-screen">
+            <div class="text-center">
+                <div class="spinner mx-auto mb-4" style="border-color: #667eea; border-top-color: transparent;"></div>
+                <p class="text-gray-600">Loading Focus 5 Tracker...</p>
+            </div>
+        </div>
+    </div>
     
     <!-- Auto-save indicator -->
     <div id="autoSaveIndicator" class="auto-save-indicator no-print"></div>
@@ -139,6 +157,8 @@
         // Initialize Firebase
         let db = null;
         let saveTimeout = null;
+        let isInitialLoad = true;
+        
         try {
             firebase.initializeApp(firebaseConfig);
             db = firebase.database();
@@ -176,7 +196,8 @@
             kpiView: 'thisMonth',
             customDateRange: { start: '', end: '' },
             lastSaved: null,
-            isSaving: false
+            isSaving: false,
+            isLoaded: false
         };
 
         // ===== AUTO-SAVE WITH DEBOUNCE =====
@@ -185,7 +206,7 @@
             
             saveTimeout = setTimeout(() => {
                 syncToFirebase();
-            }, 1000); // Save 1 second after last change
+            }, 1000);
         }
 
         function showSaveIndicator(status) {
@@ -203,7 +224,7 @@
                 indicator.innerHTML = `
                     <div class="glass-card px-4 py-2 rounded-full flex items-center gap-2 shadow-lg">
                         <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span class="text-sm font-medium text-gray-700">All changes saved</span>
+                        <span class="text-sm font-medium text-gray-700">Saved</span>
                     </div>
                 `;
                 setTimeout(() => {
@@ -254,20 +275,37 @@
                 return;
             }
 
-            db.ref('focus5data').on('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    state.investigators = data.investigators || [];
-                    state.lessActive = data.lessActive || [];
-                    state.kpiView = data.kpiView || 'thisMonth';
-                    state.customDateRange = data.customDateRange || { start: '', end: '' };
-                    state.lastSaved = data.lastSaved;
+            db.ref('focus5data').once('value')
+                .then((snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        state.investigators = data.investigators || [];
+                        state.lessActive = data.lessActive || [];
+                        state.kpiView = data.kpiView || 'thisMonth';
+                        state.customDateRange = data.customDateRange || { start: '', end: '' };
+                        state.lastSaved = data.lastSaved;
+                    }
+                    state.isLoaded = true;
                     render();
-                }
-            }, (error) => {
-                console.error("Firebase load error:", error);
-                loadFromLocalStorage();
-            });
+                    
+                    // Now listen for real-time updates
+                    db.ref('focus5data').on('value', (snapshot) => {
+                        const data = snapshot.val();
+                        if (data && !isInitialLoad) {
+                            state.investigators = data.investigators || [];
+                            state.lessActive = data.lessActive || [];
+                            state.kpiView = data.kpiView || 'thisMonth';
+                            state.customDateRange = data.customDateRange || { start: '', end: '' };
+                            state.lastSaved = data.lastSaved;
+                            render();
+                        }
+                        isInitialLoad = false;
+                    });
+                })
+                .catch(error => {
+                    console.error("Firebase load error:", error);
+                    loadFromLocalStorage();
+                });
         }
 
         function syncToLocalStorage() {
@@ -294,6 +332,7 @@
                 state.customDateRange = data.customDateRange || { start: '', end: '' };
                 state.lastSaved = data.lastSaved;
             }
+            state.isLoaded = true;
             render();
         }
 
@@ -541,6 +580,8 @@
 
         // ===== RENDER FUNCTIONS =====
         function render() {
+            if (!state.isLoaded) return; // Don't render until loaded
+            
             const kpis = calculateKPIs();
             
             document.getElementById('root').innerHTML = `
@@ -809,7 +850,8 @@
                                 ${state.investigators.length === 0 ? `
                                     <tr><td colspan="15" class="text-center py-12 text-gray-400">
                                         <div class="text-6xl mb-4">📝</div>
-                                        <div>No investigators yet. Click "+ Add Investigator" to get started.</div>
+                                        <div class="text-lg font-medium text-gray-600 mb-2">No investigators yet</div>
+                                        <div class="text-sm">Click "+ Add Investigator" to get started</div>
                                     </td></tr>
                                 ` : state.investigators.map(inv => renderInvestigatorRow(inv)).join('')}
                             </tbody>
@@ -840,7 +882,7 @@
                         <td class="p-2 text-center month-cell" onclick="showActivityModal('investigator', ${inv.id}, ${monthIndex})">
                             ${activities.length > 0 ? activities.map(code => `
                                 <span class="activity-badge bg-gradient-to-r from-indigo-500 to-purple-500 text-white">${code}</span>
-                            `).join('') : '<span class="text-gray-300">+</span>'}
+                            `).join('') : '<span class="text-gray-300 text-2xl">+</span>'}
                         </td>
                     `).join('')}
                     <td class="p-3">
@@ -925,7 +967,8 @@
                                 ${state.lessActive.length === 0 ? `
                                     <tr><td colspan="15" class="text-center py-12 text-gray-400">
                                         <div class="text-6xl mb-4">💙</div>
-                                        <div>No families yet. Click "+ Add Family" to get started.</div>
+                                        <div class="text-lg font-medium text-gray-600 mb-2">No families yet</div>
+                                        <div class="text-sm">Click "+ Add Family" to get started</div>
                                     </td></tr>
                                 ` : state.lessActive.map(person => renderLessActiveRow(person)).join('')}
                             </tbody>
@@ -954,7 +997,7 @@
                         <td class="p-2 text-center month-cell" onclick="showActivityModal('lessActive', ${person.id}, ${monthIndex})">
                             ${activities.length > 0 ? activities.map(code => `
                                 <span class="activity-badge bg-gradient-to-r from-blue-500 to-cyan-500 text-white">${code}</span>
-                            `).join('') : '<span class="text-gray-300">+</span>'}
+                            `).join('') : '<span class="text-gray-300 text-2xl">+</span>'}
                         </td>
                     `).join('')}
                     <td class="p-3">
@@ -1129,7 +1172,7 @@
                         <div class="text-3xl">${type === 'investigator' ? '🎯' : '💙'}</div>
                         <div>
                             <h3 class="font-bold text-xl text-gray-900">${MONTHS[monthIndex]}</h3>
-                            <p class="text-sm text-gray-600">${item.name}</p>
+                            <p class="text-sm text-gray-600">${item.name || 'New Entry'}</p>
                         </div>
                     </div>
                     <div class="space-y-2">
@@ -1173,5 +1216,3 @@
     </script>
 </body>
 </html>
-
-           
