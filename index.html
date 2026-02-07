@@ -105,6 +105,23 @@
             let saveTimeout = null;
             let chartInstances = {};
 
+            // Time conversion helpers
+            function to24Hour(hour, minute, ampm) {
+                if (!hour || !minute) return '';
+                let h = parseInt(hour);
+                if (ampm === 'PM' && h !== 12) h += 12;
+                if (ampm === 'AM' && h === 12) h = 0;
+                return `${String(h).padStart(2, '0')}:${minute}`;
+            }
+
+            function from24Hour(time24) {
+                if (!time24) return { hour: '', minute: '', ampm: 'AM' };
+                const [hours, minutes] = time24.split(':').map(Number);
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                const hour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+                return { hour: String(hour), minute: String(minutes).padStart(2, '0'), ampm };
+            }
+
             function fixData(item) {
                 if (!item.monthlyData || !Array.isArray(item.monthlyData)) {
                     item.monthlyData = Array(12).fill().map(() => []);
@@ -272,11 +289,65 @@
                             <div class="grid md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-semibold mb-2">Start Time</label>
-                                    <input id="eventStartTime" type="time" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none">
+                                    <div class="flex gap-2">
+                                        <select id="eventStartHour" class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none">
+                                            <option value="">Hour</option>
+                                            <option value="12">12</option>
+                                            <option value="1">1</option>
+                                            <option value="2">2</option>
+                                            <option value="3">3</option>
+                                            <option value="4">4</option>
+                                            <option value="5">5</option>
+                                            <option value="6">6</option>
+                                            <option value="7">7</option>
+                                            <option value="8">8</option>
+                                            <option value="9">9</option>
+                                            <option value="10">10</option>
+                                            <option value="11">11</option>
+                                        </select>
+                                        <select id="eventStartMinute" class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none">
+                                            <option value="">Min</option>
+                                            <option value="00">00</option>
+                                            <option value="15">15</option>
+                                            <option value="30">30</option>
+                                            <option value="45">45</option>
+                                        </select>
+                                        <select id="eventStartAMPM" class="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none">
+                                            <option value="AM">AM</option>
+                                            <option value="PM">PM</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-semibold mb-2">End Time</label>
-                                    <input id="eventEndTime" type="time" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none">
+                                    <div class="flex gap-2">
+                                        <select id="eventEndHour" class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none">
+                                            <option value="">Hour</option>
+                                            <option value="12">12</option>
+                                            <option value="1">1</option>
+                                            <option value="2">2</option>
+                                            <option value="3">3</option>
+                                            <option value="4">4</option>
+                                            <option value="5">5</option>
+                                            <option value="6">6</option>
+                                            <option value="7">7</option>
+                                            <option value="8">8</option>
+                                            <option value="9">9</option>
+                                            <option value="10">10</option>
+                                            <option value="11">11</option>
+                                        </select>
+                                        <select id="eventEndMinute" class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none">
+                                            <option value="">Min</option>
+                                            <option value="00">00</option>
+                                            <option value="15">15</option>
+                                            <option value="30">30</option>
+                                            <option value="45">45</option>
+                                        </select>
+                                        <select id="eventEndAMPM" class="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none">
+                                            <option value="AM">AM</option>
+                                            <option value="PM">PM</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                             <div>
@@ -324,8 +395,16 @@
             window.saveNewEvent = function() {
                 const name = document.getElementById('eventName').value.trim();
                 const date = document.getElementById('eventDate').value;
-                const startTime = document.getElementById('eventStartTime').value;
-                const endTime = document.getElementById('eventEndTime').value;
+                const startHour = document.getElementById('eventStartHour').value;
+                const startMinute = document.getElementById('eventStartMinute').value;
+                const startAMPM = document.getElementById('eventStartAMPM').value;
+                const endHour = document.getElementById('eventEndHour').value;
+                const endMinute = document.getElementById('eventEndMinute').value;
+                const endAMPM = document.getElementById('eventEndAMPM').value;
+                
+                const startTime = to24Hour(startHour, startMinute, startAMPM);
+                const endTime = to24Hour(endHour, endMinute, endAMPM);
+                
                 const location = document.getElementById('eventLocation').value.trim();
                 const level = document.getElementById('eventLevel').value;
                 const type = document.getElementById('eventType').value;
@@ -380,11 +459,37 @@
                             <div class="grid md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-semibold mb-2">Start Time</label>
-                                    <input id="editEventStartTime" type="time" value="${event.startTime || ''}" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none">
+                                    <div class="flex gap-2">
+                                        <select id="editEventStartHour" class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none">
+                                            <option value="">Hour</option>
+                                            ${[12,1,2,3,4,5,6,7,8,9,10,11].map(h => `<option value="${h}">${h}</option>`).join('')}
+                                        </select>
+                                        <select id="editEventStartMinute" class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none">
+                                            <option value="">Min</option>
+                                            ${['00','15','30','45'].map(m => `<option value="${m}">${m}</option>`).join('')}
+                                        </select>
+                                        <select id="editEventStartAMPM" class="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none">
+                                            <option value="AM">AM</option>
+                                            <option value="PM">PM</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-semibold mb-2">End Time</label>
-                                    <input id="editEventEndTime" type="time" value="${event.endTime || ''}" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none">
+                                    <div class="flex gap-2">
+                                        <select id="editEventEndHour" class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none">
+                                            <option value="">Hour</option>
+                                            ${[12,1,2,3,4,5,6,7,8,9,10,11].map(h => `<option value="${h}">${h}</option>`).join('')}
+                                        </select>
+                                        <select id="editEventEndMinute" class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none">
+                                            <option value="">Min</option>
+                                            ${['00','15','30','45'].map(m => `<option value="${m}">${m}</option>`).join('')}
+                                        </select>
+                                        <select id="editEventEndAMPM" class="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:outline-none">
+                                            <option value="AM">AM</option>
+                                            <option value="PM">PM</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                             <div>
@@ -425,13 +530,35 @@
                     </div>
                 `;
                 document.body.appendChild(modal);
+
+                // Pre-populate time dropdowns
+                if (event.startTime) {
+                    const start = from24Hour(event.startTime);
+                    document.getElementById('editEventStartHour').value = start.hour;
+                    document.getElementById('editEventStartMinute').value = start.minute;
+                    document.getElementById('editEventStartAMPM').value = start.ampm;
+                }
+                if (event.endTime) {
+                    const end = from24Hour(event.endTime);
+                    document.getElementById('editEventEndHour').value = end.hour;
+                    document.getElementById('editEventEndMinute').value = end.minute;
+                    document.getElementById('editEventEndAMPM').value = end.ampm;
+                }
             };
 
             window.updateEvent = function(eventId) {
                 const name = document.getElementById('editEventName').value.trim();
                 const date = document.getElementById('editEventDate').value;
-                const startTime = document.getElementById('editEventStartTime').value;
-                const endTime = document.getElementById('editEventEndTime').value;
+                const startHour = document.getElementById('editEventStartHour').value;
+                const startMinute = document.getElementById('editEventStartMinute').value;
+                const startAMPM = document.getElementById('editEventStartAMPM').value;
+                const endHour = document.getElementById('editEventEndHour').value;
+                const endMinute = document.getElementById('editEventEndMinute').value;
+                const endAMPM = document.getElementById('editEventEndAMPM').value;
+                
+                const startTime = to24Hour(startHour, startMinute, startAMPM);
+                const endTime = to24Hour(endHour, endMinute, endAMPM);
+                
                 const location = document.getElementById('editEventLocation').value.trim();
                 const level = document.getElementById('editEventLevel').value;
                 const type = document.getElementById('editEventType').value;
@@ -671,7 +798,15 @@
                             <div class="space-y-1">
                                 ${dayEvents.map(event => {
                                     const emoji = event.type.split(' ')[0];
-                                    const timeDisplay = event.startTime && event.endTime ? `${event.startTime.slice(0,5)}-${event.endTime.slice(0,5)}` : event.startTime ? event.startTime.slice(0,5) : '';
+                                    let timeDisplay = '';
+                                    if (event.startTime && event.endTime) {
+                                        const start = from24Hour(event.startTime);
+                                        const end = from24Hour(event.endTime);
+                                        timeDisplay = `${start.hour}:${start.minute}${start.ampm}-${end.hour}:${end.minute}${end.ampm}`;
+                                    } else if (event.startTime) {
+                                        const start = from24Hour(event.startTime);
+                                        timeDisplay = `${start.hour}:${start.minute} ${start.ampm}`;
+                                    }
                                     const bgColor = event.level === 'Stake' ? 'bg-purple-100 hover:bg-purple-200' : 'bg-indigo-100 hover:bg-indigo-200';
                                     return `
                                         <div onclick="editEvent('${event.id}')" class="text-xs p-1 ${bgColor} rounded cursor-pointer truncate" title="${event.name}">
@@ -721,7 +856,17 @@
                         const eventDate = new Date(event.date);
                         const daysUntil = Math.ceil((eventDate - today) / (1000 * 60 * 60 * 24));
                         const isSoon = daysUntil <= 7;
-                        const timeRange = event.startTime && event.endTime ? `${event.startTime} - ${event.endTime}` : event.startTime ? `at ${event.startTime}` : '';
+                        
+                        let timeRange = '';
+                        if (event.startTime && event.endTime) {
+                            const start = from24Hour(event.startTime);
+                            const end = from24Hour(event.endTime);
+                            timeRange = `${start.hour}:${start.minute} ${start.ampm} - ${end.hour}:${end.minute} ${end.ampm}`;
+                        } else if (event.startTime) {
+                            const start = from24Hour(event.startTime);
+                            timeRange = `at ${start.hour}:${start.minute} ${start.ampm}`;
+                        }
+                        
                         const levelBadge = event.level === 'Stake' ? '<span class="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-semibold">⛪ Stake</span>' : '<span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-semibold">🏘️ Ward</span>';
                         
                         html += `
@@ -753,7 +898,15 @@
                 if (pastEvents.length > 0) {
                     html += '<div><h3 class="text-xl font-bold text-gray-600 mb-4">📜 Past Events</h3><div class="space-y-3">';
                     pastEvents.slice(0, 10).forEach(event => {
-                        const timeRange = event.startTime && event.endTime ? `${event.startTime}-${event.endTime}` : event.startTime ? `${event.startTime}` : '';
+                        let timeRange = '';
+                        if (event.startTime && event.endTime) {
+                            const start = from24Hour(event.startTime);
+                            const end = from24Hour(event.endTime);
+                            timeRange = `${start.hour}:${start.minute}${start.ampm}-${end.hour}:${end.minute}${end.ampm}`;
+                        } else if (event.startTime) {
+                            const start = from24Hour(event.startTime);
+                            timeRange = `${start.hour}:${start.minute} ${start.ampm}`;
+                        }
                         const levelIcon = event.level === 'Stake' ? '⛪' : '🏘️';
                         html += `
                             <div class="event-card past bg-white rounded-xl p-4 cursor-pointer hover:shadow-lg" onclick="editEvent('${event.id}')">
@@ -948,7 +1101,7 @@
                                                 ${person.monthlyData.map((activities, monthIndex) => `<td class="p-2 text-center month-cell" onclick="showActivityModal('lessActive', ${person.id}, ${monthIndex})">${activities && activities.length > 0 ? activities.map(code => `<span class="activity-badge bg-gradient-to-r from-blue-500 to-cyan-500 text-white">${code}</span>`).join('') : '<span class="text-gray-300 text-2xl">+</span>'}</td>`).join('')}
                                                 <td class="p-3"><input value="${person.notes || ''}" onchange="updateField('lessActive', ${person.id}, 'notes', this.value)" placeholder="Notes" class="w-full px-3 py-2 border rounded-lg text-xs"></td>
                                                 <td class="p-3 no-print"><button onclick="deleteItem('lessActive', ${person.id})" class="text-red-500 hover:text-red-700 p-2">×</button></td>
-                                            </tr>
+                            </tr>
                                         `).join('')}
                                     </tbody>
                                 </table>
@@ -979,7 +1132,7 @@
                 renderCharts(kpis);
             }
 
-            console.log('✅ App ready with Events Calendar');
+            console.log('✅ App ready with 12-hour time format');
         });
     </script>
 </body>
