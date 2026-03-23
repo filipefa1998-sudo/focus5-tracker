@@ -663,62 +663,42 @@
 
                     <div class="relative z-10 p-3 md:p-6">
                         <div class="max-w-7xl mx-auto">
-                            <!-- Header -->
-                            <div class="mb-6 md:mb-8">
-                                <div class="bg-white/80 backdrop-blur-lg rounded-2xl md:rounded-3xl shadow-2xl p-4 md:p-8 overflow-hidden hover-lift border border-white/40">
-                                    <div class="relative z-10">
-                                        <div class="flex items-center justify-between mb-4 md:mb-6 flex-wrap gap-3 md:gap-4">
-                                            <div class="flex items-center gap-2 md:gap-4">
-                                                <div class="text-4xl md:text-7xl">📖</div>
-                                                <div>
-                                                    <h1 class="text-2xl md:text-5xl font-black text-amber-900/90 mb-1 md:mb-2 tracking-tight">Focus 5 Tracker</h1>
-                                                    <p class="text-sm md:text-xl text-amber-700/80 font-semibold">⛪ Riverton 24th Ward</p>
-                                                </div>
-                                            </div>
-                                            <div class="flex gap-2 md:gap-3 flex-wrap w-full md:w-auto">
-                                                <button onclick="saveToFirebase()" class="flex items-center gap-2 px-4 md:px-8 py-2 md:py-4 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-xl md:rounded-2xl hover:from-amber-700 hover:to-amber-800 transition-all shadow-xl font-bold text-sm md:text-lg hover-lift flex-1 md:flex-none justify-center">
-                                                    💾 <span class="hidden sm:inline">Save</span>
-                                                </button>
-                                                <button onclick="showBackgroundImageModal()" class="flex items-center gap-1 px-3 md:px-6 py-2 md:py-4 bg-amber-100/80 text-amber-800 rounded-xl md:rounded-2xl hover:bg-amber-200 transition-all shadow-lg hover-lift border border-amber-300/50" title="Background">
-                                                    🖼️
-                                                </button>
-                                                <button onclick="exportData()" class="flex items-center gap-1 px-3 md:px-6 py-2 md:py-4 bg-amber-100/80 text-amber-800 rounded-xl md:rounded-2xl hover:bg-amber-200 transition-all shadow-lg hover-lift border border-amber-300/50">
-                                                    📥
-                                                </button>
-                                                <label class="flex items-center gap-1 px-3 md:px-6 py-2 md:py-4 bg-amber-100/80 text-amber-800 rounded-xl md:rounded-2xl hover:bg-amber-200 transition-all cursor-pointer shadow-lg hover-lift border border-amber-300/50">
-                                                    📤
-                                                    <input type="file" accept=".json" onchange="importData(event)" class="hidden" />
-                                                </label>
-                                            </div>
+                            <!-- Tabs -->
+                            <div class="flex gap-2 md:gap-4 mb-4 md:mb-6 flex-wrap items-center justify-between">
+                                <div class="flex gap-2 md:gap-4 flex-wrap flex-1">
+                                    <button onclick="setActiveTab('investigators')" class="flex items-center gap-2 md:gap-3 px-4 md:px-8 py-3 md:py-5 rounded-xl md:rounded-2xl font-black text-sm md:text-xl transition-all shadow-xl hover-lift flex-1 min-w-[140px] justify-center border-2 ${state.activeTab === 'investigators' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-700 scale-105 md:scale-110' : 'bg-white/95 backdrop-blur-lg text-amber-900 border-amber-200 hover:bg-white'}">
+                                        <span class="text-xl md:text-2xl">👤</span>
+                                        <div class="text-left">
+                                            <div class="leading-tight">Investigators</div>
+                                            <div class="text-xs font-normal opacity-80">(${state.investigators.length})</div>
                                         </div>
-                                        
-                                        ${state.saveMessage ? `<div class="mt-3 md:mt-4 p-3 md:p-4 bg-green-500 text-white rounded-xl md:rounded-2xl font-bold text-sm md:text-lg shadow-xl">${state.saveMessage}</div>` : ''}
-
-                                        <div class="mt-4 md:mt-6 bg-amber-50/60 backdrop-blur-md rounded-xl md:rounded-2xl p-4 md:p-6 border border-amber-200/50">
-                                            <p class="text-amber-900/90 text-sm md:text-lg italic leading-relaxed">"And if it so be that you should labor all your days in crying repentance unto this people, and bring, save it be one soul unto me, how great shall be your joy with him in the kingdom of my Father!"</p>
-                                            <p class="text-amber-700/80 text-xs md:text-sm mt-2 md:mt-3 font-semibold">— Doctrine & Covenants 18:15</p>
+                                    </button>
+                                    <button onclick="setActiveTab('returning')" class="flex items-center gap-2 md:gap-3 px-4 md:px-8 py-3 md:py-5 rounded-xl md:rounded-2xl font-black text-sm md:text-xl transition-all shadow-xl hover-lift flex-1 min-w-[140px] justify-center border-2 ${state.activeTab === 'returning' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white border-green-800 scale-105 md:scale-110' : 'bg-white/95 backdrop-blur-lg text-green-900 border-green-200 hover:bg-white'}">
+                                        <span class="text-xl md:text-2xl">💙</span>
+                                        <div class="text-left">
+                                            <div class="leading-tight">Returning</div>
+                                            <div class="text-xs font-normal opacity-80">(${state.returning.length})</div>
                                         </div>
-                                    </div>
+                                    </button>
+                                </div>
+                                <div class="flex gap-2 md:gap-3 flex-wrap">
+                                    <button onclick="saveToFirebase()" class="flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-xl hover:from-amber-700 hover:to-amber-800 transition-all shadow-xl font-bold text-sm md:text-base hover-lift">
+                                        💾 Save
+                                    </button>
+                                    <button onclick="showBackgroundImageModal()" class="flex items-center gap-1 px-3 md:px-4 py-2 md:py-3 bg-white/90 backdrop-blur-sm text-amber-800 rounded-xl hover:bg-white transition-all shadow-lg hover-lift border border-amber-300/50" title="Background">
+                                        🖼️
+                                    </button>
+                                    <button onclick="exportData()" class="flex items-center gap-1 px-3 md:px-4 py-2 md:py-3 bg-white/90 backdrop-blur-sm text-amber-800 rounded-xl hover:bg-white transition-all shadow-lg hover-lift border border-amber-300/50">
+                                        📥
+                                    </button>
+                                    <label class="flex items-center gap-1 px-3 md:px-4 py-2 md:py-3 bg-white/90 backdrop-blur-sm text-amber-800 rounded-xl hover:bg-white transition-all cursor-pointer shadow-lg hover-lift border border-amber-300/50">
+                                        📤
+                                        <input type="file" accept=".json" onchange="importData(event)" class="hidden" />
+                                    </label>
                                 </div>
                             </div>
-
-                            <!-- Tabs -->
-                            <div class="flex gap-2 md:gap-4 mb-4 md:mb-6 flex-wrap">
-                                <button onclick="setActiveTab('investigators')" class="flex items-center gap-2 md:gap-3 px-4 md:px-8 py-3 md:py-5 rounded-xl md:rounded-2xl font-black text-sm md:text-xl transition-all shadow-xl hover-lift flex-1 min-w-[140px] justify-center border-2 ${state.activeTab === 'investigators' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-700 scale-105 md:scale-110' : 'bg-white/95 backdrop-blur-lg text-amber-900 border-amber-200 hover:bg-white'}">
-                                    <span class="text-xl md:text-2xl">👤</span>
-                                    <div class="text-left">
-                                        <div class="leading-tight">Investigators</div>
-                                        <div class="text-xs font-normal opacity-80">(${state.investigators.length})</div>
-                                    </div>
-                                </button>
-                                <button onclick="setActiveTab('returning')" class="flex items-center gap-2 md:gap-3 px-4 md:px-8 py-3 md:py-5 rounded-xl md:rounded-2xl font-black text-sm md:text-xl transition-all shadow-xl hover-lift flex-1 min-w-[140px] justify-center border-2 ${state.activeTab === 'returning' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white border-green-800 scale-105 md:scale-110' : 'bg-white/95 backdrop-blur-lg text-green-900 border-green-200 hover:bg-white'}">
-                                    <span class="text-xl md:text-2xl">💙</span>
-                                    <div class="text-left">
-                                        <div class="leading-tight">Returning</div>
-                                        <div class="text-xs font-normal opacity-80">(${state.returning.length})</div>
-                                    </div>
-                                </button>
-                            </div>
+                            
+                            ${state.saveMessage ? `<div class="mb-4 p-3 md:p-4 bg-green-500 text-white rounded-xl md:rounded-2xl font-bold text-sm md:text-lg shadow-xl">${state.saveMessage}</div>` : ''}
 
                             <!-- View Toggle -->
                             <div class="bg-white/95 backdrop-blur-xl rounded-xl md:rounded-2xl shadow-xl p-3 md:p-5 mb-4 md:mb-6 border-2 border-amber-200">
