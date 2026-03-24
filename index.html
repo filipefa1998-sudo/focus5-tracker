@@ -98,6 +98,13 @@
             debounceTimers[key] = setTimeout(fn, delay);
         }
 
+        // ── Date utility: parse YYYY-MM-DD as LOCAL time, not UTC ──────────
+        function parseLocalDate(str) {
+            if (!str) return new Date();
+            const [y, m, d] = str.split('-').map(Number);
+            return new Date(y, m - 1, d);   // local midnight — no timezone shift
+        }
+
         let state = {
             investigators: Array(5).fill().map((_, i) => ({ id: i + 1, name: '', notes: '', progress: {}, assignment: '', goal: '', emoji: '👤' })),
             returning: Array(5).fill().map((_, i) => ({ id: i + 100, name: '', notes: '', progress: {}, assignment: '', goal: '', emoji: '💙' })),
@@ -294,7 +301,7 @@
             const currentMonthKey = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][today.getMonth()];
             const invActs = inv.reduce((s,p)=>(p.progress?.[currentMonthKey]?.length||0)+s,0);
             const retActs = ret.reduce((s,p)=>(p.progress?.[currentMonthKey]?.length||0)+s,0);
-            const upcomingEvents = state.events.filter(e=>new Date(e.date)>=today).slice(0,3);
+            const upcomingEvents = state.events.filter(e=>parseLocalDate(e.date)>=today).slice(0,3);
             const invWithActivity = inv.filter(p=>(p.progress?.[currentMonthKey]?.length||0)>0);
             const retWithActivity = ret.filter(p=>(p.progress?.[currentMonthKey]?.length||0)>0);
             const thirtyDaysAgo = Date.now() - 30*24*60*60*1000;
@@ -391,7 +398,7 @@
                             <div class="space-y-1">
                                 ${upcomingEvents.map(e=>`<div class="bg-teal-50 rounded-lg px-3 py-2 flex items-center gap-2">
                                     <span class="text-xl">${e.type.split(' ')[0]}</span>
-                                    <div class="flex-1"><span class="font-bold text-sm">${e.name}</span><span class="text-xs text-gray-500 ml-2">${new Date(e.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span></div>
+                                    <div class="flex-1"><span class="font-bold text-sm">${e.name}</span><span class="text-xs text-gray-500 ml-2">${parseLocalDate(e.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span></div>
                                     ${e.inviteReady?'<span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-bold">✨ Invite-ready</span>':''}
                                 </div>`).join('')}
                             </div>
@@ -426,7 +433,7 @@
         window.shareEvent = (eventId) => {
             const ev = state.events.find(e=>e.id===eventId);
             if (!ev) return;
-            const dateStr = new Date(ev.date).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+            const dateStr = parseLocalDate(ev.date).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
             const text = [
                 '📅 ' + ev.name,
                 '🗓️ ' + dateStr + (ev.time ? ' at ' + ev.time : ''),
@@ -985,7 +992,7 @@
 
             // All events for this month
             const monthEvents = state.events.filter(e => {
-                const d = new Date(e.date);
+                const d = parseLocalDate(e.date);
                 return d.getFullYear() === year && d.getMonth() === month;
             });
 
@@ -997,7 +1004,7 @@
             // Events grouped by day
             const eventsByDay = {};
             monthEvents.forEach(e => {
-                const day = new Date(e.date).getDate();
+                const day = parseLocalDate(e.date).getDate();
                 if (!eventsByDay[day]) eventsByDay[day] = [];
                 eventsByDay[day].push(e);
             });
@@ -1015,9 +1022,9 @@
             };
 
             // Sorted upcoming/past for list view
-            const sortedAll = [...state.events].sort((a,b)=>new Date(a.date)-new Date(b.date));
-            const upcoming = sortedAll.filter(e=>new Date(e.date)>=today);
-            const past = sortedAll.filter(e=>new Date(e.date)<today).reverse();
+            const sortedAll = [...state.events].sort((a,b)=>parseLocalDate(a.date)-parseLocalDate(b.date));
+            const upcoming = sortedAll.filter(e=>parseLocalDate(e.date)>=today);
+            const past = sortedAll.filter(e=>parseLocalDate(e.date)<today).reverse();
 
             // Calendar grid cells
             let calCells = '';
@@ -1130,8 +1137,8 @@
                         <div class="mt-5 pt-5 border-t border-gray-100">
                             <h3 class="font-black text-lg text-green-800 mb-3">📋 ${monthName} Events</h3>
                             <div class="space-y-2">
-                                ${[...monthEvents].sort((a,b)=>new Date(a.date)-new Date(b.date)).map(ev => {
-                                    const evDate = new Date(ev.date);
+                                ${[...monthEvents].sort((a,b)=>parseLocalDate(a.date)-parseLocalDate(b.date)).map(ev => {
+                                    const evDate = parseLocalDate(ev.date);
                                     const daysUntil = Math.ceil((evDate - today)/(1000*60*60*24));
                                     const isPast = evDate < today;
                                     return `
@@ -1166,7 +1173,7 @@
                                 <h3 class="font-black text-xl text-green-800 mb-3 flex items-center gap-2">📆 Upcoming <span class="text-sm bg-green-100 text-green-700 px-2 py-0.5 rounded-full">${upcoming.length}</span></h3>
                                 <div class="space-y-3">
                                     ${upcoming.map(ev => {
-                                        const evDate = new Date(ev.date);
+                                        const evDate = parseLocalDate(ev.date);
                                         const daysUntil = Math.ceil((evDate - today)/(1000*60*60*24));
                                         const isSoon = daysUntil <= 7;
                                         return `
@@ -1199,7 +1206,7 @@
                                     ${past.slice(0,8).map(ev=>`
                                         <div onclick="editEvent('${ev.id}')" class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-all opacity-70 hover:opacity-100">
                                             <div class="text-2xl">${ev.type.split(' ')[0]}</div>
-                                            <div class="flex-1"><h4 class="font-bold text-base">${ev.name}</h4><p class="text-xs text-gray-500">${new Date(ev.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}${ev.time?' · '+ev.time:''}</p></div>
+                                            <div class="flex-1"><h4 class="font-bold text-base">${ev.name}</h4><p class="text-xs text-gray-500">${parseLocalDate(ev.date).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}${ev.time?' · '+ev.time:''}</p></div>
                                         </div>`).join('')}
                                     ${past.length > 8 ? `<p class="text-center text-sm text-gray-400 mt-2 font-semibold">+ ${past.length-8} more past events</p>` : ''}
                                 </div>
@@ -1668,7 +1675,7 @@
                                             <div class="text-2xl">✨</div>
                                             <div class="flex-1">
                                                 <div class="font-black text-white text-sm">${person.name}</div>
-                                                <div class="text-xs text-purple-300 font-semibold">Baptized ${new Date(person.baptismDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+                                                <div class="text-xs text-purple-300 font-semibold">Baptized ${parseLocalDate(person.baptismDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
                                             </div>
                                             <div class="flex gap-2 text-xs font-bold">
                                                 <span class="bg-amber-400/20 text-amber-300 px-2 py-1 rounded-lg">⭐ ${preActs} pre-acts</span>
