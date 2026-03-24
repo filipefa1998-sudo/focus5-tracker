@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Focus 5 Master Tracker - Riverton 24th Ward</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
         * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
@@ -173,7 +174,8 @@
                 femaleOrdinances: { templeBaptisms: false, patriarchalBlessing: false, endowment: false },
                 selfRelianceCompleted: { emotionalResilience: false, personalFinances: false, startGrowBusiness: false, educationBetterWork: false, findBetterJob: false },
                 notes: person.notes || '',
-                baptismDate: new Date().toISOString().split('T')[0]
+                baptismDate: new Date().toISOString().split('T')[0],
+                progress: person.progress || {}   // ✅ preserve full activity history
             });
         }
 
@@ -652,35 +654,475 @@
 
         function renderCharts(currentList) {
             const totalActivities = currentList.reduce((sum, p) => sum + Object.values(p.progress||{}).flat().length, 0);
-            const avgPerPerson = currentList.length > 0 ? Math.round(totalActivities/currentList.length) : 0;
+            const avgPerPerson = currentList.length > 0 ? (totalActivities/currentList.length).toFixed(1) : 0;
+            const isInv = state.activeTab === 'investigators';
+
+            // Most active month
+            const monthTotals = MONTHS.map(m => currentList.reduce((s,p) => s + (p.progress?.[m]?.length||0), 0));
+            const peakMonthIdx = monthTotals.indexOf(Math.max(...monthTotals));
+            const peakMonth = MONTHS[peakMonthIdx];
+
+            // People with activity this month
+            const currentMonth = MONTHS[new Date().getMonth()];
+            const activeThisMonth = currentList.filter(p => (p.progress?.[currentMonth]?.length||0) > 0).length;
+
+            // Indicator frequency
+            const indCounts = {};
+            INDICATORS.forEach(ind => { indCounts[ind.code] = 0; });
+            currentList.forEach(p => Object.values(p.progress||{}).flat().forEach(code => { if(indCounts[code] !== undefined) indCounts[code]++; }));
+            const topIndicators = Object.entries(indCounts).sort((a,b)=>b[1]-a[1]).filter(([,v])=>v>0).slice(0,6);
+
+            // Baptisms / Active members reached
+            const baptized = currentList.reduce((s,p)=>s+(Object.values(p.progress||{}).flat().includes('B')?1:0),0) + state.covenantPath.length;
+            const activeMember = currentList.reduce((s,p)=>s+(Object.values(p.progress||{}).flat().includes('ACTIVE')?1:0),0);
+
+            // Per-person activity counts for bar chart
+            const personNames = currentList.map((p,i)=>p.name||`Person ${i+1}`);
+            const personCounts = currentList.map(p=>Object.values(p.progress||{}).flat().length);
+
+            // Monthly trend data
+            const monthlyTrend = MONTHS.map(m => currentList.reduce((s,p)=>s+(p.progress?.[m]?.length||0),0));
+
+            // Engagement rate (people with ANY activity)
+            const engaged = currentList.filter(p=>Object.values(p.progress||{}).flat().length>0).length;
+            const engagementRate = currentList.length > 0 ? Math.round((engaged/currentList.length)*100) : 0;
+
+            setTimeout(() => {
+                // Chart 1 — Monthly Trend Line Chart
+                const ctx1 = document.getElementById('monthlyTrendChart');
+                if (ctx1) {
+                    if (ctx1._chartInstance) ctx1._chartInstance.destroy();
+                    ctx1._chartInstance = new Chart(ctx1, {
+                        type: 'line',
+                        data: {
+                            labels: MONTHS,
+                            datasets: [{
+                                label: 'Total Activities',
+                                data: monthlyTrend,
+                                borderColor: isInv ? '#f59e0b' : '#10b981',
+                                backgroundColor: isInv ? 'rgba(245,158,11,0.15)' : 'rgba(16,185,129,0.15)',
+                                borderWidth: 3,
+                                pointBackgroundColor: isInv ? '#f59e0b' : '#10b981',
+                                pointRadius: 6,
+                                pointHoverRadius: 9,
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { font: { weight: 'bold' } } },
+                                x: { grid: { display: false }, ticks: { font: { weight: 'bold' } } }
+                            }
+                        }
+                    });
+                }
+
+                // Chart 2 — Per Person Bar Chart
+                const ctx2 = document.getElementById('personBarChart');
+                if (ctx2) {
+                    if (ctx2._chartInstance) ctx2._chartInstance.destroy();
+                    const barColors = isInv
+                        ? ['#f59e0b','#f97316','#ef4444','#a855f7','#3b82f6','#06b6d4','#10b981','#84cc16']
+                        : ['#10b981','#06b6d4','#3b82f6','#8b5cf6','#f59e0b','#f97316','#ef4444','#84cc16'];
+                    ctx2._chartInstance = new Chart(ctx2, {
+                        type: 'bar',
+                        data: {
+                            labels: personNames,
+                            datasets: [{
+                                label: 'Activities',
+                                data: personCounts,
+                                backgroundColor: personNames.map((_,i)=>barColors[i%barColors.length]),
+                                borderRadius: 10,
+                                borderSkipped: false
+                            }]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { font: { weight: 'bold' } } },
+                                x: { grid: { display: false }, ticks: { font: { weight: '700', size: 11 } } }
+                            }
+                        }
+                    });
+                }
+
+                // Chart 3 — Indicator Donut
+                const ctx3 = document.getElementById('indicatorDonut');
+                if (ctx3 && topIndicators.length > 0) {
+                    if (ctx3._chartInstance) ctx3._chartInstance.destroy();
+                    ctx3._chartInstance = new Chart(ctx3, {
+                        type: 'doughnut',
+                        data: {
+                            labels: topIndicators.map(([code])=>code),
+                            datasets: [{
+                                data: topIndicators.map(([,v])=>v),
+                                backgroundColor: ['#f59e0b','#3b82f6','#10b981','#a855f7','#f97316','#06b6d4'],
+                                borderWidth: 3,
+                                borderColor: '#fff',
+                                hoverOffset: 10
+                            }]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            cutout: '65%',
+                            plugins: {
+                                legend: { position: 'right', labels: { font: { weight: 'bold', size: 12 }, padding: 12 } }
+                            }
+                        }
+                    });
+                }
+
+                // Chart 4 — Radar Chart per person
+                const ctx4 = document.getElementById('radarChart');
+                if (ctx4 && currentList.length > 0) {
+                    if (ctx4._chartInstance) ctx4._chartInstance.destroy();
+                    const radarLabels = ['Jan-Feb','Mar-Apr','May-Jun','Jul-Aug','Sep-Oct','Nov-Dec'];
+                    const radarColors = ['#f59e0b','#3b82f6','#10b981','#a855f7','#f97316'];
+                    const datasets = currentList.filter(p=>p.name).map((person, i) => {
+                        const pairs = [[0,1],[2,3],[4,5],[6,7],[8,9],[10,11]];
+                        return {
+                            label: person.name||`P${i+1}`,
+                            data: pairs.map(([a,b]) => (person.progress?.[MONTHS[a]]?.length||0)+(person.progress?.[MONTHS[b]]?.length||0)),
+                            borderColor: radarColors[i%radarColors.length],
+                            backgroundColor: radarColors[i%radarColors.length]+'33',
+                            borderWidth: 2,
+                            pointRadius: 4
+                        };
+                    });
+                    if (datasets.length > 0) {
+                        ctx4._chartInstance = new Chart(ctx4, {
+                            type: 'radar',
+                            data: { labels: radarLabels, datasets },
+                            options: {
+                                responsive: true, maintainAspectRatio: false,
+                                scales: { r: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.08)' }, ticks: { font: { weight: 'bold' }, backdropColor: 'transparent' } } },
+                                plugins: { legend: { labels: { font: { weight: 'bold' } } } }
+                            }
+                        });
+                    }
+                }
+            }, 100);
+
+            const accentFrom = isInv ? 'from-amber-500' : 'from-green-500';
+            const accentTo = isInv ? 'to-orange-500' : 'to-emerald-500';
+            const accentText = isInv ? 'text-amber-600' : 'text-green-600';
+            const accentBorder = isInv ? 'border-amber-200' : 'border-green-200';
+
             return `
-                <div class="space-y-6">
-                    <div class="grid grid-cols-3 gap-6">
-                        <div class="bg-gradient-to-br from-blue-500 to-cyan-500 text-white p-8 rounded-3xl shadow-2xl hover-lift"><div class="text-6xl mb-4">👥</div><div class="text-sm opacity-90 mb-2 font-semibold">Total People</div><div class="text-6xl font-black">${currentList.length}</div></div>
-                        <div class="bg-gradient-to-br from-green-500 to-emerald-500 text-white p-8 rounded-3xl shadow-2xl hover-lift"><div class="text-6xl mb-4">⭐</div><div class="text-sm opacity-90 mb-2 font-semibold">Total Activities</div><div class="text-6xl font-black">${totalActivities}</div></div>
-                        <div class="bg-gradient-to-br from-purple-500 to-pink-500 text-white p-8 rounded-3xl shadow-2xl hover-lift"><div class="text-6xl mb-4">📊</div><div class="text-sm opacity-90 mb-2 font-semibold">Avg per Person</div><div class="text-6xl font-black">${avgPerPerson}</div></div>
+                <div class="space-y-5">
+                    <!-- Stat Cards Row -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-white/95 backdrop-blur-md rounded-2xl p-5 shadow-xl hover-lift border-t-4 border-amber-400 text-center">
+                            <div class="text-4xl mb-1">👥</div>
+                            <div class="text-4xl font-black ${accentText}">${currentList.length}</div>
+                            <div class="text-xs font-bold text-gray-500 mt-1 uppercase tracking-wide">People Tracked</div>
+                        </div>
+                        <div class="bg-white/95 backdrop-blur-md rounded-2xl p-5 shadow-xl hover-lift border-t-4 border-blue-400 text-center">
+                            <div class="text-4xl mb-1">⭐</div>
+                            <div class="text-4xl font-black text-blue-600">${totalActivities}</div>
+                            <div class="text-xs font-bold text-gray-500 mt-1 uppercase tracking-wide">Total Activities</div>
+                        </div>
+                        <div class="bg-white/95 backdrop-blur-md rounded-2xl p-5 shadow-xl hover-lift border-t-4 border-purple-400 text-center">
+                            <div class="text-4xl mb-1">📈</div>
+                            <div class="text-4xl font-black text-purple-600">${engagementRate}%</div>
+                            <div class="text-xs font-bold text-gray-500 mt-1 uppercase tracking-wide">Engagement Rate</div>
+                        </div>
+                        <div class="bg-white/95 backdrop-blur-md rounded-2xl p-5 shadow-xl hover-lift border-t-4 border-emerald-400 text-center">
+                            <div class="text-4xl mb-1">🔥</div>
+                            <div class="text-4xl font-black text-emerald-600">${activeThisMonth}</div>
+                            <div class="text-xs font-bold text-gray-500 mt-1 uppercase tracking-wide">Active This Month</div>
+                        </div>
                     </div>
-                    <div class="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-8 hover-lift">
-                        <h3 class="text-3xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-6 flex items-center gap-3">🏆 Individual Progress</h3>
-                        <div class="space-y-6">
+
+                    <!-- Second stat row -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-gradient-to-br ${accentFrom} ${accentTo} text-white rounded-2xl p-5 shadow-xl hover-lift text-center">
+                            <div class="text-3xl mb-1">📊</div>
+                            <div class="text-4xl font-black">${avgPerPerson}</div>
+                            <div class="text-xs font-bold opacity-90 mt-1 uppercase tracking-wide">Avg / Person</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-pink-500 to-red-500 text-white rounded-2xl p-5 shadow-xl hover-lift text-center">
+                            <div class="text-3xl mb-1">✨</div>
+                            <div class="text-4xl font-black">${baptized}</div>
+                            <div class="text-xs font-bold opacity-90 mt-1 uppercase tracking-wide">Baptized / Active</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-indigo-500 to-blue-600 text-white rounded-2xl p-5 shadow-xl hover-lift text-center">
+                            <div class="text-3xl mb-1">🏆</div>
+                            <div class="text-4xl font-black">${peakMonth || '—'}</div>
+                            <div class="text-xs font-bold opacity-90 mt-1 uppercase tracking-wide">Peak Month</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-teal-500 to-cyan-600 text-white rounded-2xl p-5 shadow-xl hover-lift text-center">
+                            <div class="text-3xl mb-1">💬</div>
+                            <div class="text-4xl font-black">${topIndicators[0]?.[0] || '—'}</div>
+                            <div class="text-xs font-bold opacity-90 mt-1 uppercase tracking-wide">Top Activity</div>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Trend + Per Person Bar -->
+                    <div class="grid md:grid-cols-2 gap-5">
+                        <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-6 hover-lift border-2 ${accentBorder}">
+                            <h3 class="font-black text-xl mb-1 ${accentText}">📅 Monthly Activity Trend</h3>
+                            <p class="text-xs text-gray-500 mb-4 font-semibold">Total activities logged per month across all people</p>
+                            <div style="height:220px;position:relative;">
+                                <canvas id="monthlyTrendChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-6 hover-lift border-2 ${accentBorder}">
+                            <h3 class="font-black text-xl mb-1 ${accentText}">🏅 Activities per Person</h3>
+                            <p class="text-xs text-gray-500 mb-4 font-semibold">Individual activity totals for the year</p>
+                            <div style="height:220px;position:relative;">
+                                <canvas id="personBarChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Indicator Donut + Radar -->
+                    <div class="grid md:grid-cols-2 gap-5">
+                        <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-6 hover-lift border-2 ${accentBorder}">
+                            <h3 class="font-black text-xl mb-1 ${accentText}">🎯 Top Indicators Used</h3>
+                            <p class="text-xs text-gray-500 mb-4 font-semibold">Which activity types are being recorded most</p>
+                            <div style="height:220px;position:relative;">
+                                ${topIndicators.length > 0
+                                    ? `<canvas id="indicatorDonut"></canvas>`
+                                    : `<div class="flex items-center justify-center h-full text-gray-400 text-center"><div><div class="text-5xl mb-3">📋</div><div class="font-bold">No activities logged yet</div></div></div>`}
+                            </div>
+                        </div>
+                        <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-6 hover-lift border-2 ${accentBorder}">
+                            <h3 class="font-black text-xl mb-1 ${accentText}">🕸️ Bi-Monthly Radar</h3>
+                            <p class="text-xs text-gray-500 mb-4 font-semibold">Activity spread across the year per person</p>
+                            <div style="height:220px;position:relative;">
+                                ${currentList.filter(p=>p.name).length > 0
+                                    ? `<canvas id="radarChart"></canvas>`
+                                    : `<div class="flex items-center justify-center h-full text-gray-400 text-center"><div><div class="text-5xl mb-3">🕸️</div><div class="font-bold">Add names to see radar</div></div></div>`}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Individual Progress Bars -->
+                    <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-6 hover-lift border-2 ${accentBorder}">
+                        <h3 class="font-black text-xl mb-1 ${accentText}">🏆 Individual Progress</h3>
+                        <p class="text-xs text-gray-500 mb-5 font-semibold">Year-to-date activity completion per person</p>
+                        <div class="space-y-5">
                             ${currentList.map((person, idx) => {
-                                const progress = Object.values(person.progress||{}).flat().length;
-                                const maxProgress = 12 * 20;
-                                const percentage = maxProgress > 0 ? (progress/maxProgress)*100 : 0;
-                                return `<div class="hover-lift">
-                                    <div class="flex justify-between text-lg font-bold text-gray-800 mb-3">
-                                        <span>🎯 ${person.name||`Person ${idx+1}`}</span>
-                                        <span class="text-indigo-600">${progress} / ${maxProgress}</span>
-                                    </div>
-                                    <div class="bg-gray-200 rounded-full h-10 overflow-hidden shadow-inner">
-                                        <div class="${state.activeTab==='investigators'?'bg-gradient-to-r from-blue-500 via-cyan-400 to-blue-600':'bg-gradient-to-r from-green-500 via-emerald-400 to-green-600'} h-full rounded-full transition-all duration-1000 flex items-center justify-end px-4 shimmer" style="width:${Math.max(percentage,0)}%">
-                                            ${percentage > 15 ? `<span class="text-white text-lg font-black drop-shadow-lg">${Math.round(percentage)}%</span>` : ''}
+                                const acts = Object.values(person.progress||{}).flat().length;
+                                const monthsActive = Object.values(person.progress||{}).filter(m=>m.length>0).length;
+                                const uniqueIndicators = new Set(Object.values(person.progress||{}).flat()).size;
+                                const maxActs = 12 * 5; // realistic target: 5 activities/month
+                                const pct = Math.min(Math.round((acts/maxActs)*100), 100);
+                                const colors = isInv
+                                    ? ['from-amber-400 to-orange-500','from-yellow-400 to-amber-500','from-orange-400 to-red-500','from-pink-400 to-rose-500','from-red-400 to-pink-500']
+                                    : ['from-green-400 to-emerald-500','from-teal-400 to-green-500','from-cyan-400 to-teal-500','from-emerald-400 to-cyan-500','from-lime-400 to-green-500'];
+                                const col = colors[idx % colors.length];
+                                return `
+                                    <div>
+                                        <div class="flex justify-between items-center mb-2">
+                                            <div class="flex items-center gap-2">
+                                                <span class="w-8 h-8 rounded-full bg-gradient-to-br ${col} text-white text-sm font-black flex items-center justify-center shadow">${idx+1}</span>
+                                                <span class="font-black text-gray-800 text-base">${person.name||`Person ${idx+1}`}</span>
+                                            </div>
+                                            <div class="flex items-center gap-3 text-xs font-bold text-gray-500">
+                                                <span class="bg-gray-100 px-2 py-1 rounded-lg">📅 ${monthsActive} months</span>
+                                                <span class="bg-gray-100 px-2 py-1 rounded-lg">🎯 ${uniqueIndicators} types</span>
+                                                <span class="${accentText} font-black text-base">${acts} acts</span>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>`;
+                                        <div class="bg-gray-100 rounded-full h-8 overflow-hidden shadow-inner relative">
+                                            <div class="bg-gradient-to-r ${col} h-full rounded-full transition-all duration-1000 shimmer flex items-center justify-end pr-3" style="width:${Math.max(pct,0)}%">
+                                                ${pct > 12 ? `<span class="text-white text-sm font-black drop-shadow">${pct}%</span>` : ''}
+                                            </div>
+                                            ${pct === 0 ? `<span class="absolute inset-0 flex items-center pl-3 text-gray-400 text-sm font-bold">No activities yet</span>` : ''}
+                                        </div>
+                                    </div>`;
                             }).join('')}
                         </div>
                     </div>
+
+                    <!-- Indicator Breakdown Table -->
+                    ${topIndicators.length > 0 ? `
+                    <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-6 hover-lift border-2 ${accentBorder}">
+                        <h3 class="font-black text-xl mb-1 ${accentText}">📋 Full Indicator Breakdown</h3>
+                        <p class="text-xs text-gray-500 mb-5 font-semibold">All recorded activity types ranked by frequency</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            ${Object.entries(indCounts).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([code, count], i) => {
+                                const ind = INDICATORS.find(x=>x.code===code);
+                                const maxCount = Math.max(...Object.values(indCounts));
+                                const barPct = maxCount > 0 ? Math.round((count/maxCount)*100) : 0;
+                                return `
+                                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all">
+                                        <span class="text-2xl">${ind?.emoji||'•'}</span>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex justify-between mb-1">
+                                                <span class="font-black text-sm text-gray-800">${code}</span>
+                                                <span class="font-black text-sm ${accentText}">${count}×</span>
+                                            </div>
+                                            <div class="bg-gray-200 rounded-full h-2">
+                                                <div class="bg-gradient-to-r ${accentFrom} ${accentTo} h-2 rounded-full transition-all" style="width:${barPct}%"></div>
+                                            </div>
+                                        </div>
+                                    </div>`;
+                            }).join('')}
+                        </div>
+                    </div>` : ''}
+
+                    <!-- ✅ COVENANT PATH KPI SECTION -->
+                    ${state.covenantPath.length > 0 ? (() => {
+                        const cp = state.covenantPath;
+                        const cpTotalActs = cp.reduce((s,p)=>s+Object.values(p.progress||{}).flat().length,0);
+                        const cpBaptized = cp.length;
+                        const cpMale = cp.filter(p=>p.type==='Male').length;
+                        const cpFemale = cp.filter(p=>p.type==='Female').length;
+                        const cpOAY = cp.filter(p=>p.type==='OAY').length;
+                        const cpEndowed = cp.filter(p=>p.ordinances?.endowment||p.femaleOrdinances?.endowment).length;
+                        const cpMelch = cp.filter(p=>p.ordinances?.melchizedekPriesthood).length;
+                        const cpPatriarchal = cp.filter(p=>p.ordinances?.patriarchalBlessing||p.femaleOrdinances?.patriarchalBlessing).length;
+                        const cpTemple = cp.filter(p=>p.ordinances?.templeBaptisms||p.femaleOrdinances?.templeBaptisms).length;
+                        const cpAaronic = cp.filter(p=>p.ordinances?.aaronicPriesthood).length;
+                        const srKeys = ['emotionalResilience','personalFinances','startGrowBusiness','educationBetterWork','findBetterJob'];
+                        const srLabels = ['Emotional Resilience','Personal Finances','Start & Grow Business','Education for Work','Find a Better Job'];
+                        const srCounts = srKeys.map(k=>cp.filter(p=>p.selfRelianceCompleted?.[k]).length);
+                        const totalOrdinances = cpEndowed + cpMelch + cpPatriarchal + cpTemple + cpAaronic;
+                        const maxOrdinances = cp.length * 5;
+                        const ordPct = maxOrdinances > 0 ? Math.round((totalOrdinances/maxOrdinances)*100) : 0;
+
+                        setTimeout(() => {
+                            const ctx5 = document.getElementById('cpTypeDonut');
+                            if (ctx5 && (cpMale+cpFemale+cpOAY) > 0) {
+                                if (ctx5._chartInstance) ctx5._chartInstance.destroy();
+                                ctx5._chartInstance = new Chart(ctx5, {
+                                    type: 'doughnut',
+                                    data: {
+                                        labels: ['Male','Female','OAY'],
+                                        datasets: [{ data: [cpMale,cpFemale,cpOAY], backgroundColor: ['#3b82f6','#ec4899','#8b5cf6'], borderWidth: 3, borderColor: '#fff', hoverOffset: 8 }]
+                                    },
+                                    options: { responsive:true, maintainAspectRatio:false, cutout:'60%', plugins:{ legend:{ position:'right', labels:{ font:{ weight:'bold', size:12 }, padding:10 } } } }
+                                });
+                            }
+                            const ctx6 = document.getElementById('cpSRBar');
+                            if (ctx6) {
+                                if (ctx6._chartInstance) ctx6._chartInstance.destroy();
+                                ctx6._chartInstance = new Chart(ctx6, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: ['Emotional','Finances','Business','Education','Job'],
+                                        datasets: [{ label: 'Completed', data: srCounts, backgroundColor: ['#a855f7','#3b82f6','#10b981','#f59e0b','#ef4444'], borderRadius: 8, borderSkipped: false }]
+                                    },
+                                    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, max: Math.max(cpBaptized,1), ticks:{ stepSize:1, font:{ weight:'bold' } }, grid:{ color:'rgba(0,0,0,0.06)' } }, x:{ grid:{ display:false }, ticks:{ font:{ weight:'700', size:11 } } } } }
+                                });
+                            }
+                        }, 150);
+
+                        return `
+                        <div class="bg-gradient-to-br from-purple-900 via-indigo-900 to-purple-900 rounded-2xl shadow-2xl p-6 hover-lift border-2 border-purple-400/40">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="text-4xl">📖</div>
+                                <div>
+                                    <h3 class="font-black text-2xl text-white">Covenant Path Dashboard</h3>
+                                    <p class="text-purple-300 text-sm font-semibold">Progress tracking for baptized members</p>
+                                </div>
+                            </div>
+
+                            <!-- CP Stat Cards -->
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                                <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center border border-white/20">
+                                    <div class="text-3xl mb-1">✨</div>
+                                    <div class="text-3xl font-black text-white">${cpBaptized}</div>
+                                    <div class="text-xs text-purple-300 font-bold mt-1 uppercase tracking-wide">Baptized</div>
+                                </div>
+                                <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center border border-white/20">
+                                    <div class="text-3xl mb-1">⭐</div>
+                                    <div class="text-3xl font-black text-white">${cpTotalActs}</div>
+                                    <div class="text-xs text-purple-300 font-bold mt-1 uppercase tracking-wide">Pre-Baptism Acts</div>
+                                </div>
+                                <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center border border-white/20">
+                                    <div class="text-3xl mb-1">🏛️</div>
+                                    <div class="text-3xl font-black text-white">${cpEndowed}</div>
+                                    <div class="text-xs text-purple-300 font-bold mt-1 uppercase tracking-wide">Endowed</div>
+                                </div>
+                                <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center border border-white/20">
+                                    <div class="text-3xl mb-1">📜</div>
+                                    <div class="text-3xl font-black text-amber-300">${Math.round((totalOrdinances/Math.max(maxOrdinances,1))*100)}%</div>
+                                    <div class="text-xs text-purple-300 font-bold mt-1 uppercase tracking-wide">Ordinance Rate</div>
+                                </div>
+                            </div>
+
+                            <!-- Charts row -->
+                            <div class="grid md:grid-cols-2 gap-4 mb-5">
+                                <div class="bg-white/10 backdrop-blur rounded-xl p-5 border border-white/20">
+                                    <h4 class="font-black text-white mb-1">👥 Member Types</h4>
+                                    <p class="text-xs text-purple-300 mb-3 font-semibold">Male / Female / OAY breakdown</p>
+                                    <div style="height:180px;position:relative;">
+                                        ${(cpMale+cpFemale+cpOAY)>0 ? '<canvas id="cpTypeDonut"></canvas>' : '<div class="flex items-center justify-center h-full text-purple-300 text-sm font-bold">Assign types to members first</div>'}
+                                    </div>
+                                </div>
+                                <div class="bg-white/10 backdrop-blur rounded-xl p-5 border border-white/20">
+                                    <h4 class="font-black text-white mb-1">💼 Self-Reliance Classes</h4>
+                                    <p class="text-xs text-purple-300 mb-3 font-semibold">Completed courses across all members</p>
+                                    <div style="height:180px;position:relative;">
+                                        <canvas id="cpSRBar"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Ordinance Progress Bars -->
+                            <div class="bg-white/10 backdrop-blur rounded-xl p-5 border border-white/20 mb-4">
+                                <h4 class="font-black text-white mb-4">🏆 Ordinance Progress (${totalOrdinances} / ${maxOrdinances} total)</h4>
+                                <div class="space-y-3">
+                                    ${[
+                                        { label: 'Aaronic Priesthood', count: cpAaronic, emoji: '✋', color: 'from-blue-400 to-blue-500' },
+                                        { label: 'Temple Baptisms', count: cpTemple, emoji: '🏛️', color: 'from-indigo-400 to-indigo-500' },
+                                        { label: 'Patriarchal Blessing', count: cpPatriarchal, emoji: '📜', color: 'from-purple-400 to-purple-500' },
+                                        { label: 'Melchizedek Priesthood', count: cpMelch, emoji: '👔', color: 'from-pink-400 to-pink-500' },
+                                        { label: 'Temple Endowment', count: cpEndowed, emoji: '⭐', color: 'from-amber-400 to-amber-500' },
+                                    ].map(ord => {
+                                        const pct = cpBaptized > 0 ? Math.round((ord.count/cpBaptized)*100) : 0;
+                                        return `<div>
+                                            <div class="flex justify-between mb-1">
+                                                <span class="text-sm font-bold text-white">${ord.emoji} ${ord.label}</span>
+                                                <span class="text-sm font-black text-amber-300">${ord.count} / ${cpBaptized}</span>
+                                            </div>
+                                            <div class="bg-white/10 rounded-full h-5 overflow-hidden">
+                                                <div class="bg-gradient-to-r ${ord.color} h-full rounded-full transition-all flex items-center justify-end pr-2" style="width:${pct}%">
+                                                    ${pct > 15 ? `<span class="text-white text-xs font-black">${pct}%</span>` : ''}
+                                                </div>
+                                            </div>
+                                        </div>`;
+                                    }).join('')}
+                                </div>
+                            </div>
+
+                            <!-- Member list with pre-baptism activity count -->
+                            <div class="bg-white/10 backdrop-blur rounded-xl p-5 border border-white/20">
+                                <h4 class="font-black text-white mb-4">📋 Member Overview</h4>
+                                <div class="space-y-3">
+                                    ${cp.map(person => {
+                                        const preActs = Object.values(person.progress||{}).flat().length;
+                                        const ordinanceDone = [
+                                            person.ordinances?.aaronicPriesthood, person.ordinances?.templeBaptisms,
+                                            person.ordinances?.patriarchalBlessing, person.ordinances?.melchizedekPriesthood, person.ordinances?.endowment,
+                                            person.femaleOrdinances?.templeBaptisms, person.femaleOrdinances?.patriarchalBlessing, person.femaleOrdinances?.endowment
+                                        ].filter(Boolean).length;
+                                        const srDone = Object.values(person.selfRelianceCompleted||{}).filter(Boolean).length;
+                                        return `<div class="flex items-center gap-3 bg-white/10 rounded-xl p-3">
+                                            <div class="text-2xl">✨</div>
+                                            <div class="flex-1">
+                                                <div class="font-black text-white text-sm">${person.name}</div>
+                                                <div class="text-xs text-purple-300 font-semibold">Baptized ${new Date(person.baptismDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+                                            </div>
+                                            <div class="flex gap-2 text-xs font-bold">
+                                                <span class="bg-amber-400/20 text-amber-300 px-2 py-1 rounded-lg">⭐ ${preActs} pre-acts</span>
+                                                <span class="bg-purple-400/20 text-purple-200 px-2 py-1 rounded-lg">🏛️ ${ordinanceDone} ords</span>
+                                                <span class="bg-blue-400/20 text-blue-200 px-2 py-1 rounded-lg">💼 ${srDone} SR</span>
+                                            </div>
+                                        </div>`;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        </div>`;
+                    })() : ''}
                 </div>`;
         }
 
