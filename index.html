@@ -28,8 +28,8 @@
             background-size: 1000px 100%;
             animation: shimmer 3s infinite;
         }
-        .hover-lift { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .hover-lift:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); }
+        .hover-lift { transition: all 0.2s ease; }
+        .hover-lift:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12); }
         @media (max-width: 768px) {
             .hover-lift:hover { transform: none; }
             .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -1759,7 +1759,14 @@
                                     <div class="flex-1">
                                         <h3 class="text-4xl font-black text-purple-900 mb-3">${person.name}</h3>
                                         <div class="flex gap-3 flex-wrap">
-                                            <span class="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-5 py-2 rounded-full text-lg font-black shadow-lg">✨ Baptized: ${new Date(person.baptismDate).toLocaleDateString()}</span>
+                                            <div class="flex items-center gap-2 bg-white/80 border-2 border-purple-300 rounded-2xl px-4 py-2 shadow-md">
+                                                <span class="text-lg">✨</span>
+                                                <div>
+                                                    <div class="text-xs font-black text-purple-700 uppercase tracking-wide mb-0.5">Baptism Date</div>
+                                                    <input type="date" value="${person.baptismDate}" onchange="updateCovenantField(${person.id},'baptismDate',this.value)"
+                                                        class="font-black text-purple-900 text-sm bg-transparent border-none outline-none cursor-pointer" />
+                                                </div>
+                                            </div>
                                             ${person.assignment ? `<span class="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-5 py-2 rounded-full text-lg font-black shadow-lg">📍 ${person.assignment}</span>` : ''}
                                         </div>
                                     </div>
