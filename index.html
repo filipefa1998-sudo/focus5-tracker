@@ -112,7 +112,9 @@
             calendarYear: new Date().getFullYear(),
             calendarMonth: new Date().getMonth(),
             eventsView: 'calendar',
-            darkMode: false
+            darkMode: false,
+            trackerMonth: new Date().getMonth(),
+            trackerView: 'month'
         };
 
         const dataRef = ref(database, 'trackerDataV2');
@@ -474,6 +476,21 @@
         window.setActiveTab = (tab) => { state.activeTab = tab; render(); };
         window.setViewMode = (mode) => { state.viewMode = mode; render(); };
         window.setEventsView = (v) => { state.eventsView = v; render(); };
+        window.trackerPrev = () => {
+            if (state.trackerMonth === 0) { state.trackerMonth = 11; }
+            else { state.trackerMonth--; }
+            render();
+        };
+        window.trackerNext = () => {
+            if (state.trackerMonth === 11) { state.trackerMonth = 0; }
+            else { state.trackerMonth++; }
+            render();
+        };
+        window.trackerGoToday = () => {
+            state.trackerMonth = new Date().getMonth();
+            render();
+        };
+        window.setTrackerView = (v) => { state.trackerView = v; render(); };
         window.calPrev = () => {
             if (state.calendarMonth === 0) { state.calendarMonth = 11; state.calendarYear--; }
             else { state.calendarMonth--; }
@@ -750,51 +767,131 @@
         }
 
         function renderTracker(currentList) {
+            const isInv = state.activeTab === 'investigators';
+            const accentHead = isInv ? 'bg-gradient-to-r from-amber-600 to-amber-700' : 'bg-gradient-to-r from-green-600 to-green-700';
+            const accentBorder = isInv ? 'border-amber-200' : 'border-green-200';
+            const accentText = isInv ? 'text-amber-700' : 'text-green-700';
+            const accentBtn = isInv ? 'from-amber-600 to-amber-700' : 'from-green-600 to-green-700';
+
+            const currentMonthIdx = state.trackerMonth;
+            const currentMonthName = MONTHS[currentMonthIdx];
+            const fullMonthName = new Date(2024, currentMonthIdx, 1).toLocaleString('en-US', { month: 'long' });
+            const todayMonthIdx = new Date().getMonth();
+            const isThisMonth = currentMonthIdx === todayMonthIdx;
+
+            // Which months to show
+            const visibleMonths = state.trackerView === 'year' ? MONTHS : [currentMonthName];
+
             return `
-                <div class="bg-white/98 backdrop-blur-xl rounded-2xl md:rounded-3xl shadow-xl p-4 md:p-8 mb-4 md:mb-6 hover-lift border-2 border-amber-200">
-                    <h3 class="font-black text-xl md:text-3xl mb-4 md:mb-6 bg-gradient-to-r from-yellow-400 via-orange-400 to-red-500 bg-clip-text text-transparent flex items-center gap-2 md:gap-3 drop-shadow-lg">✨ Key Indicators</h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                <!-- Month Nav Bar -->
+                <div class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl mb-4 overflow-hidden border-2 ${accentBorder}">
+                    <div class="bg-gradient-to-r ${accentBtn} px-4 md:px-6 py-3 md:py-4">
+                        <div class="flex items-center justify-between flex-wrap gap-3">
+                            <!-- View toggle -->
+                            <div class="flex bg-white/20 rounded-xl p-1 gap-1">
+                                <button onclick="setTrackerView('month')" class="px-3 md:px-5 py-2 rounded-lg font-black text-xs md:text-sm transition-all ${state.trackerView === 'month' ? 'bg-white text-amber-700 shadow-md' : 'text-white hover:bg-white/20'}">
+                                    📅 Month View
+                                </button>
+                                <button onclick="setTrackerView('year')" class="px-3 md:px-5 py-2 rounded-lg font-black text-xs md:text-sm transition-all ${state.trackerView === 'year' ? 'bg-white text-amber-700 shadow-md' : 'text-white hover:bg-white/20'}">
+                                    📆 Full Year
+                                </button>
+                            </div>
+
+                            <!-- Month navigation (only in month view) -->
+                            ${state.trackerView === 'month' ? `
+                            <div class="flex items-center gap-2 md:gap-4">
+                                <button onclick="trackerPrev()" class="flex items-center gap-1 px-3 md:px-5 py-2 bg-white/20 hover:bg-white/35 text-white rounded-xl font-black transition-all text-sm md:text-base">◀ Prev</button>
+                                <div class="text-center min-w-[130px]">
+                                    <div class="text-lg md:text-2xl font-black text-white">${fullMonthName}</div>
+                                    ${!isThisMonth ? `<button onclick="trackerGoToday()" class="text-xs text-white/70 hover:text-white font-bold underline">Jump to Today</button>` : '<div class="text-xs text-white/70 font-bold">Current Month</div>'}
+                                </div>
+                                <button onclick="trackerNext()" class="flex items-center gap-1 px-3 md:px-5 py-2 bg-white/20 hover:bg-white/35 text-white rounded-xl font-black transition-all text-sm md:text-base">Next ▶</button>
+                            </div>` : `
+                            <div class="text-white font-black text-base md:text-lg">All 12 Months — ${new Date().getFullYear()}</div>`}
+
+                            <!-- Month-view quick jump pills -->
+                            ${state.trackerView === 'month' ? `
+                            <div class="flex gap-1 flex-wrap">
+                                ${MONTHS.map((m, i) => {
+                                    const hasData = currentList.some(p => (p.progress?.[m]?.length||0) > 0);
+                                    const isSelected = i === currentMonthIdx;
+                                    const isToday = i === todayMonthIdx;
+                                    return `<button onclick="state.trackerMonth=${i};render()" class="px-2 py-1 rounded-lg text-xs font-black transition-all border ${isSelected ? 'bg-white text-amber-700 border-white shadow-md scale-110' : hasData ? 'bg-white/30 text-white border-white/40 hover:bg-white/40' : 'bg-white/10 text-white/60 border-white/20 hover:bg-white/20'}${isToday && !isSelected ? ' ring-2 ring-white/80' : ''}">${m}</button>`;
+                                }).join('')}
+                            </div>` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Monthly activity summary strip (month view only) -->
+                    ${state.trackerView === 'month' ? `
+                    <div class="px-4 md:px-6 py-3 bg-gradient-to-r from-amber-50 to-white border-t ${accentBorder} flex flex-wrap gap-3 items-center">
+                        <div class="text-sm font-black ${accentText}">📊 ${fullMonthName} Summary:</div>
+                        ${(() => {
+                            const monthActs = currentList.reduce((s,p)=>s+(p.progress?.[currentMonthName]?.length||0),0);
+                            const monthPeople = currentList.filter(p=>(p.progress?.[currentMonthName]?.length||0)>0).length;
+                            const allCodes = currentList.flatMap(p=>p.progress?.[currentMonthName]||[]);
+                            const topCode = allCodes.length > 0 ? [...allCodes].sort((a,b)=>allCodes.filter(x=>x===b).length-allCodes.filter(x=>x===a).length)[0] : null;
+                            const topInd = topCode ? INDICATORS.find(i=>i.code===topCode) : null;
+                            return `
+                            <span class="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-black">${monthActs} activities</span>
+                            <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-black">${monthPeople} / ${currentList.filter(p=>p.name).length} people active</span>
+                            ${topInd ? `<span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-black">Top: ${topInd.emoji} ${topInd.code}</span>` : ''}
+                            ${monthActs === 0 ? '<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-black">⚠️ Nothing logged yet</span>' : ''}`;
+                        })()}
+                    </div>` : ''}
+                </div>
+
+                <!-- Key Indicators Legend -->
+                <div class="bg-white/98 backdrop-blur-xl rounded-2xl md:rounded-3xl shadow-xl p-4 md:p-6 mb-4 hover-lift border-2 ${accentBorder}">
+                    <h3 class="font-black text-base md:text-xl mb-3 ${accentText} flex items-center gap-2">✨ Key Indicators</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
                         ${INDICATORS.map(ind => `
-                            <div class="flex items-center gap-2 md:gap-3 bg-gradient-to-r from-amber-50 to-white p-3 md:p-4 rounded-lg md:rounded-xl hover:shadow-lg transition-all hover-lift border-2 border-amber-100">
-                                <span class="text-2xl md:text-3xl">${ind.emoji}</span>
+                            <div class="flex items-center gap-2 bg-gradient-to-r from-amber-50 to-white p-2 md:p-3 rounded-lg hover:shadow-md transition-all border border-amber-100">
+                                <span class="text-lg md:text-2xl">${ind.emoji}</span>
                                 <div>
-                                    <span class="bg-gradient-to-r ${ind.color} text-white px-2 md:px-3 py-1 rounded text-xs md:text-sm font-black shadow-md">${ind.code}</span>
-                                    <div class="text-xs text-gray-700 font-semibold mt-1 hidden md:block">${ind.name}</div>
+                                    <span class="bg-gradient-to-r ${ind.color} text-white px-1.5 py-0.5 rounded text-xs font-black shadow">${ind.code}</span>
+                                    <div class="text-xs text-gray-600 font-semibold mt-0.5 hidden lg:block leading-tight">${ind.name}</div>
                                 </div>
                             </div>
                         `).join('')}
                     </div>
                 </div>
-                <div class="bg-white/98 backdrop-blur-xl rounded-2xl md:rounded-3xl shadow-xl overflow-hidden hover-lift border-2 border-amber-200">
+
+                <!-- Tracker Table -->
+                <div class="bg-white/98 backdrop-blur-xl rounded-2xl md:rounded-3xl shadow-xl overflow-hidden hover-lift border-2 ${accentBorder}">
                     <div class="overflow-x-auto table-wrapper">
                         <table class="w-full">
-                            <thead class="${state.activeTab === 'investigators' ? 'bg-gradient-to-r from-amber-600 to-amber-700' : 'bg-gradient-to-r from-green-600 to-green-700'}">
+                            <thead class="${accentHead}">
                                 <tr>
-                                    <th class="text-white p-3 md:p-6 text-left font-black text-sm md:text-lg min-w-[120px]">Name</th>
-                                    <th class="text-white p-3 md:p-6 text-left font-black text-sm md:text-lg min-w-[120px] mobile-hide">Assigned</th>
-                                    ${MONTHS.map(m => `<th class="text-white p-2 md:p-4 text-center font-black text-xs md:text-sm min-w-[60px]">${m}</th>`).join('')}
-                                    <th class="text-white p-3 md:p-6 text-left font-black text-sm md:text-lg min-w-[150px] mobile-hide">Notes</th>
-                                    <th class="text-white p-3 md:p-6 text-center font-black text-sm md:text-lg mobile-hide">Stats</th>
+                                    <th class="text-white p-3 md:p-5 text-left font-black text-sm md:text-base min-w-[140px] sticky left-0 ${accentHead} z-10">Name</th>
+                                    <th class="text-white p-3 md:p-5 text-left font-black text-sm md:text-base min-w-[130px] mobile-hide">Assigned</th>
+                                    ${visibleMonths.map(m => {
+                                        const isCurrentM = m === currentMonthName;
+                                        return `<th class="text-white p-2 md:p-5 text-center font-black text-xs md:text-base ${state.trackerView === 'month' ? 'min-w-[200px]' : 'min-w-[65px]'} ${state.trackerView === 'month' && isCurrentM ? 'bg-white/20' : ''}">${m}</th>`;
+                                    }).join('')}
+                                    <th class="text-white p-3 md:p-5 text-left font-black text-sm md:text-base min-w-[140px] mobile-hide">Notes</th>
+                                    <th class="text-white p-3 md:p-5 text-center font-black text-sm md:text-base mobile-hide">Stats</th>
                                     <th class="text-white p-2 md:p-4"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 ${currentList.map((person, idx) => {
                                     const stats = getProgressStats(person);
+                                    const hasNoActivity = person.name && Object.values(person.progress||{}).flat().length === 0;
                                     return `
                                         <tr class="${idx % 2 === 0 ? 'bg-white' : 'bg-amber-50/30'} hover:bg-amber-50/60 transition-all">
-                                            <td class="p-2 md:p-4">
+                                            <td class="p-2 md:p-4 sticky left-0 ${idx % 2 === 0 ? 'bg-white' : 'bg-amber-50/50'} z-10 border-r ${accentBorder}">
                                                 <div class="flex items-center gap-2">
                                                     <button onclick="openEmojiPicker(${person.id})" class="text-2xl md:text-3xl hover:scale-110 transition-transform flex-shrink-0" title="Change avatar">${person.emoji||'👤'}</button>
                                                     <div class="flex-1 min-w-0">
-                                                        <input type="text" value="${person.name || ''}" onchange="updateName(${person.id}, this.value)" placeholder="${idx + 1}. Name..." class="w-full min-w-[80px] px-2 md:px-3 py-1.5 md:py-2 border-2 border-amber-200 rounded-lg focus:border-amber-500 focus:outline-none font-bold text-sm md:text-base shadow-sm dm-input" />
-                                                        <input type="text" value="${person.goal || ''}" onchange="updateGoal(${person.id}, this.value)" placeholder="🎯 Goal..." class="w-full min-w-[80px] px-2 md:px-3 py-1 border border-amber-100 rounded-lg focus:border-amber-400 focus:outline-none text-xs text-gray-500 shadow-sm mt-1 dm-input hidden md:block" />
+                                                        <input type="text" value="${person.name || ''}" onchange="updateName(${person.id}, this.value)" placeholder="${idx + 1}. Name..." class="w-full px-2 py-1.5 border-2 border-amber-200 rounded-lg focus:border-amber-500 focus:outline-none font-bold text-sm shadow-sm" />
+                                                        <input type="text" value="${person.goal || ''}" onchange="updateGoal(${person.id}, this.value)" placeholder="🎯 Goal..." class="w-full px-2 py-1 border border-amber-100 rounded-lg focus:border-amber-400 focus:outline-none text-xs text-gray-400 shadow-sm mt-1 hidden md:block" />
                                                     </div>
-                                                    ${person.name && Object.values(person.progress||{}).flat().length === 0 ? '<span class="text-red-500 text-lg flex-shrink-0" title="No activity logged yet">🔴</span>' : ''}
+                                                    ${hasNoActivity ? '<span class="text-red-500 text-base flex-shrink-0" title="No activity logged yet">🔴</span>' : ''}
                                                 </div>
                                             </td>
                                             <td class="p-2 md:p-4 mobile-hide">
-                                                <select onchange="updateAssignment(${person.id}, this.value)" class="w-full px-2 md:px-4 py-2 md:py-3 border-2 border-amber-200 rounded-lg md:rounded-xl focus:border-amber-500 focus:outline-none text-xs md:text-base font-semibold shadow-sm dm-input">
+                                                <select onchange="updateAssignment(${person.id}, this.value)" class="w-full px-2 py-2 border-2 border-amber-200 rounded-xl focus:border-amber-500 focus:outline-none text-xs font-semibold shadow-sm">
                                                     <option value="">Select...</option>
                                                     <option value="Elders Quorum" ${person.assignment==='Elders Quorum'?'selected':''}>⚡ Elders Quorum</option>
                                                     <option value="Relief Society" ${person.assignment==='Relief Society'?'selected':''}>🌸 Relief Society</option>
@@ -805,28 +902,53 @@
                                                     <option value="Young Single Adult" ${person.assignment==='Young Single Adult'?'selected':''}>🚀 Young Single Adult</option>
                                                 </select>
                                             </td>
-                                            ${MONTHS.map(month => {
+                                            ${visibleMonths.map(month => {
                                                 const monthData = person.progress?.[month] || [];
-                                                return `<td class="p-2 md:p-3 text-center border-l border-gray-200">
-                                                    <div class="min-h-[50px] md:min-h-[60px] flex items-center justify-center flex-wrap gap-1">
+                                                const isCurrentM = month === currentMonthName;
+                                                const cellBg = state.trackerView === 'month' ? 'bg-amber-50/30' : (isCurrentM ? 'bg-amber-50/40' : '');
+                                                return `<td class="p-2 md:p-4 text-center border-l border-gray-100 ${cellBg} ${state.trackerView === 'month' ? 'min-w-[200px]' : ''}">
+                                                    ${state.trackerView === 'month' ? `
+                                                    <div class="space-y-2">
+                                                        <!-- Big activity display for month view -->
+                                                        <div class="min-h-[80px] flex flex-wrap items-center justify-center gap-2 p-2 bg-white rounded-xl border border-amber-100 shadow-sm">
+                                                            ${monthData.length > 0
+                                                                ? monthData.map(code => {
+                                                                    const ind = INDICATORS.find(i => i.code === code);
+                                                                    return `<div class="flex flex-col items-center gap-0.5">
+                                                                        <span class="text-2xl md:text-3xl">${ind?.emoji || '•'}</span>
+                                                                        <span class="text-xs font-black text-gray-500">${code}</span>
+                                                                    </div>`;
+                                                                }).join('')
+                                                                : `<div class="text-center">
+                                                                    <div class="text-gray-300 text-4xl mb-1">+</div>
+                                                                    <div class="text-gray-400 text-xs font-semibold">Tap to log</div>
+                                                                </div>`}
+                                                        </div>
+                                                        <button onclick="openIndicatorModal(${person.id}, '${month}')"
+                                                            class="w-full py-2 text-xs font-black rounded-xl transition-all ${monthData.length > 0 ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-md'}">
+                                                            ${monthData.length > 0 ? '✏️ Edit Activities' : '➕ Log Activities'}
+                                                        </button>
+                                                    </div>` : `
+                                                    <div class="min-h-[50px] flex items-center justify-center flex-wrap gap-0.5 py-1">
                                                         ${monthData.length > 0
-                                                            ? monthData.map(code => { const ind = INDICATORS.find(i => i.code === code); return `<span class="text-base md:text-xl" title="${ind?.name || code}">${ind?.emoji || code}</span>`; }).join('')
-                                                            : `<button onclick="openIndicatorModal(${person.id}, '${month}')" class="text-gray-400 text-2xl md:text-3xl hover:text-amber-600 transition-colors cursor-pointer">+</button>`}
+                                                            ? monthData.map(code => { const ind = INDICATORS.find(i => i.code === code); return `<span class="text-sm md:text-lg" title="${ind?.name || code}">${ind?.emoji || code}</span>`; }).join('')
+                                                            : `<button onclick="openIndicatorModal(${person.id}, '${month}')" class="text-gray-300 text-2xl hover:text-amber-500 transition-colors">+</button>`}
                                                     </div>
-                                                    ${monthData.length > 0 ? `<button onclick="openIndicatorModal(${person.id}, '${month}')" class="text-xs text-amber-600 hover:text-amber-700 font-semibold mt-1">Edit</button>` : ''}
+                                                    ${monthData.length > 0 ? `<button onclick="openIndicatorModal(${person.id}, '${month}')" class="text-xs text-amber-500 hover:text-amber-700 font-bold">Edit</button>` : ''}`}
                                                 </td>`;
                                             }).join('')}
                                             <td class="p-2 md:p-4 mobile-hide">
-                                                <input type="text" value="${person.notes || ''}" onchange="updateNotes(${person.id}, this.value)" placeholder="Notes..." class="w-full px-2 md:px-4 py-2 md:py-3 border-2 border-amber-200 rounded-lg md:rounded-xl focus:border-amber-500 focus:outline-none text-xs md:text-sm shadow-sm" />
+                                                <textarea onchange="updateNotes(${person.id}, this.value)" placeholder="Notes..." rows="2" class="w-full px-2 py-2 border-2 border-amber-200 rounded-xl focus:border-amber-500 focus:outline-none text-xs shadow-sm resize-none">${person.notes || ''}</textarea>
                                             </td>
                                             <td class="p-2 md:p-4 text-center mobile-hide">
-                                                <div class="inline-block bg-gradient-to-r from-amber-500 to-amber-600 text-white px-2 md:px-4 py-1 md:py-2 rounded-lg md:rounded-xl shadow-lg border border-amber-700">
-                                                    <div class="text-lg md:text-2xl font-black">${stats.total}</div>
-                                                    <div class="text-xs opacity-90 hidden md:block">activities</div>
+                                                <div class="bg-gradient-to-r from-amber-500 to-amber-600 text-white px-3 py-2 rounded-xl shadow-lg text-center">
+                                                    <div class="text-xl font-black">${stats.total}</div>
+                                                    <div class="text-xs opacity-90">total</div>
                                                 </div>
+                                                <div class="mt-1 text-xs font-bold ${accentText}">${(p => (p.progress?.[currentMonthName]?.length||0))(person)} this mo.</div>
                                             </td>
                                             <td class="p-2 md:p-3">
-                                                <button onclick="removePerson(${person.id})" class="p-2 md:p-3 text-red-500 hover:bg-red-50 rounded-lg md:rounded-xl transition-all hover-lift text-xl md:text-2xl" ${currentList.length === 1 ? 'disabled' : ''}>🗑️</button>
+                                                <button onclick="removePerson(${person.id})" class="p-2 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all text-xl" ${currentList.length === 1 ? 'disabled' : ''}>🗑️</button>
                                             </td>
                                         </tr>
                                     `;
@@ -834,11 +956,10 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="p-6 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-                        <button onclick="addPerson()" class="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl hover:from-indigo-700 hover:to-purple-700 transition-all font-bold text-lg shadow-xl hover-lift">➕ Add Person</button>
+                    <div class="p-4 md:p-6 border-t border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                        <button onclick="addPerson()" class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl hover:from-indigo-700 hover:to-purple-700 transition-all font-bold text-base shadow-xl hover-lift">➕ Add Person</button>
                     </div>
                 </div>
-
             `;
         }
 
