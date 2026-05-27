@@ -45,6 +45,8 @@
         @media print {
             .no-print { display: none !important; }
             body { background: white !important; }
+            #app { display: none !important; }
+            #printReport { display: block !important; }
         }
     </style>
 </head>
@@ -543,8 +545,17 @@
         };
 
         // ── Action Planner Fields ─────────────────────────────
-        window.updateAssignedTo = (id, assignedTo) => {
-            const l = getCurrentList(); setCurrentList(l.map(p => p.id === id ? { ...p, assignedTo } : p));
+        window.updateCombinedAssignment = (id, assignedTo) => {
+            // Map leader → org for backward compat with assignment field
+            const leaderToOrg = {
+                'EQ President': 'Elders Quorum', 'RS President': 'Relief Society',
+                'Ward Missionaries': 'Ward Missionaries', 'Full-time Missionaries': 'Ward Missionaries',
+                'Bishop': 'Elders Quorum', 'YM President': 'Young Men',
+                'YW President': 'Young Women', 'Sunday School Pres.': 'Sunday School'
+            };
+            const assignment = leaderToOrg[assignedTo] || '';
+            const l = getCurrentList();
+            setCurrentList(l.map(p => p.id === id ? { ...p, assignedTo, assignment } : p));
             saveToFirebase();
         };
         window.updateNextContactDate = (id, nextContactDate) => {
@@ -803,7 +814,15 @@
                 </div>`;
             document.body.appendChild(modal);
         };
-        window.printReport = () => { window.print(); };
+        window.printReport = () => {
+            const body = document.getElementById('reportBody');
+            if (!body) return;
+            let printDiv = document.getElementById('printReport');
+            if (!printDiv) { printDiv = document.createElement('div'); printDiv.id = 'printReport'; printDiv.style.display='none'; document.body.appendChild(printDiv); }
+            printDiv.innerHTML = `<style>body{font-family:sans-serif;padding:20px}h2,h3{margin:12px 0 6px}div{margin-bottom:4px}.grid{display:flex;gap:10px;flex-wrap:wrap}.grid>div{border:1px solid #ccc;padding:8px 12px;border-radius:8px;text-align:center;min-width:80px}</style>` + body.innerHTML;
+            window.print();
+            printDiv.innerHTML = '';
+        };
 
         // ── Feature #6: Emoji/Avatar picker ─────────────────
         window.openEmojiPicker = (id) => {
@@ -1284,13 +1303,12 @@
                             <thead class="${accentHead}">
                                 <tr>
                                     <th class="text-white p-3 md:p-5 text-left font-black text-sm md:text-base min-w-[140px] sticky left-0 ${accentHead} z-10">${t('Name')}</th>
-                                    <th class="text-white p-3 md:p-5 text-left font-black text-sm md:text-base min-w-[130px] mobile-hide">${t('Assigned')}</th>
                                     ${visibleMonths.map(m => {
                                         const isCurrentM = m === currentMonthName;
                                         return `<th class="text-white p-2 md:p-5 text-center font-black text-xs md:text-base ${state.trackerView === 'month' ? 'min-w-[200px]' : 'min-w-[65px]'} ${state.trackerView === 'month' && isCurrentM ? 'bg-white/20' : ''}">${m}</th>`;
                                     }).join('')}
                                     <th class="text-white p-3 md:p-5 text-left font-black text-sm md:text-base min-w-[140px] mobile-hide">${t('Notes')}</th>
-                                    <th class="text-white p-3 md:p-5 text-center font-black text-sm md:text-base mobile-hide">${t('Stats')}</th>
+                                    <th class="text-white p-3 md:p-5 text-left font-black text-sm md:text-base min-w-[220px] mobile-hide">📋 Plan</th>
                                     <th class="text-white p-2 md:p-4"></th>
                                 </tr>
                             </thead>
@@ -1306,21 +1324,20 @@
                                                     <div class="flex-1 min-w-0">
                                                         <input type="text" value="${person.name || ''}" onchange="updateName(${person.id}, this.value)" placeholder="${idx + 1}. ${currentLang==='to'?'Hingoa...':'Name...'}" class="w-full px-2 py-1.5 border-2 border-amber-200 rounded-lg focus:border-amber-500 focus:outline-none font-bold text-sm shadow-sm" />
                                                         <input type="text" value="${person.goal || ''}" onchange="updateGoal(${person.id}, this.value)" placeholder="${currentLang==='to'?'🎯 Taumu...':'🎯 Goal...'}" class="w-full px-2 py-1 border border-amber-100 rounded-lg focus:border-amber-400 focus:outline-none text-xs text-gray-400 shadow-sm mt-1 hidden md:block" />
+                                                        <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+                                                            ${(() => {
+                                                                const streak = (() => { let s=0; for(let i=new Date().getMonth();i>=0;i--){ if((person.progress?.[MONTHS[i]]?.length||0)>0)s++;else break;} return s; })();
+                                                                const totalActs = Object.values(person.progress||{}).flat().length;
+                                                                const thisMonthActs = person.progress?.[currentMonthName]?.length||0;
+                                                                return `
+                                                                ${streak > 0 ? `<span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-black">🔥 ${streak}mo</span>` : ''}
+                                                                ${totalActs > 0 ? `<span class="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full font-bold">${totalActs} total</span>` : ''}
+                                                                ${thisMonthActs > 0 ? `<span class="text-xs ${accentText} font-bold">${thisMonthActs} this mo.</span>` : ''}
+                                                                ${hasNoActivity ? `<span class="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-bold">🔴 No activity</span>` : ''}`;
+                                                            })()}
+                                                        </div>
                                                     </div>
-                                                    ${hasNoActivity ? `<span class="text-red-500 text-base flex-shrink-0" title="${currentLang==='to'?'ʻikai ha ngāue':'No activity logged yet'}">🔴</span>` : ''}
                                                 </div>
-                                            </td>
-                                            <td class="p-2 md:p-4 mobile-hide">
-                                                <select onchange="updateAssignment(${person.id}, this.value)" class="w-full px-2 py-2 border-2 border-amber-200 rounded-xl focus:border-amber-500 focus:outline-none text-xs font-semibold shadow-sm">
-                                                    <option value="">${t('Select...')}</option>
-                                                    <option value="Elders Quorum" ${person.assignment==='Elders Quorum'?'selected':''}>⚡ ${t('Elders Quorum')}</option>
-                                                    <option value="Relief Society" ${person.assignment==='Relief Society'?'selected':''}>🌸 ${t('Relief Society')}</option>
-                                                    <option value="Young Men" ${person.assignment==='Young Men'?'selected':''}>🎯 ${t('Young Men')}</option>
-                                                    <option value="Young Women" ${person.assignment==='Young Women'?'selected':''}>⭐ ${t('Young Women')}</option>
-                                                    <option value="Primary" ${person.assignment==='Primary'?'selected':''}>🌈 ${t('Primary')}</option>
-                                                    <option value="Sunday School" ${person.assignment==='Sunday School'?'selected':''}>📚 ${t('Sunday School')}</option>
-                                                    <option value="Young Single Adult" ${person.assignment==='Young Single Adult'?'selected':''}>🚀 ${t('Young Single Adult')}</option>
-                                                </select>
                                             </td>
                                             ${visibleMonths.map(month => {
                                                 const monthData = person.progress?.[month] || [];
@@ -1329,7 +1346,6 @@
                                                 return `<td class="p-2 md:p-4 text-center border-l border-gray-100 ${cellBg} ${state.trackerView === 'month' ? 'min-w-[200px]' : ''}">
                                                     ${state.trackerView === 'month' ? `
                                                     <div class="space-y-2">
-                                                        <!-- Big activity display for month view -->
                                                         <div class="min-h-[80px] flex flex-wrap items-center justify-center gap-2 p-2 bg-white rounded-xl border border-amber-100 shadow-sm">
                                                             ${monthData.length > 0
                                                                 ? monthData.map(code => {
@@ -1360,9 +1376,9 @@
                                             <td class="p-2 md:p-4 mobile-hide">
                                                 <textarea onchange="updateNotes(${person.id}, this.value)" placeholder="${currentLang==='to'?'Fakamatala...':'Notes...'}" rows="2" class="w-full px-2 py-2 border-2 border-amber-200 rounded-xl focus:border-amber-500 focus:outline-none text-xs shadow-sm resize-none">${person.notes || ''}</textarea>
                                             </td>
-                                            <!-- ── Action Planner fields (inline) ── -->
-                                            <td class="p-2 md:p-3 mobile-hide min-w-[180px]">
-                                                <select onchange="updateAssignedTo(${person.id}, this.value)" class="w-full px-2 py-1.5 border border-rose-200 rounded-lg text-xs font-semibold mb-1.5 focus:outline-none focus:border-rose-400">
+                                            <!-- ── Unified Plan column ── -->
+                                            <td class="p-2 md:p-3 mobile-hide min-w-[220px]">
+                                                <select onchange="updateCombinedAssignment(${person.id}, this.value)" class="w-full px-2 py-1.5 border border-rose-200 rounded-lg text-xs font-semibold mb-1.5 focus:outline-none focus:border-rose-400" title="Who is responsible for this person">
                                                     <option value="">👤 Assign to...</option>
                                                     <option value="EQ President" ${person.assignedTo==='EQ President'?'selected':''}>⚡ EQ President</option>
                                                     <option value="RS President" ${person.assignedTo==='RS President'?'selected':''}>🌸 RS President</option>
@@ -1377,16 +1393,9 @@
                                                     class="w-full px-2 py-1.5 border border-rose-200 rounded-lg text-xs font-semibold mb-1.5 focus:outline-none focus:border-rose-400" title="Next Contact Date" />
                                                 <input type="text" value="${person.nextAction||''}" onchange="updateNextAction(${person.id}, this.value)"
                                                     placeholder="📝 Next action..." class="w-full px-2 py-1.5 border border-rose-200 rounded-lg text-xs focus:outline-none focus:border-rose-400 mb-1.5" />
-                                                <button onclick="markContacted(${person.id})" class="w-full py-1 text-xs font-black rounded-lg bg-rose-100 text-rose-700 hover:bg-rose-200 transition-all">
-                                                    ✅ ${person.lastContactDate ? 'Last: '+person.lastContactDate.slice(5) : 'Mark Contacted'}
+                                                <button onclick="markContacted(${person.id})" class="w-full py-1.5 text-xs font-black rounded-lg transition-all ${person.lastContactDate ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-rose-100 text-rose-700 hover:bg-rose-200'}">
+                                                    ${person.lastContactDate ? '✅ Last: '+person.lastContactDate.slice(5) : '📞 Mark Contacted'}
                                                 </button>
-                                            </td>
-                                            <td class="p-2 md:p-4 text-center mobile-hide">
-                                                <div class="bg-gradient-to-r from-amber-500 to-amber-600 text-white px-3 py-2 rounded-xl shadow-lg text-center">
-                                                    <div class="text-xl font-black">${stats.total}</div>
-                                                    <div class="text-xs opacity-90">total</div>
-                                                </div>
-                                                <div class="mt-1 text-xs font-bold ${accentText}">${(p => (p.progress?.[currentMonthName]?.length||0))(person)} ${currentLang==='to'?'māhina ni':'this mo.'}</div>
                                             </td>
                                             <td class="p-2 md:p-3">
                                                 <button onclick="removePerson(${person.id})" class="p-2 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all text-xl" ${currentList.length === 1 ? 'disabled' : ''}>🗑️</button>
@@ -1418,7 +1427,11 @@
         function renderThisWeek() {
             const today = new Date(); today.setHours(0,0,0,0);
             const in7 = new Date(today); in7.setDate(today.getDate()+7);
-            const allPeople = [...state.investigators.map(p=>({...p,_tab:'investigators'})), ...state.returning.map(p=>({...p,_tab:'returning'}))].filter(p=>p.name);
+            // Filter based on activeTab — default shows all, but user can toggle
+            const weekFilter = state.weekFilter || 'all';
+            const rawInv = state.investigators.map(p=>({...p,_tab:'investigators'})).filter(p=>p.name);
+            const rawRet = state.returning.map(p=>({...p,_tab:'returning'})).filter(p=>p.name);
+            const allPeople = weekFilter === 'investigators' ? rawInv : weekFilter === 'returning' ? rawRet : [...rawInv, ...rawRet];
 
             function getDaysUntil(dateStr) {
                 if (!dateStr) return null;
@@ -1480,6 +1493,9 @@
                         <div class="flex flex-col items-end gap-2 flex-shrink-0">
                             <span class="text-xs font-black px-3 py-1 rounded-full ${badgeColors[urgency]}">${badgeText}</span>
                             <button onclick="markContacted_tab('${p.id}','${p._tab}')" class="text-xs font-black px-3 py-1.5 bg-white border-2 border-rose-300 text-rose-600 rounded-lg hover:bg-rose-50 transition-all">✅ Mark Contacted</button>
+                            <div class="flex items-center gap-1">
+                                <input type="date" value="${p.nextContactDate||''}" onchange="quickSetDate('${p.id}','${p._tab}',this.value)" class="text-xs border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:border-rose-400 bg-white" title="Set next contact date" />
+                            </div>
                         </div>
                     </div>
                 </div>`;
@@ -1517,7 +1533,13 @@
                                 <p class="text-rose-200 text-sm font-semibold">Who needs to be contacted and by whom</p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <!-- Tab filter -->
+                            <div class="flex bg-white/20 rounded-xl p-1 gap-1">
+                                <button onclick="state.weekFilter='all';render()" class="px-3 py-1.5 rounded-lg text-xs font-black transition-all ${weekFilter==='all'?'bg-white text-rose-700 shadow':'text-white'}">All</button>
+                                <button onclick="state.weekFilter='investigators';render()" class="px-3 py-1.5 rounded-lg text-xs font-black transition-all ${weekFilter==='investigators'?'bg-white text-rose-700 shadow':'text-white'}">👤 Invest.</button>
+                                <button onclick="state.weekFilter='returning';render()" class="px-3 py-1.5 rounded-lg text-xs font-black transition-all ${weekFilter==='returning'?'bg-white text-rose-700 shadow':'text-white'}">💙 Return.</button>
+                            </div>
                             <div class="text-center bg-white/20 rounded-xl px-4 py-2">
                                 <div class="text-2xl font-black">${totalAction}</div>
                                 <div class="text-xs font-bold text-rose-200">Need Action</div>
@@ -1584,6 +1606,14 @@
             showSaveMessage(currentLang==='to'?'✓ Faka\'ilonga fetuʻutaki!':'✓ Marked as contacted today!');
         };
 
+        window.quickSetDate = (id, tab, dateVal) => {
+            const idNum = parseInt(id);
+            if (tab === 'investigators') state.investigators = state.investigators.map(p => p.id === idNum ? { ...p, nextContactDate: dateVal } : p);
+            else state.returning = state.returning.map(p => p.id === idNum ? { ...p, nextContactDate: dateVal } : p);
+            saveToFirebase();
+            render();
+        };
+
         window.sendWeeklyFocus = () => {
             const today = new Date(); today.setHours(0,0,0,0);
             const in7 = new Date(today); in7.setDate(today.getDate()+7);
@@ -1624,17 +1654,29 @@
 
             function getColumn(p) {
                 const allActs = Object.values(p.progress||{}).flat();
-                const thisMonthActs = p.progress?.[currentMonthKey]?.length || 0;
                 const hasBaptism = allActs.includes('B') || allActs.includes('C');
                 const hasBaptismDate = allActs.includes('BD');
-                const daysSince = p.lastContactDate ? Math.ceil((today - parseLocalDate(p.lastContactDate)) / (1000*60*60*24)) : null;
-                const hasRecentContact = daysSince !== null && daysSince <= 30;
                 const totalActs = allActs.length;
 
-                if (hasBaptism) return 'milestone';
-                if (hasBaptismDate) return 'milestone';
+                if (hasBaptism || hasBaptismDate) return 'milestone';
                 if (totalActs === 0) return 'new';
-                if (!hasRecentContact && totalActs > 0) return 'attention';
+
+                // Check recency: prefer explicit lastContactDate, fall back to most recent month with activity
+                let daysSinceContact = null;
+                if (p.lastContactDate) {
+                    daysSinceContact = Math.ceil((today - parseLocalDate(p.lastContactDate)) / (1000*60*60*24));
+                } else {
+                    // Find most recent month with activity as proxy for last contact
+                    for (let i = today.getMonth(); i >= 0; i--) {
+                        if ((p.progress?.[MONTHS[i]]?.length||0) > 0) {
+                            // Approximate: use the last day of that month
+                            const approxDate = new Date(today.getFullYear(), i+1, 0);
+                            daysSinceContact = Math.ceil((today - approxDate) / (1000*60*60*24));
+                            break;
+                        }
+                    }
+                }
+                if (daysSinceContact === null || daysSinceContact > 30) return 'attention';
                 return 'inprogress';
             }
 
