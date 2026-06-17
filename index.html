@@ -7,41 +7,106 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap');
         * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-        @keyframes float {
-            0%, 100% { transform: translateY(0) translateX(0); }
-            25% { transform: translateY(-20px) translateX(10px); }
-            50% { transform: translateY(-40px) translateX(-10px); }
-            75% { transform: translateY(-20px) translateX(10px); }
+
+        /* ─────────── SACRED STONE — design tokens ─────────── */
+        :root {
+            --ss-ink:#1C1B17; --ss-ink-soft:#3C382E;
+            --ss-bg:#ECE7DC; --ss-surface:#FBF8F1; --ss-surface-2:#F3EEE3;
+            --ss-line:#E1D9C8; --ss-line-2:#CFC4AB;
+            --ss-muted:#7C7565;
+            --ss-gold:#B0832F; --ss-gold-deep:#896320; --ss-gold-wash:#F2E8D2;
+            --ss-red:#A8463A; --ss-red-wash:#F1E1DD;
+            --ss-sage:#5F7355; --ss-sage-wash:#E6EBDF;
+            --ss-bar:#1C1B17; --ss-bar-text:#F4ECD8;
         }
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.5); }
-            50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.8); }
+        .dark-mode {
+            --ss-ink:#ECE6D6; --ss-ink-soft:#C8C1AD;
+            --ss-bg:#15130E; --ss-surface:#221F18; --ss-surface-2:#2B2720;
+            --ss-line:#37322A; --ss-line-2:#4A4438;
+            --ss-muted:#9A9384;
+            --ss-gold:#D6A852; --ss-gold-deep:#E3BB63; --ss-gold-wash:#2C2616;
+            --ss-red:#D58B7C; --ss-red-wash:#2E2018;
+            --ss-sage:#9DB28F; --ss-sage-wash:#1F271B;
+            --ss-bar:#0F0E0A; --ss-bar-text:#F0E7D2;
         }
-        @keyframes shimmer {
-            0% { background-position: -1000px 0; }
-            100% { background-position: 1000px 0; }
-        }
-        .shimmer {
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            background-size: 1000px 100%;
-            animation: shimmer 3s infinite;
-        }
-        .hover-lift { transition: background 0.15s ease, box-shadow 0.15s ease; }
+        body { background: var(--ss-bg) !important; color: var(--ss-ink); }
+        h1,h2 { font-family:'Fraunces', Georgia, serif !important; letter-spacing:-0.01em; }
+
+        /* surfaces -> bone */
+        [class~="bg-white"],[class~="bg-white/90"],[class~="bg-white/95"],[class~="bg-white/98"],[class~="bg-gray-50"]{ background-color:var(--ss-surface)!important; }
+        [class~="bg-gray-100"]{ background-color:var(--ss-surface-2)!important; }
+        [class~="bg-gray-200"],[class~="bg-gray-300"]{ background-color:var(--ss-line)!important; }
+        [class~="bg-amber-50"],[class~="bg-amber-100"],[class~="bg-blue-50"],[class~="bg-blue-100"],[class~="bg-purple-50"],[class~="bg-purple-100"],[class~="bg-indigo-50"],[class~="bg-indigo-100"],[class~="bg-yellow-100"]{ background-color:var(--ss-gold-wash)!important; }
+        [class~="bg-amber-200"]{ background-color:#E8D7AE!important; }
+        [class~="bg-green-50"],[class~="bg-green-100"]{ background-color:var(--ss-sage-wash)!important; }
+        [class~="bg-red-50"],[class~="bg-red-100"],[class~="bg-rose-50"],[class~="bg-rose-100"],[class~="bg-rose-200"]{ background-color:var(--ss-red-wash)!important; }
+        [class~="bg-red-500"]{ background-color:var(--ss-red)!important; }
+        [class~="bg-green-500"],[class~="bg-emerald-500"]{ background-color:var(--ss-sage)!important; }
+
+        /* flatten every gradient, then re-solid by family */
+        [class*="bg-gradient"]{ background-image:none!important; }
+        [class~="from-amber-500"],[class~="from-amber-600"],[class~="from-green-500"],[class~="from-green-600"],[class~="from-indigo-500"],[class~="from-indigo-600"],[class~="from-purple-600"],[class~="from-orange-500"],[class~="from-yellow-400"],[class~="from-teal-600"],[class~="from-blue-600"]{ background-color:var(--ss-bar)!important; color:var(--ss-bar-text)!important; }
+        [class~="from-rose-600"],[class~="from-red-500"],[class~="from-red-600"]{ background-color:var(--ss-red)!important; color:#fff!important; }
+        [class~="from-emerald-500"]{ background-color:var(--ss-sage)!important; color:#fff!important; }
+        [class~="from-gray-50"]{ background-color:var(--ss-surface-2)!important; }
+
+        /* text */
+        [class~="text-amber-300"]{ color:var(--ss-gold)!important; }
+        [class~="text-amber-600"],[class~="text-amber-700"],[class~="text-amber-800"],[class~="text-amber-900"],[class~="text-orange-700"],[class~="text-yellow-900"]{ color:var(--ss-gold-deep)!important; }
+        [class~="text-blue-700"],[class~="text-blue-800"],[class~="text-indigo-700"],[class~="text-indigo-800"],[class~="text-purple-600"],[class~="text-purple-700"],[class~="text-purple-800"],[class~="text-purple-900"],[class~="text-purple-300"]{ color:var(--ss-gold-deep)!important; }
+        [class~="text-green-600"],[class~="text-green-700"],[class~="text-green-800"]{ color:var(--ss-sage)!important; }
+        [class~="text-red-600"],[class~="text-red-700"],[class~="text-rose-700"],[class~="text-red-400"]{ color:var(--ss-red)!important; }
+        [class~="text-gray-400"],[class~="text-gray-500"],[class~="text-gray-300"]{ color:var(--ss-muted)!important; }
+        [class~="text-gray-600"],[class~="text-gray-700"],[class~="text-gray-800"],[class~="text-gray-900"]{ color:var(--ss-ink)!important; }
+
+        /* borders -> stone hairline */
+        [class~="border-amber-100"],[class~="border-amber-200"],[class~="border-amber-300"],[class~="border-amber-400"],[class~="border-gray-100"],[class~="border-gray-200"],[class~="border-green-200"],[class~="border-rose-200"],[class~="border-rose-400"],[class~="border-purple-200"],[class~="border-purple-400"],[class~="border-purple-500"],[class~="border-indigo-100"],[class~="border-indigo-200"],[class~="border-blue-200"],[class~="border-red-200"],[class~="border-yellow-200"]{ border-color:var(--ss-line)!important; }
+        [class~="border-2"]{ border-width:1px!important; }
+
+        /* inputs */
+        input,textarea,select{ background-color:var(--ss-surface)!important; color:var(--ss-ink)!important; }
+        input::placeholder,textarea::placeholder{ color:var(--ss-muted)!important; }
+        input:focus,textarea:focus,select:focus{ border-color:var(--ss-gold)!important; outline:none!important; box-shadow:0 0 0 3px color-mix(in srgb, var(--ss-gold) 22%, transparent)!important; }
+
+        /* motion only on actionable things — never whole rows */
+        .hover-lift{ transition:transform .12s ease, box-shadow .12s ease!important; }
+        button.hover-lift:hover,a.hover-lift:hover,label.hover-lift:hover{ box-shadow:0 6px 20px rgba(28,27,23,.12)!important; }
+        button:active{ transform:scale(.985); }
+        tr{ transition:none!important; }
+        tr:hover{ background:inherit!important; }
+        [class*="shadow"]{ box-shadow:0 1px 3px rgba(28,27,23,.06), 0 8px 24px rgba(28,27,23,.05)!important; }
+
+        /* gold underline on active tabs/toggles */
+        [class~="scale-105"],[class~="scale-110"]{ transform:none!important; box-shadow:inset 0 -3px 0 var(--ss-gold)!important; }
+
+        /* sticky frosted toolbar */
+        .ss-sticky{ position:sticky; top:0; z-index:50; backdrop-filter:saturate(140%) blur(14px); -webkit-backdrop-filter:saturate(140%) blur(14px); background:color-mix(in srgb, var(--ss-bg) 80%, transparent); margin:-4px -12px 16px; padding:12px; border-bottom:1px solid var(--ss-line); }
+
+        /* status dots + chips (replaces emoji clutter) */
+        .ss-dot{ display:inline-block; width:9px; height:9px; border-radius:50%; flex:0 0 auto; box-shadow:inset 0 0 0 1px rgba(0,0,0,.12); }
+        .ss-chip{ display:inline-flex; align-items:center; gap:5px; padding:2px 8px 2px 6px; border-radius:999px; background:var(--ss-surface-2); border:1px solid var(--ss-line); font-size:11px; font-weight:700; color:var(--ss-ink-soft); letter-spacing:.02em; }
+        .ss-dotrow{ display:flex; flex-wrap:wrap; gap:5px; align-items:center; justify-content:center; }
+
+        /* presence / streak bar */
+        .ss-presence{ margin-top:6px; }
+        .ss-presence-track{ height:6px; border-radius:999px; background:var(--ss-line); overflow:hidden; }
+        .ss-presence-fill{ height:100%; border-radius:999px; background:var(--ss-gold); transition:width .3s ease; }
+        .ss-presence-meta{ display:flex; gap:8px; align-items:center; margin-top:5px; font-size:11px; font-weight:600; color:var(--ss-muted); flex-wrap:wrap; }
+        .ss-presence-meta .hot{ color:var(--ss-gold-deep); }
+        .ss-presence-meta .warn{ color:var(--ss-red); font-weight:700; }
+
+        .pulse-glow{ animation:none; }
+        .floating-particle{ display:none!important; }
+        @keyframes shimmer { 0%{background-position:-1000px 0} 100%{background-position:1000px 0} }
+        .shimmer{ background:linear-gradient(90deg,transparent,rgba(176,131,47,.18),transparent); background-size:1000px 100%; animation:shimmer 3s infinite; }
+
         @media (max-width: 768px) {
-            .hover-lift:hover { transform: none; }
             .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
             .mobile-hide { display: none; }
+            .ss-sticky{ margin:-4px -8px 12px; padding:10px 8px; }
         }
-        .pulse-glow { animation: pulse-glow 3s infinite; }
-        .floating-particle { position: absolute; border-radius: 50%; background: white; opacity: 0.2; pointer-events: none; }
-        .dark-mode .dm-card { background: rgba(17,24,39,0.95) !important; border-color: rgba(255,255,255,0.1) !important; }
-        .dark-mode .dm-text { color: #f9fafb !important; }
-        .dark-mode .dm-sub { color: #9ca3af !important; }
-        .dark-mode .dm-row-even { background: rgba(31,41,55,0.8) !important; }
-        .dark-mode .dm-row-odd { background: rgba(17,24,39,0.6) !important; }
-        .dark-mode .dm-input { background: rgba(31,41,55,0.9) !important; border-color: rgba(107,114,128,0.5) !important; color: #f9fafb !important; }
         @media print {
             .no-print { display: none !important; }
             body { background: white !important; }
@@ -431,6 +496,13 @@
             { code: 'ASP', name: 'Attended Service Project', toName: 'Ō ki Ngāue Tokoni', color: 'from-teal-600 to-teal-700', emoji: '💪' },
             { code: 'ACTIVE', name: 'Active Member', toName: 'Kāinga ʻOku Ngāue', color: 'from-emerald-500 to-emerald-600', emoji: '⭐' }
         ];
+        // Sacred Stone — refined earthy dot palette keyed off each indicator's family
+        const SS_DOT = { blue:'#6B7C93', green:'#5F7355', purple:'#7B6B8B', yellow:'#C2A04A', orange:'#B5732F', pink:'#A8708A', indigo:'#5E6486', teal:'#4F8378', cyan:'#5E8A8F', gray:'#8A8270', red:'#A8463A', emerald:'#5F7355' };
+        const indDot = (codeOrInd) => {
+            const ind = typeof codeOrInd === 'string' ? INDICATORS.find(i => i.code === codeOrInd) : codeOrInd;
+            const m = (ind?.color || '').match(/from-([a-z]+)-/);
+            return SS_DOT[m && m[1]] || '#8A8270';
+        };
 
         // ── Debounce utility (Bug Fix #1) ──────────────────
         const debounceTimers = {};
@@ -1077,12 +1149,12 @@
                     </div>
                     <div class="grid grid-cols-1 gap-3 mb-6">
                         ${INDICATORS.map(ind => `
-                            <label class="flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all border-2 ${monthData.includes(ind.code) ? `bg-gradient-to-r ${ind.color} text-white border-transparent` : 'bg-white hover:bg-amber-50 border-amber-200'}">
-                                <input type="checkbox" ${monthData.includes(ind.code)?'checked':''} onchange="handleIndicatorToggle(${personId}, '${month}', '${ind.code}', this.checked)" class="w-6 h-6 text-amber-600 rounded focus:ring-2 focus:ring-amber-500" />
-                                <span class="text-3xl">${ind.emoji}</span>
-                                <div class="flex-1">
-                                    <div class="font-black text-base">${ind.code}</div>
-                                    <div class="text-sm opacity-90">${currentLang === 'to' ? ind.toName : ind.name}</div>
+                            <label class="flex items-center gap-4 p-3.5 rounded-xl cursor-pointer transition-all" style="border:1px solid var(--ss-line);${monthData.includes(ind.code) ? 'background:var(--ss-gold-wash);border-color:var(--ss-gold);' : 'background:var(--ss-surface);'}">
+                                <input type="checkbox" ${monthData.includes(ind.code)?'checked':''} onchange="handleIndicatorToggle(${personId}, '${month}', '${ind.code}', this.checked)" class="w-5 h-5 rounded" style="accent-color:var(--ss-gold);" />
+                                <span class="ss-dot" style="background:${indDot(ind)};width:14px;height:14px;"></span>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-base" style="font-weight:700;color:var(--ss-ink);">${ind.code}</div>
+                                    <div class="text-sm" style="color:var(--ss-muted);">${currentLang === 'to' ? ind.toName : ind.name}</div>
                                 </div>
                             </label>
                         `).join('')}
@@ -1133,24 +1205,24 @@
             app.innerHTML = `
                 <div class="min-h-screen relative overflow-hidden ${state.darkMode ? 'dark-mode' : ''}">
                     <div class="fixed inset-0 z-0">
-                        <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('${state.backgroundImage}')"></div>
-                        <div class="absolute inset-0 ${state.darkMode ? 'bg-black/80' : 'bg-gradient-to-b from-black/50 via-black/20 to-black/40'}"></div>
+                        <div class="absolute inset-0" style="background:var(--ss-bg)"></div>
                     </div>
                     <div class="relative z-10 p-3 md:p-6">
                         <div class="max-w-7xl mx-auto">
 
                             <!-- ✅ HEADER TITLE -->
-                            <div class="text-center mb-6 md:mb-8 pt-2">
-                                <h1 class="text-3xl md:text-5xl lg:text-6xl font-black text-white leading-tight" style="text-shadow: 0 2px 16px rgba(0,0,0,0.9), 0 4px 32px rgba(0,0,0,0.7);">
+                            <div class="text-center mb-5 md:mb-7 pt-2">
+                                <div style="width:46px;height:3px;background:var(--ss-gold);margin:0 auto 14px;border-radius:2px;"></div>
+                                <h1 class="text-2xl md:text-4xl lg:text-5xl leading-tight" style="color:var(--ss-ink);font-weight:600;">
                                     Riverton 24th Tongan Ward
                                 </h1>
-                                <h2 class="text-2xl md:text-4xl lg:text-5xl font-black text-amber-300 mt-1 md:mt-2" style="text-shadow: 0 2px 16px rgba(0,0,0,0.9), 0 4px 32px rgba(0,0,0,0.7);">
+                                <h2 class="text-lg md:text-2xl lg:text-3xl mt-1" style="color:var(--ss-gold-deep);font-weight:500;letter-spacing:.04em;text-transform:uppercase;">
                                     Focus Five Tracker
                                 </h2>
                             </div>
 
                             <!-- Tabs -->
-                            <div class="flex gap-2 md:gap-4 mb-4 md:mb-6 flex-wrap items-center justify-between">
+                            <div class="ss-sticky flex gap-2 md:gap-4 mb-4 md:mb-6 flex-wrap items-center justify-between">
                                 <div class="flex gap-2 md:gap-4 flex-wrap flex-1">
                                     <button onclick="setActiveTab('investigators')" class="flex items-center gap-2 md:gap-3 px-4 md:px-8 py-3 md:py-5 rounded-xl md:rounded-2xl font-black text-sm md:text-xl transition-all shadow-xl hover-lift flex-1 min-w-[140px] justify-center border-2 ${state.activeTab === 'investigators' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-700 scale-105 md:scale-110' : 'bg-white/95 backdrop-blur-lg text-amber-900 border-amber-200 hover:bg-white'}">
                                         <span class="text-xl md:text-2xl">👤</span>
@@ -1282,14 +1354,14 @@
 
                 <!-- Key Indicators Legend -->
                 <div class="bg-white/98 backdrop-blur-xl rounded-2xl md:rounded-3xl shadow-xl p-4 md:p-6 mb-4 hover-lift border-2 ${accentBorder}">
-                    <h3 class="font-black text-base md:text-xl mb-3 ${accentText} flex items-center gap-2">✨ ${t('Key Indicators')}</h3>
+                    <h3 class="text-base md:text-lg mb-3 flex items-center gap-2" style="color:var(--ss-ink);font-weight:600;"><span style="width:8px;height:8px;border-radius:50%;background:var(--ss-gold);display:inline-block;"></span> ${t('Key Indicators')}</h3>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
                         ${INDICATORS.map(ind => `
-                            <div class="flex items-center gap-2 bg-gradient-to-r from-amber-50 to-white p-2 md:p-3 rounded-lg hover:shadow-md transition-all border border-amber-100">
-                                <span class="text-lg md:text-2xl">${ind.emoji}</span>
-                                <div>
-                                    <span class="bg-gradient-to-r ${ind.color} text-white px-1.5 py-0.5 rounded text-xs font-black shadow">${ind.code}</span>
-                                    <div class="text-xs text-gray-600 font-semibold mt-0.5 hidden lg:block leading-tight">${currentLang === 'to' ? ind.toName : ind.name}</div>
+                            <div class="flex items-center gap-2.5 p-2 md:p-2.5 rounded-lg transition-all" style="background:var(--ss-surface-2);border:1px solid var(--ss-line);">
+                                <span class="ss-dot" style="background:${indDot(ind)};width:11px;height:11px;"></span>
+                                <div class="min-w-0">
+                                    <span class="text-xs" style="font-weight:700;color:var(--ss-ink);letter-spacing:.03em;">${ind.code}</span>
+                                    <div class="text-xs font-semibold mt-0.5 hidden lg:block leading-tight" style="color:var(--ss-muted);">${currentLang === 'to' ? ind.toName : ind.name}</div>
                                 </div>
                             </div>
                         `).join('')}
@@ -1317,23 +1389,31 @@
                                     const stats = getProgressStats(person);
                                     const hasNoActivity = person.name && Object.values(person.progress||{}).flat().length === 0;
                                     return `
-                                        <tr class="${idx % 2 === 0 ? 'bg-white' : 'bg-amber-50/30'} hover:bg-amber-50/60 transition-all">
-                                            <td class="p-2 md:p-4 sticky left-0 ${idx % 2 === 0 ? 'bg-white' : 'bg-amber-50/50'} z-10 border-r ${accentBorder}">
+                                        <tr style="border-bottom:1px solid var(--ss-line);">
+                                            <td class="p-2 md:p-4 sticky left-0 z-10 border-r ${accentBorder}" style="background:var(--ss-surface);">
                                                 <div class="flex items-center gap-2">
                                                     <button onclick="openEmojiPicker(${person.id})" class="text-2xl md:text-3xl hover:scale-110 transition-transform flex-shrink-0" title="${currentLang==='to'?'Liliu fakaʻilonga':'Change avatar'}">${person.emoji||'👤'}</button>
                                                     <div class="flex-1 min-w-0">
                                                         <input type="text" value="${person.name || ''}" onchange="updateName(${person.id}, this.value)" placeholder="${idx + 1}. ${currentLang==='to'?'Hingoa...':'Name...'}" class="w-full px-2 py-1.5 border-2 border-amber-200 rounded-lg focus:border-amber-500 focus:outline-none font-bold text-sm shadow-sm" />
                                                         <input type="text" value="${person.goal || ''}" onchange="updateGoal(${person.id}, this.value)" placeholder="${currentLang==='to'?'🎯 Taumu...':'🎯 Goal...'}" class="w-full px-2 py-1 border border-amber-100 rounded-lg focus:border-amber-400 focus:outline-none text-xs text-gray-400 shadow-sm mt-1 hidden md:block" />
-                                                        <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+                                                        <div class="mt-1.5">
                                                             ${(() => {
                                                                 const streak = (() => { let s=0; for(let i=new Date().getMonth();i>=0;i--){ if((person.progress?.[MONTHS[i]]?.length||0)>0)s++;else break;} return s; })();
                                                                 const totalActs = Object.values(person.progress||{}).flat().length;
                                                                 const thisMonthActs = person.progress?.[currentMonthName]?.length||0;
+                                                                const GOAL = 5;
+                                                                const pct = Math.min(100, Math.round((thisMonthActs / GOAL) * 100));
+                                                                if (!person.name) return '';
                                                                 return `
-                                                                ${streak > 0 ? `<span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-black">🔥 ${streak}mo</span>` : ''}
-                                                                ${totalActs > 0 ? `<span class="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full font-bold">${totalActs} total</span>` : ''}
-                                                                ${thisMonthActs > 0 ? `<span class="text-xs ${accentText} font-bold">${thisMonthActs} this mo.</span>` : ''}
-                                                                ${hasNoActivity ? `<span class="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-bold">🔴 No activity</span>` : ''}`;
+                                                                <div class="ss-presence">
+                                                                    <div class="ss-presence-track"><div class="ss-presence-fill" style="width:${pct}%;${thisMonthActs===0?'background:var(--ss-line-2);':''}"></div></div>
+                                                                    <div class="ss-presence-meta">
+                                                                        ${streak > 0 ? `<span class="hot">${streak} mo streak</span>` : ''}
+                                                                        <span>${thisMonthActs}/${GOAL} this mo</span>
+                                                                        ${totalActs > 0 ? `<span>· ${totalActs} total</span>` : ''}
+                                                                        ${hasNoActivity ? `<span class="warn">needs contact</span>` : ''}
+                                                                    </div>
+                                                                </div>`;
                                                             })()}
                                                         </div>
                                                     </div>
@@ -1342,35 +1422,32 @@
                                             ${visibleMonths.map(month => {
                                                 const monthData = person.progress?.[month] || [];
                                                 const isCurrentM = month === currentMonthName;
-                                                const cellBg = state.trackerView === 'month' ? 'bg-amber-50/30' : (isCurrentM ? 'bg-amber-50/40' : '');
-                                                return `<td class="p-2 md:p-4 text-center border-l border-gray-100 ${cellBg} ${state.trackerView === 'month' ? 'min-w-[200px]' : ''}">
+                                                const cellBg = '';
+                                                return `<td class="p-2 md:p-4 text-center border-l ${state.trackerView === 'month' ? 'min-w-[200px]' : ''}" style="border-color:var(--ss-line);${isCurrentM ? 'background:var(--ss-gold-wash);' : ''}">
                                                     ${state.trackerView === 'month' ? `
                                                     <div class="space-y-2">
-                                                        <div class="min-h-[80px] flex flex-wrap items-center justify-center gap-2 p-2 bg-white rounded-xl border border-amber-100 shadow-sm">
+                                                        <div class="min-h-[80px] flex flex-wrap items-center justify-center gap-1.5 p-2.5 rounded-xl" style="background:var(--ss-surface-2);border:1px solid var(--ss-line);">
                                                             ${monthData.length > 0
                                                                 ? monthData.map(code => {
                                                                     const ind = INDICATORS.find(i => i.code === code);
-                                                                    return `<div class="flex flex-col items-center gap-0.5">
-                                                                        <span class="text-2xl md:text-3xl">${ind?.emoji || '•'}</span>
-                                                                        <span class="text-xs font-black text-gray-500">${code}</span>
-                                                                    </div>`;
+                                                                    return `<span class="ss-chip" title="${ind ? (currentLang==='to'?ind.toName:ind.name) : code}"><span class="ss-dot" style="background:${indDot(ind||code)}"></span>${code}</span>`;
                                                                 }).join('')
-                                                                : `<div class="text-center">
-                                                                    <div class="text-gray-300 text-4xl mb-1">+</div>
-                                                                    <div class="text-gray-400 text-xs font-semibold">${t('Tap to log')}</div>
+                                                                : `<div class="text-center" style="color:var(--ss-muted);">
+                                                                    <div class="text-2xl mb-0.5" style="color:var(--ss-line-2);">+</div>
+                                                                    <div class="text-xs font-semibold">${t('Tap to log')}</div>
                                                                 </div>`}
                                                         </div>
                                                         <button onclick="openIndicatorModal(${person.id}, '${month}')"
-                                                            class="w-full py-2 text-xs font-black rounded-xl transition-all ${monthData.length > 0 ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-md'}">
-                                                            ${monthData.length > 0 ? `✏️ ${t('Edit Activities')}` : `➕ ${t('Log Activities')}`}
+                                                            class="w-full py-2 text-xs rounded-xl transition-all" style="font-weight:600;${monthData.length > 0 ? 'background:var(--ss-gold-wash);color:var(--ss-gold-deep);border:1px solid var(--ss-line);' : 'background:var(--ss-bar);color:var(--ss-bar-text);'}">
+                                                            ${monthData.length > 0 ? `${t('Edit Activities')}` : `+ ${t('Log Activities')}`}
                                                         </button>
                                                     </div>` : `
-                                                    <div class="min-h-[50px] flex items-center justify-center flex-wrap gap-0.5 py-1">
+                                                    <div class="min-h-[44px] flex items-center justify-center flex-wrap gap-1.5 py-1">
                                                         ${monthData.length > 0
-                                                            ? monthData.map(code => { const ind = INDICATORS.find(i => i.code === code); return `<span class="text-sm md:text-lg" title="${ind?.name || code}">${ind?.emoji || code}</span>`; }).join('')
-                                                            : `<button onclick="openIndicatorModal(${person.id}, '${month}')" class="text-gray-300 text-2xl hover:text-amber-500 transition-colors">+</button>`}
+                                                            ? monthData.map(code => { const ind = INDICATORS.find(i => i.code === code); return `<span class="ss-dot" style="background:${indDot(ind||code)};width:11px;height:11px;" title="${ind ? (currentLang==='to'?ind.toName:ind.name) : code} (${code})"></span>`; }).join('')
+                                                            : `<button onclick="openIndicatorModal(${person.id}, '${month}')" class="text-2xl transition-colors" style="color:var(--ss-line-2);">+</button>`}
                                                     </div>
-                                                    ${monthData.length > 0 ? `<button onclick="openIndicatorModal(${person.id}, '${month}')" class="text-xs text-amber-500 hover:text-amber-700 font-bold">${t('Edit')}</button>` : ''}`}
+                                                    ${monthData.length > 0 ? `<button onclick="openIndicatorModal(${person.id}, '${month}')" class="text-xs font-bold" style="color:var(--ss-gold-deep);">${t('Edit')}</button>` : ''}`}
                                                 </td>`;
                                             }).join('')}
                                             <td class="p-2 md:p-4 mobile-hide">
