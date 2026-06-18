@@ -100,6 +100,16 @@
         [class~="text-indigo-900"],[class~="text-purple-900"],[class~="text-violet-900"]{ color:var(--ss-violet)!important; }
         [class~="text-rose-900"],[class~="text-red-900"]{ color:var(--ss-red)!important; }
         [class~="text-blue-900"]{ color:#9ec5ff!important; }
+        [class~="text-violet-700"],[class~="text-violet-800"]{ color:var(--ss-violet)!important; }
+        [class~="text-slate-500"],[class~="text-slate-600"],[class~="text-slate-700"],[class~="text-slate-800"],[class~="text-slate-900"]{ color:var(--ss-ink-soft)!important; }
+        [class~="text-emerald-600"],[class~="text-emerald-700"],[class~="text-emerald-800"]{ color:var(--ss-sage)!important; }
+        [class~="text-blue-600"],[class~="text-blue-700"],[class~="text-blue-800"]{ color:#9ec5ff!important; }
+        [class~="text-orange-600"],[class~="text-orange-700"],[class~="text-orange-800"]{ color:#f6b87a!important; }
+        /* dark inputs in This Week cards/forms */
+        .tw-field::placeholder{ color:var(--ss-muted); opacity:.85; }
+        .tw-field{ color:var(--ss-ink); }
+        .tw-field option{ background:var(--ss-surface); color:var(--ss-ink); }
+        .tw-field::-webkit-calendar-picker-indicator{ filter:invert(.85); }
         [class~="text-purple-600"],[class~="text-purple-700"],[class~="text-purple-800"],[class~="text-purple-300"],[class~="text-indigo-600"],[class~="text-indigo-700"],[class~="text-indigo-800"]{ color:var(--ss-violet)!important; }
         [class~="bg-purple-50"],[class~="bg-purple-100"],[class~="bg-indigo-50"],[class~="bg-indigo-100"]{ background-color:var(--ss-violet-wash)!important; }
 
@@ -526,6 +536,14 @@
             'Contact Follow-Up Health': { to: 'Tuʻunga Fetuʻutaki' },
             'Live snapshot of the This Week board for this group': { to: 'Sio fakavavevave ki he papa ʻAhi Ni ʻo e kulupu ni' },
             'Task Completion Rate': { to: 'Lahi ʻo e Ngāue Kuo ʻOsi' },
+            'Add': { to: 'Tānaki' },
+            'Add Contact & Task': { to: 'Tānaki Kakai mo e Ngāue' },
+            'Add a task / next action...': { to: 'Tānaki ha ngāue / fai hoko...' },
+            'Log activity': { to: 'Lēkooti ngāue' },
+            'Due This Week': { to: 'Fai he Uike Ni' },
+            'All': { to: 'Kotoa' },
+            'Nobody to follow up with yet': { to: 'ʻOku teʻeki ai ha taha ke fetuʻutaki' },
+            'Add your first contact to start tracking who needs a visit, a call, or an invitation.': { to: 'Tānaki hoʻo ʻuluaki kakai ke kamata ʻo muimuiʻi e fie maʻu ke ʻaʻahi, telefoni, pe fakaafeʻi.' },
         };
 
         function t(key) {
@@ -629,6 +647,7 @@
         });
 
         function saveToFirebase() {
+            state.syncing = true;
             set(dataRef, {
                 investigators: state.investigators,
                 returning: state.returning,
@@ -638,11 +657,26 @@
                 darkMode: state.darkMode,
                 lastSaved: Date.now()
             }).then(() => {
-                showSaveMessage(currentLang==='to'?'✓ Tauhi kakato!':'✓ Saved successfully!');
+                state.lastSynced = Date.now();
+                state.syncing = false;
+                const el = document.getElementById('syncIndicator');
+                if (el) el.outerHTML = syncIndicatorHTML();
             }).catch(err => {
                 console.error('Save error:', err);
+                state.syncing = false;
                 showSaveMessage(currentLang==='to'?'Hala ʻi he tauhi':'Error saving');
             });
+        }
+
+        function syncIndicatorHTML() {
+            let txt, dot;
+            if (state.syncing) { txt = currentLang==='to'?'Tauhi…':'Saving…'; dot = '#f6dfa6'; }
+            else if (state.lastSynced) {
+                const d = new Date(state.lastSynced);
+                const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                txt = `${currentLang==='to'?'Tauhi':'Synced'} ${time}`; dot = '#34d399';
+            } else { txt = currentLang==='to'?'ʻIkai tauhi':'Not synced yet'; dot = 'var(--ss-muted)'; }
+            return `<span id="syncIndicator" class="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg" style="background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink-soft);" title="Data sync status"><span style="width:8px;height:8px;border-radius:50%;background:${dot};display:inline-block;"></span>${txt}</span>`;
         }
 
         function showSaveMessage(msg) {
@@ -1035,6 +1069,33 @@
 
         window.setActiveTab = (tab) => { state.activeTab = tab; render(); };
         window.setViewMode = (mode) => { state.viewMode = mode; render(); };
+        // ES-module scope fix: inline on* handlers run in global scope, so expose these.
+        window.state = state;
+        window.render = render;
+        window.setWeekFilter = (f) => { state.weekFilter = f; render(); };
+        window.setBoardFilter = (f) => { state.boardFilter = f; render(); };
+        window.quickSetAction = (id, tab, val) => {
+            const idNum = parseInt(id);
+            if (tab === 'investigators') state.investigators = state.investigators.map(p => p.id === idNum ? { ...p, nextAction: val } : p);
+            else state.returning = state.returning.map(p => p.id === idNum ? { ...p, nextAction: val } : p);
+            saveToFirebase();
+        };
+        window.toggleAddContact = () => { state.showAddContact = !state.showAddContact; render(); };
+        window.thisWeekAddContact = () => {
+            const name = (document.getElementById('twAddName')?.value || '').trim();
+            if (!name) { alert(currentLang==='to' ? 'Fakahū ha hingoa' : 'Please enter a name'); return; }
+            const tab = document.getElementById('twAddType')?.value || 'investigators';
+            const action = (document.getElementById('twAddAction')?.value || '').trim();
+            const date = document.getElementById('twAddDate')?.value || '';
+            const list = tab === 'investigators' ? state.investigators : state.returning;
+            const newId = (tab === 'investigators' ? 1 : 100) + Math.max(0, ...list.map(p => p.id % 1000)) + 1;
+            const person = { id: newId, name, notes: '', progress: {}, assignment: '', goal: '', emoji: tab==='investigators'?'👤':'💙', assignedTo: '', nextContactDate: date, nextAction: action, lastContactDate: '', taskDone: false, taskDoneDate: '' };
+            if (tab === 'investigators') state.investigators = [...state.investigators, person];
+            else state.returning = [...state.returning, person];
+            state.showAddContact = false;
+            saveToFirebase();
+            render();
+        };
         window.setEventsView = (v) => { state.eventsView = v; render(); };
         // Quarter helpers: 0=Q1(Jan-Mar), 1=Q2(Apr-Jun), 2=Q3(Jul-Sep), 3=Q4(Oct-Dec)
         function getQuarterFromMonth(m) { return Math.floor(m / 3); }
@@ -1299,7 +1360,8 @@
                                         <div class="text-left"><div class="leading-tight">${t('Returning')}</div><div class="text-xs font-normal opacity-80">(${state.returning.length})</div></div>
                                     </button>
                                 </div>
-                                <div class="flex gap-2 md:gap-3 flex-wrap">
+                                <div class="flex gap-2 md:gap-3 flex-wrap items-center">
+                                    ${syncIndicatorHTML()}
                                     <button onclick="toggleLanguage()" class="flex items-center gap-2 px-4 md:px-5 py-2 md:py-3 rounded-xl font-black text-sm md:text-base shadow-xl hover-lift transition-all border-2 ${currentLang === 'to' ? 'bg-red-600 text-white border-red-800' : 'bg-white/95 text-red-700 border-red-300 hover:bg-white'}" title="${currentLang === 'to' ? 'Switch to English' : 'Liliu ki he Lea Tonga'}">🇹🇴 ${currentLang === 'to' ? 'English' : 'Lea Tonga'}</button>
                                     <button onclick="saveToFirebase()" class="flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-xl hover:from-amber-700 hover:to-amber-800 transition-all shadow-xl font-bold text-sm md:text-base hover-lift">${t('💾 Save')}</button>
                                     <button onclick="showWardCouncilReport()" class="flex items-center gap-1 px-3 md:px-4 py-2 md:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 transition-all shadow-lg hover-lift font-bold text-sm" title="Ward Council Report">📋 ${t('Report')}</button>
@@ -1590,22 +1652,15 @@
             function renderPersonCard(p, urgency) {
                 const days = getDaysUntil(p.nextContactDate);
                 const sinceContact = getDaysSinceContact(p.lastContactDate);
-                const urgencyColors = {
-                    overdue: 'border-l-4 border-red-500 bg-red-50',
-                    today: 'border-l-4 border-orange-500 bg-orange-50',
-                    week: 'border-l-4 border-yellow-400 bg-yellow-50',
-                    upcoming: 'border-l-4 border-green-400 bg-green-50',
-                    none: 'border-l-4 border-gray-200 bg-gray-50',
-                    done: 'border-l-4 border-green-500 bg-green-50 opacity-90'
-                };
-                const badgeColors = {
-                    overdue: 'bg-red-500 text-white',
-                    today: 'bg-orange-500 text-white',
-                    week: 'bg-yellow-400 text-yellow-900',
-                    upcoming: 'bg-green-100 text-green-800',
-                    none: 'bg-gray-100 text-gray-500',
-                    done: 'bg-green-500 text-white'
-                };
+                const accent = { overdue:'#f87171', today:'#fb923c', week:'#fbbf24', upcoming:'#4ade80', none:'#94a3b8', done:'#34d399' }[urgency] || '#94a3b8';
+                const badgeStyle = {
+                    overdue:'background:#ef4444;color:#fff',
+                    today:'background:#f97316;color:#fff',
+                    week:'background:#f59e0b;color:#1a1206',
+                    upcoming:'background:#16a34a;color:#fff',
+                    none:'background:rgba(255,255,255,.12);color:var(--ss-ink-soft)',
+                    done:'background:#16a34a;color:#fff'
+                }[urgency] || 'background:rgba(255,255,255,.12);color:var(--ss-ink-soft)';
                 let badgeText = '';
                 if (urgency === 'done') badgeText = `✅ ${t('Completed')}${p.taskDoneDate ? ' · '+p.taskDoneDate.slice(5) : ''}`;
                 else if (days === null) badgeText = '⚪ No date';
@@ -1616,32 +1671,36 @@
 
                 const tabIcon = p._tab === 'investigators' ? '👤' : '💙';
                 const isDone = urgency === 'done';
+                const fieldStyle = 'background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink)';
                 return `
-                <div class="rounded-xl p-4 ${urgencyColors[urgency]} hover:shadow-md transition-all">
+                <div class="tw-card rounded-xl p-4 transition-all" style="background:rgba(255,255,255,.05);border:1px solid var(--ss-line-2);border-left:4px solid ${accent};">
                     <div class="flex items-start justify-between gap-3 flex-wrap">
-                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                        <div class="flex items-start gap-3 flex-1 min-w-0">
                             <span class="text-2xl flex-shrink-0">${p.emoji||tabIcon}</span>
                             <div class="min-w-0 flex-1">
-                                <div class="font-black text-gray-900 text-base leading-tight ${isDone ? 'line-through opacity-70' : ''}">${p.name}</div>
-                                <div class="flex items-center gap-2 mt-0.5 flex-wrap">
-                                    ${p.assignedTo ? `<span class="text-xs bg-white border border-gray-200 text-gray-700 px-2 py-0.5 rounded-full font-bold">👤 ${p.assignedTo}</span>` : `<span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">⚠️ Unassigned</span>`}
-                                    ${p.assignment && p.assignment !== p.assignedTo ? `<span class="text-xs text-gray-400 font-semibold">${p.assignment}</span>` : ''}
-                                    <span class="text-xs ${p._tab==='investigators'?'text-amber-600':'text-green-600'} font-bold">${p._tab==='investigators'?'Investigator':'Returning'}</span>
+                                <div class="font-black text-base leading-tight ${isDone ? 'line-through opacity-60' : ''}" style="color:var(--ss-ink);">${p.name || '(unnamed)'}</div>
+                                <div class="flex items-center gap-2 mt-1 flex-wrap">
+                                    ${p.assignedTo
+                                        ? `<span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background:var(--ss-gold-wash);color:var(--ss-gold-deep);">👤 ${p.assignedTo}</span>`
+                                        : `<span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background:var(--ss-red-wash);color:var(--ss-red);">⚠️ Unassigned</span>`}
+                                    <span class="text-xs font-bold" style="color:${p._tab==='investigators'?'var(--ss-gold)':'var(--ss-sage)'};">${p._tab==='investigators'?'Investigator':'Returning'}</span>
                                 </div>
-                                ${p.nextAction ? `<div class="mt-1.5 text-sm text-gray-700 font-semibold bg-white/70 rounded-lg px-2 py-1 ${isDone ? 'line-through opacity-70' : ''}">📝 ${p.nextAction}</div>` : `<div class="mt-1.5 text-xs text-gray-400 italic">No next action written</div>`}
-                                ${sinceContact !== null ? `<div class="mt-1 text-xs text-gray-400 font-semibold">Last contacted: ${sinceContact === 0 ? 'today' : sinceContact+'d ago'}</div>` : ''}
-                                <textarea onchange="quickSetNotes('${p.id}','${p._tab}',this.value)" rows="1" placeholder="🗒️ ${t('Note for this contact...')}" class="mt-2 w-full text-xs px-2 py-1.5 border border-gray-300 rounded-lg resize-none focus:outline-none focus:border-rose-400 bg-white/80">${p.notes||''}</textarea>
+                                <input type="text" value="${(p.nextAction||'').replace(/"/g,'&quot;')}" onchange="quickSetAction('${p.id}','${p._tab}',this.value)" placeholder="📝 ${t('Add a task / next action...')}" class="tw-field mt-2 w-full text-sm font-semibold rounded-lg px-2 py-1.5 focus:outline-none ${isDone?'line-through opacity-60':''}" style="${fieldStyle}" />
+                                <textarea onchange="quickSetNotes('${p.id}','${p._tab}',this.value)" rows="1" placeholder="🗒️ ${t('Note for this contact...')}" class="tw-field mt-2 w-full text-xs rounded-lg px-2 py-1.5 resize-none focus:outline-none" style="${fieldStyle}">${p.notes||''}</textarea>
+                                ${sinceContact !== null ? `<div class="mt-1.5 text-xs font-semibold" style="color:var(--ss-muted);">Last contacted: ${sinceContact === 0 ? 'today' : sinceContact+'d ago'}</div>` : ''}
                             </div>
                         </div>
                         <div class="flex flex-col items-end gap-2 flex-shrink-0">
-                            <span class="text-xs font-black px-3 py-1 rounded-full ${badgeColors[urgency]}">${badgeText}</span>
+                            <span class="text-xs font-black px-3 py-1 rounded-full" style="${badgeStyle}">${badgeText}</span>
                             ${isDone
-                                ? `<button onclick="toggleTaskDone('${p.id}','${p._tab}')" class="text-xs font-black px-3 py-1.5 bg-white border-2 border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-all">↩️ ${t('Reopen')}</button>`
-                                : `<button onclick="markContacted_tab('${p.id}','${p._tab}')" class="text-xs font-black px-3 py-1.5 bg-white border-2 border-rose-300 text-rose-600 rounded-lg hover:bg-rose-50 transition-all">✅ Mark Contacted</button>
-                                   <button onclick="toggleTaskDone('${p.id}','${p._tab}')" class="text-xs font-black px-3 py-1.5 bg-green-100 border-2 border-green-400 text-green-700 rounded-lg hover:bg-green-200 transition-all">✓ ${t('Mark Done')}</button>
-                                   <div class="flex items-center gap-1">
-                                       <input type="date" value="${p.nextContactDate||''}" onchange="quickSetDate('${p.id}','${p._tab}',this.value)" class="text-xs border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:border-rose-400 bg-white" title="Set next contact date" />
-                                   </div>`}
+                                ? `<button onclick="toggleTaskDone('${p.id}','${p._tab}')" class="text-xs font-black px-3 py-1.5 rounded-lg transition-all" style="background:rgba(255,255,255,.08);border:1px solid var(--ss-line-2);color:var(--ss-ink-soft);">↩️ ${t('Reopen')}</button>`
+                                : `<button onclick="markContacted_tab('${p.id}','${p._tab}')" class="text-xs font-black px-3 py-1.5 rounded-lg transition-all" style="background:var(--ss-red-wash);border:1px solid var(--ss-red);color:var(--ss-red);">✅ Mark Contacted</button>
+                                   <button onclick="toggleTaskDone('${p.id}','${p._tab}')" class="text-xs font-black px-3 py-1.5 rounded-lg transition-all" style="background:var(--ss-sage-wash);border:1px solid var(--ss-sage);color:var(--ss-sage);">✓ ${t('Mark Done')}</button>
+                                   <input type="date" value="${p.nextContactDate||''}" onchange="quickSetDate('${p.id}','${p._tab}',this.value)" class="tw-field text-xs rounded-lg px-2 py-1 focus:outline-none" style="${fieldStyle}" title="Set next contact date" />
+                                   <select onchange="logContactActivity('${p.id}','${p._tab}',this.value); this.value='';" class="tw-field text-xs rounded-lg px-2 py-1 focus:outline-none" style="${fieldStyle}" title="Log an activity (also marks contacted)">
+                                       <option value="">＋ ${t('Log activity')}</option>
+                                       ${INDICATORS.map(i=>`<option value="${i.code}">${i.emoji} ${i.code} — ${currentLang==='to'?i.toName:i.name}</option>`).join('')}
+                                   </select>`}
                         </div>
                     </div>
                 </div>`;
@@ -1682,20 +1741,67 @@
                         <div class="flex items-center gap-3 flex-wrap">
                             <!-- Tab filter -->
                             <div class="flex bg-white/20 rounded-xl p-1 gap-1">
-                                <button onclick="state.weekFilter='all';render()" class="px-3 py-1.5 rounded-lg text-xs font-black transition-all ${weekFilter==='all'?'bg-white text-rose-700 shadow':'text-white'}">All</button>
-                                <button onclick="state.weekFilter='investigators';render()" class="px-3 py-1.5 rounded-lg text-xs font-black transition-all ${weekFilter==='investigators'?'bg-white text-rose-700 shadow':'text-white'}">👤 Invest.</button>
-                                <button onclick="state.weekFilter='returning';render()" class="px-3 py-1.5 rounded-lg text-xs font-black transition-all ${weekFilter==='returning'?'bg-white text-rose-700 shadow':'text-white'}">💙 Return.</button>
+                                <button onclick="setWeekFilter('all')" class="px-3 py-1.5 rounded-lg text-xs font-black transition-all ${weekFilter==='all'?'bg-white text-rose-700 shadow':'text-white'}">All</button>
+                                <button onclick="setWeekFilter('investigators')" class="px-3 py-1.5 rounded-lg text-xs font-black transition-all ${weekFilter==='investigators'?'bg-white text-rose-700 shadow':'text-white'}">👤 Invest.</button>
+                                <button onclick="setWeekFilter('returning')" class="px-3 py-1.5 rounded-lg text-xs font-black transition-all ${weekFilter==='returning'?'bg-white text-rose-700 shadow':'text-white'}">💙 Return.</button>
                             </div>
                             <div class="text-center bg-white/20 rounded-xl px-4 py-2">
                                 <div class="text-2xl font-black">${totalAction}</div>
                                 <div class="text-xs font-bold text-rose-200">Need Action</div>
                             </div>
+                            <button onclick="toggleAddContact()" class="flex items-center gap-2 px-4 py-2.5 bg-white/20 text-white rounded-xl font-black text-sm shadow-lg hover:bg-white/30 transition-all hover-lift">➕ ${t('Add')}</button>
                             <button onclick="sendWeeklyFocus()" class="flex items-center gap-2 px-4 py-2.5 bg-white text-rose-700 rounded-xl font-black text-sm shadow-lg hover:shadow-xl transition-all hover-lift">
                                 📱 Send Summary
                             </button>
                         </div>
                     </div>
                 </div>
+
+                <!-- KPI headline strip -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="rounded-2xl p-4 text-center" style="background:var(--ss-surface);border:1px solid var(--ss-line-2);border-top:3px solid #ef4444;">
+                        <div class="text-3xl font-black" style="color:#f87171;">${overdue.length}</div>
+                        <div class="text-xs font-bold uppercase tracking-wide" style="color:var(--ss-muted);">${t('Overdue')}</div>
+                    </div>
+                    <div class="rounded-2xl p-4 text-center" style="background:var(--ss-surface);border:1px solid var(--ss-line-2);border-top:3px solid #f59e0b;">
+                        <div class="text-3xl font-black" style="color:#fbbf24;">${dueThisWeek.length}</div>
+                        <div class="text-xs font-bold uppercase tracking-wide" style="color:var(--ss-muted);">${t('Due This Week')}</div>
+                    </div>
+                    <div class="rounded-2xl p-4 text-center" style="background:var(--ss-surface);border:1px solid var(--ss-line-2);border-top:3px solid #94a3b8;">
+                        <div class="text-3xl font-black" style="color:var(--ss-ink);">${noDate.length}</div>
+                        <div class="text-xs font-bold uppercase tracking-wide" style="color:var(--ss-muted);">${t('Awaiting Date')}</div>
+                    </div>
+                    <div class="rounded-2xl p-4 text-center" style="background:var(--ss-surface);border:1px solid var(--ss-line-2);border-top:3px solid #16a34a;">
+                        <div class="text-3xl font-black" style="color:#34d399;">${completed.length}</div>
+                        <div class="text-xs font-bold uppercase tracking-wide" style="color:var(--ss-muted);">${t('Task Completed')}</div>
+                    </div>
+                </div>
+
+                ${allPeople.length === 0 ? `
+                <div class="rounded-2xl p-10 text-center" style="background:var(--ss-surface);border:1px dashed var(--ss-line);">
+                    <div class="text-5xl mb-3">🌱</div>
+                    <h3 class="text-xl font-black mb-1" style="color:var(--ss-ink);">${t('Nobody to follow up with yet')}</h3>
+                    <p class="text-sm mb-4" style="color:var(--ss-muted);">${t('Add your first contact to start tracking who needs a visit, a call, or an invitation.')}</p>
+                    <button onclick="toggleAddContact()" class="px-5 py-2.5 rounded-xl font-black text-sm hover-lift" style="background:linear-gradient(90deg,#e11d48,#be123c);color:#fff;">➕ ${t('Add Contact & Task')}</button>
+                </div>` : ''}
+
+                ${state.showAddContact ? `
+                <div class="rounded-2xl p-5 shadow-xl border" style="background:var(--ss-surface);border-color:var(--ss-line);">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-black text-lg" style="color:var(--ss-gold-deep);">➕ ${t('Add Contact & Task')}</h3>
+                        <button onclick="toggleAddContact()" class="text-sm font-bold" style="color:var(--ss-muted);">✕</button>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-3">
+                        <input id="twAddName" type="text" placeholder="${t('Name')}" class="tw-field rounded-lg px-3 py-2 text-sm focus:outline-none" style="background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink);" />
+                        <select id="twAddType" class="tw-field rounded-lg px-3 py-2 text-sm focus:outline-none" style="background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink);">
+                            <option value="investigators">👤 ${t('Investigators')}</option>
+                            <option value="returning">💙 ${t('Returning')}</option>
+                        </select>
+                        <input id="twAddAction" type="text" placeholder="📝 ${t('Add a task / next action...')}" class="tw-field rounded-lg px-3 py-2 text-sm focus:outline-none md:col-span-1" style="background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink);" />
+                        <input id="twAddDate" type="date" class="tw-field rounded-lg px-3 py-2 text-sm focus:outline-none" style="background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink);" />
+                    </div>
+                    <button onclick="thisWeekAddContact()" class="mt-3 px-5 py-2.5 rounded-xl font-black text-sm transition-all hover-lift" style="background:linear-gradient(90deg,#16a34a,#15803d);color:#fff;">✓ ${t('Add')}</button>
+                </div>` : ''}
 
                 ${overdue.length > 0 ? `
                 <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border-2 border-red-200">
@@ -1751,14 +1857,40 @@
             </div>`;
         }
 
+        function addDaysISO(days) {
+            const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() + days);
+            return d.toISOString().split('T')[0];
+        }
         window.markContacted_tab = (id, tab) => {
             const today = new Date().toISOString().split('T')[0];
-            const list = tab === 'investigators' ? state.investigators : state.returning;
-            const idNum = parseInt(id);
-            if (tab === 'investigators') state.investigators = list.map(p => p.id === idNum ? { ...p, lastContactDate: today } : p);
-            else state.returning = list.map(p => p.id === idNum ? { ...p, lastContactDate: today } : p);
+            const nextDate = addDaysISO(7);
+            const apply = p => p.id === parseInt(id) ? { ...p, lastContactDate: today, nextContactDate: nextDate } : p;
+            if (tab === 'investigators') state.investigators = state.investigators.map(apply);
+            else state.returning = state.returning.map(apply);
             saveToFirebase();
-            showSaveMessage(currentLang==='to'?'✓ Faka\'ilonga fetuʻutaki!':'✓ Marked as contacted today!');
+            render();
+            showSaveMessage(currentLang==='to'?'✓ Fetuʻutaki ʻosi · fai hoko +7 ʻaho':'✓ Contacted · next follow-up in 7 days');
+        };
+        window.logContactActivity = (id, tab, code) => {
+            if (!code) return;
+            const today = new Date();
+            const monthKey = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][today.getMonth()];
+            const todayISO = today.toISOString().split('T')[0];
+            const nextDate = addDaysISO(7);
+            const idNum = parseInt(id);
+            const apply = p => {
+                if (p.id !== idNum) return p;
+                const prog = { ...(p.progress||{}) };
+                const month = prog[monthKey] || [];
+                if (!month.includes(code)) prog[monthKey] = [...month, code];
+                return { ...p, progress: prog, lastContactDate: todayISO, nextContactDate: nextDate };
+            };
+            if (tab === 'investigators') state.investigators = state.investigators.map(apply);
+            else state.returning = state.returning.map(apply);
+            saveToFirebase();
+            render();
+            const ind = INDICATORS.find(i => i.code === code);
+            showSaveMessage('✓ ' + (ind ? ind.emoji+' '+code : code) + ' · ' + (currentLang==='to'?'fetuʻutaki ʻosi':'logged & contacted'));
         };
 
         window.quickSetDate = (id, tab, dateVal) => {
@@ -1823,6 +1955,8 @@
             const today = new Date(); today.setHours(0,0,0,0);
             const currentMonthKey = MONTHS[today.getMonth()];
             const allPeople = [...state.investigators.map(p=>({...p,_tab:'investigators'})), ...state.returning.map(p=>({...p,_tab:'returning'}))].filter(p=>p.name);
+            const boardFilter = state.boardFilter || 'all';
+            const filteredPeople = boardFilter === 'all' ? allPeople : allPeople.filter(p => (p.assignment || p.assignedTo) === boardFilter);
 
             function getColumn(p) {
                 const allActs = Object.values(p.progress||{}).flat();
@@ -1864,7 +1998,7 @@
                 milestone: { label: '🏆 Milestone Hit', subtitle: 'Baptism date or baptized', color: 'from-emerald-500 to-teal-600', bg: 'bg-emerald-50', border: 'border-emerald-200', people: [] },
             };
 
-            allPeople.forEach(p => {
+            filteredPeople.forEach(p => {
                 const col = getColumn(p);
                 columns[col].people.push(p);
             });
@@ -1890,7 +2024,7 @@
                         <div class="flex-1 min-w-0">
                             <div class="font-black text-sm text-gray-900 leading-tight">${p.name}</div>
                             <div class="flex items-center gap-1 mt-0.5 flex-wrap">
-                                ${p.assignedTo ? `<span class="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-semibold">${p.assignedTo}</span>` : `<span class="text-xs bg-red-50 text-red-500 px-1.5 py-0.5 rounded font-semibold">Unassigned</span>`}
+                                ${p.assignedTo ? `<span class="text-xs px-1.5 py-0.5 rounded font-semibold" style="background:var(--ss-gold-wash);color:var(--ss-gold-deep);">${p.assignedTo}</span>` : `<span class="text-xs px-1.5 py-0.5 rounded font-semibold" style="background:var(--ss-red-wash);color:var(--ss-red);">Unassigned</span>`}
                                 ${streak > 0 ? `<span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-black">🔥 ${streak}mo</span>` : ''}
                             </div>
                             ${p.nextAction ? `<div class="mt-1 text-xs text-gray-600 bg-gray-50 rounded px-2 py-1 leading-tight">📝 ${p.nextAction}</div>` : ''}
@@ -1924,9 +2058,11 @@
                             </div>`).join('')}
                         </div>
                     </div>
+                    <div class="flex gap-1.5 flex-wrap mt-4 pt-3" style="border-top:1px solid rgba(255,255,255,.18);">
+                        ${[['all',t('All')],['Elders Quorum','⚡ EQ'],['Relief Society','🌸 RS'],['Young Men','🎯 YM'],['Young Women','⭐ YW'],['Sunday School/Primary','📚 SS']].map(([val,lab])=>`
+                            <button onclick="setBoardFilter('${val}')" class="px-3 py-1.5 rounded-lg text-xs font-black transition-all ${boardFilter===val?'bg-white text-purple-700 shadow':'bg-white/15 text-white hover:bg-white/25'}">${lab}</button>`).join('')}
+                    </div>
                 </div>
-
-                <!-- Kanban Board -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                     ${Object.entries(columns).map(([k,col])=>`
                     <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border-2 ${col.border}">
