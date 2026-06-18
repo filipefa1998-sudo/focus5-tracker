@@ -544,6 +544,12 @@
             'All': { to: 'Kotoa' },
             'Nobody to follow up with yet': { to: 'ʻOku teʻeki ai ha taha ke fetuʻutaki' },
             'Add your first contact to start tracking who needs a visit, a call, or an invitation.': { to: 'Tānaki hoʻo ʻuluaki kakai ke kamata ʻo muimuiʻi e fie maʻu ke ʻaʻahi, telefoni, pe fakaafeʻi.' },
+            'Add Task': { to: 'Tānaki Ngāue' },
+            'Choose a contact...': { to: 'Fili ha kakai...' },
+            'Due date': { to: 'ʻAho ngataʻanga' },
+            'Go to Monthly Tracker': { to: 'ʻAlu ki he Tracker Māhina' },
+            'Add contacts in the Monthly Tracker first, then assign tasks to them here.': { to: 'Tānaki kakai ʻi he Tracker Māhina ʻuluaki, pea vahevahe ngāue kiate kinautolu ʻi heni.' },
+            'Assign a task to an existing contact. Add new contacts in the Monthly Tracker.': { to: 'Vahe ha ngāue ki ha kakai ʻoku ʻi ai. Tānaki kakai foʻou ʻi he Tracker Māhina.' },
         };
 
         function t(key) {
@@ -740,10 +746,11 @@
         };
         window.markContacted = (id) => {
             const today = new Date().toISOString().split('T')[0];
+            const nextDate = addDaysISO(7); // nudge follow-up forward a week, matching the This Week button
             const l = getCurrentList();
-            setCurrentList(l.map(p => p.id === id ? { ...p, lastContactDate: today } : p));
+            setCurrentList(l.map(p => p.id === id ? { ...p, lastContactDate: today, nextContactDate: nextDate } : p));
             saveToFirebase();
-            showSaveMessage(currentLang==='to'?'✓ Faka\'ilonga fakafehi!':'✓ Marked as contacted today!');
+            showSaveMessage(currentLang==='to'?'✓ Fetuʻutaki ʻosi · fai hoko +7 ʻaho':'✓ Contacted · next follow-up in 7 days');
         };
 
         window.toggleIndicator = (personId, month, indicator) => {
@@ -1081,17 +1088,17 @@
             saveToFirebase();
         };
         window.toggleAddContact = () => { state.showAddContact = !state.showAddContact; render(); };
-        window.thisWeekAddContact = () => {
-            const name = (document.getElementById('twAddName')?.value || '').trim();
-            if (!name) { alert(currentLang==='to' ? 'Fakahū ha hingoa' : 'Please enter a name'); return; }
-            const tab = document.getElementById('twAddType')?.value || 'investigators';
+        window.thisWeekAddTask = () => {
+            const sel = document.getElementById('twAddPerson')?.value || '';
+            if (!sel) { alert(currentLang==='to' ? 'Fili ha kakai' : 'Please choose a contact'); return; }
             const action = (document.getElementById('twAddAction')?.value || '').trim();
+            if (!action) { alert(currentLang==='to' ? 'Fakahū ha ngāue' : 'Please enter a task'); return; }
             const date = document.getElementById('twAddDate')?.value || '';
-            const list = tab === 'investigators' ? state.investigators : state.returning;
-            const newId = (tab === 'investigators' ? 1 : 100) + Math.max(0, ...list.map(p => p.id % 1000)) + 1;
-            const person = { id: newId, name, notes: '', progress: {}, assignment: '', goal: '', emoji: tab==='investigators'?'👤':'💙', assignedTo: '', nextContactDate: date, nextAction: action, lastContactDate: '', taskDone: false, taskDoneDate: '' };
-            if (tab === 'investigators') state.investigators = [...state.investigators, person];
-            else state.returning = [...state.returning, person];
+            const [tab, idStr] = sel.split(':');
+            const idNum = parseInt(idStr);
+            const apply = p => p.id === idNum ? { ...p, nextAction: action, nextContactDate: date || p.nextContactDate } : p;
+            if (tab === 'investigators') state.investigators = state.investigators.map(apply);
+            else state.returning = state.returning.map(apply);
             state.showAddContact = false;
             saveToFirebase();
             render();
@@ -1507,7 +1514,7 @@
                                         const isCurrentM = m === currentMonthName;
                                         return `<th class="text-white p-2 md:p-5 text-center font-black text-xs md:text-base ${state.trackerView === 'month' ? 'min-w-[200px]' : 'min-w-[65px]'} ${state.trackerView === 'month' && isCurrentM ? 'bg-white/20' : ''}">${m}</th>`;
                                     }).join('')}
-                                    <th class="text-white p-3 md:p-5 text-left font-black text-sm md:text-base min-w-[220px] mobile-hide">📋 Plan</th>
+                                    <th class="text-white p-3 md:p-5 text-left font-black text-sm md:text-base min-w-[220px] mobile-hide">👤 Assigned</th>
                                     <th class="text-white p-2 md:p-4"></th>
                                 </tr>
                             </thead>
@@ -1522,7 +1529,6 @@
                                                     <button onclick="openEmojiPicker(${person.id})" class="text-2xl md:text-3xl hover:scale-110 transition-transform flex-shrink-0" title="${currentLang==='to'?'Liliu fakaʻilonga':'Change avatar'}">${person.emoji||'👤'}</button>
                                                     <div class="flex-1 min-w-0">
                                                         <input type="text" value="${person.name || ''}" onchange="updateName(${person.id}, this.value)" placeholder="${idx + 1}. ${currentLang==='to'?'Hingoa...':'Name...'}" class="w-full px-2 py-1.5 border-2 border-amber-200 rounded-lg focus:border-amber-500 focus:outline-none font-bold text-sm shadow-sm" />
-                                                        <input type="text" value="${person.goal || ''}" onchange="updateGoal(${person.id}, this.value)" placeholder="${currentLang==='to'?'🎯 Taumu...':'🎯 Goal...'}" class="w-full px-2 py-1 border border-amber-100 rounded-lg focus:border-amber-400 focus:outline-none text-xs text-gray-400 shadow-sm mt-1 hidden md:block" />
                                                         <div class="mt-1.5">
                                                             ${(() => {
                                                                 const streak = (() => { let s=0; for(let i=new Date().getMonth();i>=0;i--){ if((person.progress?.[MONTHS[i]]?.length||0)>0)s++;else break;} return s; })();
@@ -1587,10 +1593,6 @@
                                                     <option value="Young Women" ${person.assignedTo==='Young Women'?'selected':''}>⭐ Young Women</option>
                                                     <option value="Sunday School/Primary" ${person.assignedTo==='Sunday School/Primary'?'selected':''}>📚 Sunday School/Primary</option>
                                                 </select>
-                                                <input type="date" value="${person.nextContactDate||''}" onchange="updateNextContactDate(${person.id}, this.value)"
-                                                    class="w-full px-2 py-1.5 border border-rose-200 rounded-lg text-xs font-semibold mb-1.5 focus:outline-none focus:border-rose-400" title="Next Contact Date" />
-                                                <input type="text" value="${person.nextAction||''}" onchange="updateNextAction(${person.id}, this.value)"
-                                                    placeholder="📝 Next action..." class="w-full px-2 py-1.5 border border-rose-200 rounded-lg text-xs focus:outline-none focus:border-rose-400 mb-1.5" />
                                                 <button onclick="markContacted(${person.id})" class="w-full py-1.5 text-xs font-black rounded-lg transition-all ${person.lastContactDate ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-rose-100 text-rose-700 hover:bg-rose-200'}">
                                                     ${person.lastContactDate ? '✅ Last: '+person.lastContactDate.slice(5) : '📞 Mark Contacted'}
                                                 </button>
@@ -1630,6 +1632,7 @@
             const rawInv = state.investigators.map(p=>({...p,_tab:'investigators'})).filter(p=>p.name);
             const rawRet = state.returning.map(p=>({...p,_tab:'returning'})).filter(p=>p.name);
             const allPeople = weekFilter === 'investigators' ? rawInv : weekFilter === 'returning' ? rawRet : [...rawInv, ...rawRet];
+            const totalContacts = state.investigators.filter(p=>p.name).length + state.returning.filter(p=>p.name).length;
 
             function getDaysUntil(dateStr) {
                 if (!dateStr) return null;
@@ -1777,30 +1780,30 @@
                     </div>
                 </div>
 
-                ${allPeople.length === 0 ? `
+                ${totalContacts === 0 ? `
                 <div class="rounded-2xl p-10 text-center" style="background:var(--ss-surface);border:1px dashed var(--ss-line);">
                     <div class="text-5xl mb-3">🌱</div>
                     <h3 class="text-xl font-black mb-1" style="color:var(--ss-ink);">${t('Nobody to follow up with yet')}</h3>
-                    <p class="text-sm mb-4" style="color:var(--ss-muted);">${t('Add your first contact to start tracking who needs a visit, a call, or an invitation.')}</p>
-                    <button onclick="toggleAddContact()" class="px-5 py-2.5 rounded-xl font-black text-sm hover-lift" style="background:linear-gradient(90deg,#e11d48,#be123c);color:#fff;">➕ ${t('Add Contact & Task')}</button>
+                    <p class="text-sm mb-4" style="color:var(--ss-muted);">${t('Add contacts in the Monthly Tracker first, then assign tasks to them here.')}</p>
+                    <button onclick="setViewMode('tracker')" class="px-5 py-2.5 rounded-xl font-black text-sm hover-lift" style="background:linear-gradient(90deg,#d97706,#b45309);color:#fff;">📅 ${t('Go to Monthly Tracker')}</button>
                 </div>` : ''}
 
-                ${state.showAddContact ? `
+                ${state.showAddContact && totalContacts > 0 ? `
                 <div class="rounded-2xl p-5 shadow-xl border" style="background:var(--ss-surface);border-color:var(--ss-line);">
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="font-black text-lg" style="color:var(--ss-gold-deep);">➕ ${t('Add Contact & Task')}</h3>
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="font-black text-lg" style="color:var(--ss-gold-deep);">➕ ${t('Add Task')}</h3>
                         <button onclick="toggleAddContact()" class="text-sm font-bold" style="color:var(--ss-muted);">✕</button>
                     </div>
+                    <p class="text-xs mb-3" style="color:var(--ss-muted);">${t('Assign a task to an existing contact. Add new contacts in the Monthly Tracker.')}</p>
                     <div class="grid md:grid-cols-2 gap-3">
-                        <input id="twAddName" type="text" placeholder="${t('Name')}" class="tw-field rounded-lg px-3 py-2 text-sm focus:outline-none" style="background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink);" />
-                        <select id="twAddType" class="tw-field rounded-lg px-3 py-2 text-sm focus:outline-none" style="background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink);">
-                            <option value="investigators">👤 ${t('Investigators')}</option>
-                            <option value="returning">💙 ${t('Returning')}</option>
+                        <select id="twAddPerson" class="tw-field rounded-lg px-3 py-2 text-sm focus:outline-none" style="background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink);">
+                            <option value="">${t('Choose a contact...')}</option>
+                            ${[...state.investigators.map(p=>({...p,_tab:'investigators'})), ...state.returning.map(p=>({...p,_tab:'returning'}))].filter(p=>p.name).map(p=>`<option value="${p._tab}:${p.id}">${p._tab==='investigators'?'👤':'💙'} ${p.name}${p.assignedTo?' · '+p.assignedTo:''}</option>`).join('')}
                         </select>
-                        <input id="twAddAction" type="text" placeholder="📝 ${t('Add a task / next action...')}" class="tw-field rounded-lg px-3 py-2 text-sm focus:outline-none md:col-span-1" style="background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink);" />
-                        <input id="twAddDate" type="date" class="tw-field rounded-lg px-3 py-2 text-sm focus:outline-none" style="background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink);" />
+                        <input id="twAddDate" type="date" class="tw-field rounded-lg px-3 py-2 text-sm focus:outline-none" style="background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink);" title="${t('Due date')}" />
+                        <input id="twAddAction" type="text" placeholder="📝 ${t('Add a task / next action...')}" class="tw-field rounded-lg px-3 py-2 text-sm focus:outline-none md:col-span-2" style="background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink);" />
                     </div>
-                    <button onclick="thisWeekAddContact()" class="mt-3 px-5 py-2.5 rounded-xl font-black text-sm transition-all hover-lift" style="background:linear-gradient(90deg,#16a34a,#15803d);color:#fff;">✓ ${t('Add')}</button>
+                    <button onclick="thisWeekAddTask()" class="mt-3 px-5 py-2.5 rounded-xl font-black text-sm transition-all hover-lift" style="background:linear-gradient(90deg,#16a34a,#15803d);color:#fff;">✓ ${t('Add Task')}</button>
                 </div>` : ''}
 
                 ${overdue.length > 0 ? `
