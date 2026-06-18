@@ -4,6 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Focus 5 Master Tracker - Riverton 24th Ward</title>
+
+    <!-- PWA / home-screen app icon -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0d1730">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icon-152.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="icon-167.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Focus 5">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
@@ -12,24 +27,26 @@
 
         /* ─────────── PACIFIC NOIR — design tokens (matches Unga ministering deck) ─────────── */
         :root {
-            --ss-ink:#f4ece0; --ss-ink-soft:#cfc6b6;
-            --ss-bg:#070c18; --ss-surface:#131d38; --ss-surface-2:#0e1730;
-            --ss-line:rgba(231,189,106,.20); --ss-line-2:rgba(244,236,224,.12);
-            --ss-muted:#a99f90;
-            --ss-gold:#e7bd6a; --ss-gold-deep:#f3d79a; --ss-gold-wash:rgba(231,189,106,.12);
-            --ss-red:#e0808a; --ss-red-wash:rgba(217,106,122,.14);
-            --ss-sage:#7fb089; --ss-sage-wash:rgba(120,200,140,.12);
-            --ss-bar:#0b1428; --ss-bar-text:#f3d79a;
+            --ss-ink:#f7f0e6; --ss-ink-soft:#d8cfbf;
+            --ss-bg:#0d1730; --ss-surface:#1a2750; --ss-surface-2:#152040;
+            --ss-line:rgba(231,189,106,.26); --ss-line-2:rgba(244,236,224,.14);
+            --ss-muted:#b6ac9b;
+            --ss-gold:#edc878; --ss-gold-deep:#f6dfa6; --ss-gold-wash:rgba(231,189,106,.16);
+            --ss-red:#e891a0; --ss-red-wash:rgba(217,106,122,.18);
+            --ss-sage:#8fdca0; --ss-sage-wash:rgba(120,200,140,.16);
+            --ss-violet:#c4a6f7; --ss-violet-wash:rgba(168,120,247,.16);
+            --ss-bar:#1b2a52; --ss-bar-text:#f6dfa6;
         }
         .dark-mode {
-            --ss-ink:#f4ece0; --ss-ink-soft:#cfc6b6;
-            --ss-bg:#04070f; --ss-surface:#0f1830; --ss-surface-2:#0a1226;
-            --ss-line:rgba(231,189,106,.22); --ss-line-2:rgba(244,236,224,.10);
-            --ss-muted:#9a9080;
-            --ss-gold:#e7bd6a; --ss-gold-deep:#f3d79a; --ss-gold-wash:rgba(231,189,106,.14);
-            --ss-red:#e89aa2; --ss-red-wash:rgba(217,106,122,.16);
-            --ss-sage:#8fbf97; --ss-sage-wash:rgba(120,200,140,.14);
-            --ss-bar:#07101f; --ss-bar-text:#f3d79a;
+            --ss-ink:#f7f0e6; --ss-ink-soft:#d8cfbf;
+            --ss-bg:#0a1224; --ss-surface:#152144; --ss-surface-2:#101a38;
+            --ss-line:rgba(231,189,106,.28); --ss-line-2:rgba(244,236,224,.12);
+            --ss-muted:#aaa090;
+            --ss-gold:#edc878; --ss-gold-deep:#f6dfa6; --ss-gold-wash:rgba(231,189,106,.18);
+            --ss-red:#ed9aa9; --ss-red-wash:rgba(217,106,122,.20);
+            --ss-sage:#8fdca0; --ss-sage-wash:rgba(120,200,140,.18);
+            --ss-violet:#c4a6f7; --ss-violet-wash:rgba(168,120,247,.18);
+            --ss-bar:#16234a; --ss-bar-text:#f6dfa6;
         }
         body { background: var(--ss-bg) !important; color: var(--ss-ink); }
         h1,h2,h3 { font-family:'Fraunces', Georgia, serif !important; letter-spacing:-0.01em; color:var(--ss-ink); }
@@ -37,13 +54,17 @@
         /* layered Pacific Noir canvas (gold + ember + sea over deep navy) + tapa lattice */
         .pn-canvas{
             background:
-              radial-gradient(1100px 700px at 78% -8%, rgba(231,189,106,.16), transparent 60%),
-              radial-gradient(900px 800px at 12% 108%, rgba(232,130,90,.13), transparent 60%),
-              radial-gradient(1400px 1000px at 50% 50%, rgba(14,42,58,.55), transparent 70%),
-              linear-gradient(160deg, #070c18 0%, #060a14 45%, #08101f 100%) !important;
+              radial-gradient(1100px 760px at 80% -6%, rgba(231,189,106,.22), transparent 62%),
+              radial-gradient(1000px 760px at 14% 2%, rgba(231,189,106,.16), transparent 60%),
+              radial-gradient(1050px 950px at 96% 55%, rgba(231,189,106,.13), transparent 62%),
+              radial-gradient(1000px 900px at 6% 60%, rgba(231,189,106,.12), transparent 62%),
+              radial-gradient(980px 880px at 12% 104%, rgba(232,130,90,.16), transparent 60%),
+              radial-gradient(980px 880px at 88% 106%, rgba(232,130,90,.12), transparent 60%),
+              radial-gradient(1300px 1000px at 50% 45%, rgba(42,84,118,.40), transparent 72%),
+              linear-gradient(160deg, #0e1830 0%, #0c1426 46%, #101a32 100%) !important;
         }
         .pn-canvas::after{
-            content:"";position:absolute;inset:0;opacity:.05;pointer-events:none;
+            content:"";position:absolute;inset:0;opacity:.07;pointer-events:none;
             background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'><g fill='none' stroke='%23e7bd6a' stroke-width='1.1'><path d='M0 60 L60 0 L120 60 L60 120 Z'/><path d='M30 60 L60 30 L90 60 L60 90 Z'/><path d='M60 48 L72 60 L60 72 L48 60 Z'/></g></svg>");
             background-size:120px 120px;
         }
@@ -74,6 +95,14 @@
         [class~="text-gray-400"],[class~="text-gray-500"],[class~="text-gray-300"]{ color:var(--ss-muted)!important; }
         [class~="text-gray-600"],[class~="text-gray-700"],[class~="text-gray-800"],[class~="text-gray-900"]{ color:var(--ss-ink)!important; }
 
+        /* bright nav-tab wording — the dark -900 Tailwind shades were unreadable on dark glass */
+        [class~="text-green-900"],[class~="text-emerald-900"]{ color:var(--ss-sage)!important; }
+        [class~="text-indigo-900"],[class~="text-purple-900"],[class~="text-violet-900"]{ color:var(--ss-violet)!important; }
+        [class~="text-rose-900"],[class~="text-red-900"]{ color:var(--ss-red)!important; }
+        [class~="text-blue-900"]{ color:#9ec5ff!important; }
+        [class~="text-purple-600"],[class~="text-purple-700"],[class~="text-purple-800"],[class~="text-purple-300"],[class~="text-indigo-600"],[class~="text-indigo-700"],[class~="text-indigo-800"]{ color:var(--ss-violet)!important; }
+        [class~="bg-purple-50"],[class~="bg-purple-100"],[class~="bg-indigo-50"],[class~="bg-indigo-100"]{ background-color:var(--ss-violet-wash)!important; }
+
         /* borders -> gold hairline */
         [class~="border-amber-100"],[class~="border-amber-200"],[class~="border-amber-300"],[class~="border-amber-400"],[class~="border-gray-100"],[class~="border-gray-200"],[class~="border-green-200"],[class~="border-rose-200"],[class~="border-rose-400"],[class~="border-purple-200"],[class~="border-purple-400"],[class~="border-purple-500"],[class~="border-indigo-100"],[class~="border-indigo-200"],[class~="border-blue-200"],[class~="border-red-200"],[class~="border-yellow-200"]{ border-color:var(--ss-line)!important; }
         [class~="border-2"]{ border-width:1px!important; }
@@ -97,7 +126,7 @@
         [class~="scale-105"],[class~="scale-110"]{ transform:none!important; box-shadow:inset 0 -3px 0 var(--ss-gold)!important; }
 
         /* sticky frosted toolbar */
-        .ss-sticky{ position:sticky; top:0; z-index:50; backdrop-filter:saturate(140%) blur(14px); -webkit-backdrop-filter:saturate(140%) blur(14px); background:rgba(7,12,24,.72); margin:-4px -12px 16px; padding:12px; border-bottom:1px solid var(--ss-line); }
+        .ss-sticky{ position:sticky; top:0; z-index:50; backdrop-filter:saturate(140%) blur(14px); -webkit-backdrop-filter:saturate(140%) blur(14px); background:rgba(14,22,42,.74); margin:-4px -12px 16px; padding:12px; border-bottom:1px solid var(--ss-line); }
 
         /* status dots + chips */
         .ss-dot{ display:inline-block; width:9px; height:9px; border-radius:50%; flex:0 0 auto; box-shadow:0 0 0 1px rgba(0,0,0,.35), 0 0 6px rgba(231,189,106,.15); }
@@ -481,6 +510,21 @@
             'YM President': { to: 'Palesiteni YM' },
             'YW President': { to: 'Palesiteni YW' },
             'Sunday School Pres.': { to: 'Palesiteni Ako Sāpate' },
+            'Elders Quorum': { to: 'Kōlomu ʻo e Kaumātuʻa' },
+            'Relief Society': { to: 'Sōsaieti Tokoni' },
+            'Young Men': { to: 'Kau Talavou Tangata' },
+            'Young Women': { to: 'Kau Talavou Fefine' },
+            'Sunday School/Primary': { to: 'Ako Sāpate / Palaimeli' },
+            'Completed': { to: 'Kuo ʻOsi' },
+            'Task Completed': { to: 'Ngāue Kuo ʻOsi' },
+            'Overdue Follow-ups': { to: 'Fetuʻutaki Tōmui' },
+            'Awaiting Date': { to: 'Tatali ki he ʻAho' },
+            'Mark Done': { to: 'Faka\\'ilonga Kuo ʻOsi' },
+            'Reopen': { to: 'Toe Fakaava' },
+            'Note for this contact...': { to: 'Fakamatala ki he fetuʻutaki ni...' },
+            'Contact Follow-Up Health': { to: 'Tuʻunga Fetuʻutaki' },
+            'Live snapshot of the This Week board for this group': { to: 'Sio fakavavevave ki he papa ʻAhi Ni ʻo e kulupu ni' },
+            'Task Completion Rate': { to: 'Lahi ʻo e Ngāue Kuo ʻOsi' },
         };
 
         function t(key) {
@@ -534,8 +578,8 @@
         }
 
         let state = {
-            investigators: Array(5).fill().map((_, i) => ({ id: i + 1, name: '', notes: '', progress: {}, assignment: '', goal: '', emoji: '👤', assignedTo: '', nextContactDate: '', nextAction: '', lastContactDate: '' })),
-            returning: Array(5).fill().map((_, i) => ({ id: i + 100, name: '', notes: '', progress: {}, assignment: '', goal: '', emoji: '💙', assignedTo: '', nextContactDate: '', nextAction: '', lastContactDate: '' })),
+            investigators: Array(5).fill().map((_, i) => ({ id: i + 1, name: '', notes: '', progress: {}, assignment: '', goal: '', emoji: '👤', assignedTo: '', nextContactDate: '', nextAction: '', lastContactDate: '', taskDone: false, taskDoneDate: '' })),
+            returning: Array(5).fill().map((_, i) => ({ id: i + 100, name: '', notes: '', progress: {}, assignment: '', goal: '', emoji: '💙', assignedTo: '', nextContactDate: '', nextAction: '', lastContactDate: '', taskDone: false, taskDoneDate: '' })),
             covenantPath: [],
             events: [],
             prayerList: [],
@@ -558,7 +602,7 @@
             const data = snapshot.val();
             if (data) {
                 // Merge new action-planner fields into existing records that predate them
-                const mergeFields = p => ({ assignedTo: '', nextContactDate: '', nextAction: '', lastContactDate: '', ...p });
+                const mergeFields = p => ({ assignedTo: '', nextContactDate: '', nextAction: '', lastContactDate: '', taskDone: false, taskDoneDate: '', ...p });
                 state.investigators = (data.investigators || state.investigators).map(mergeFields);
                 state.returning = (data.returning || state.returning).map(mergeFields);
                 state.covenantPath = data.covenantPath || [];
@@ -633,14 +677,14 @@
 
         // ── Action Planner Fields ─────────────────────────────
         window.updateCombinedAssignment = (id, assignedTo) => {
-            // Map leader → org for backward compat with assignment field
-            const leaderToOrg = {
+            // assignedTo is now the organization itself; keep a legacy map so older saved data still resolves
+            const legacy = {
                 'EQ President': 'Elders Quorum', 'RS President': 'Relief Society',
-                'Ward Missionaries': 'Ward Missionaries', 'Full-time Missionaries': 'Ward Missionaries',
+                'Ward Missionaries': 'Elders Quorum', 'Full-time Missionaries': 'Elders Quorum',
                 'Bishop': 'Elders Quorum', 'YM President': 'Young Men',
-                'YW President': 'Young Women', 'Sunday School Pres.': 'Sunday School'
+                'YW President': 'Young Women', 'Sunday School Pres.': 'Sunday School/Primary'
             };
-            const assignment = leaderToOrg[assignedTo] || '';
+            const assignment = legacy[assignedTo] || assignedTo || '';
             const l = getCurrentList();
             setCurrentList(l.map(p => p.id === id ? { ...p, assignedTo, assignment } : p));
             saveToFirebase();
@@ -694,7 +738,7 @@
         window.addPerson = () => {
             const list = getCurrentList();
             const newId = Math.max(...list.map(p => p.id), 0) + 1;
-            list.push({ id: newId, name: '', notes: '', progress: {}, assignment: '', goal: '', emoji: state.activeTab==='investigators'?'👤':'💙', assignedTo: '', nextContactDate: '', nextAction: '', lastContactDate: '' });
+            list.push({ id: newId, name: '', notes: '', progress: {}, assignment: '', goal: '', emoji: state.activeTab==='investigators'?'👤':'💙', assignedTo: '', nextContactDate: '', nextAction: '', lastContactDate: '', taskDone: false, taskDoneDate: '' });
             setCurrentList(list);
             saveToFirebase();
             render();
@@ -1394,7 +1438,6 @@
                                         const isCurrentM = m === currentMonthName;
                                         return `<th class="text-white p-2 md:p-5 text-center font-black text-xs md:text-base ${state.trackerView === 'month' ? 'min-w-[200px]' : 'min-w-[65px]'} ${state.trackerView === 'month' && isCurrentM ? 'bg-white/20' : ''}">${m}</th>`;
                                     }).join('')}
-                                    <th class="text-white p-3 md:p-5 text-left font-black text-sm md:text-base min-w-[140px] mobile-hide">${t('Notes')}</th>
                                     <th class="text-white p-3 md:p-5 text-left font-black text-sm md:text-base min-w-[220px] mobile-hide">📋 Plan</th>
                                     <th class="text-white p-2 md:p-4"></th>
                                 </tr>
@@ -1465,21 +1508,15 @@
                                                     ${monthData.length > 0 ? `<button onclick="openIndicatorModal(${person.id}, '${month}')" class="text-xs font-bold" style="color:var(--ss-gold-deep);">${t('Edit')}</button>` : ''}`}
                                                 </td>`;
                                             }).join('')}
-                                            <td class="p-2 md:p-4 mobile-hide">
-                                                <textarea onchange="updateNotes(${person.id}, this.value)" placeholder="${currentLang==='to'?'Fakamatala...':'Notes...'}" rows="2" class="w-full px-2 py-2 border-2 border-amber-200 rounded-xl focus:border-amber-500 focus:outline-none text-xs shadow-sm resize-none">${person.notes || ''}</textarea>
-                                            </td>
                                             <!-- ── Unified Plan column ── -->
                                             <td class="p-2 md:p-3 mobile-hide min-w-[220px]">
                                                 <select onchange="updateCombinedAssignment(${person.id}, this.value)" class="w-full px-2 py-1.5 border border-rose-200 rounded-lg text-xs font-semibold mb-1.5 focus:outline-none focus:border-rose-400" title="Who is responsible for this person">
                                                     <option value="">👤 Assign to...</option>
-                                                    <option value="EQ President" ${person.assignedTo==='EQ President'?'selected':''}>⚡ EQ President</option>
-                                                    <option value="RS President" ${person.assignedTo==='RS President'?'selected':''}>🌸 RS President</option>
-                                                    <option value="Ward Missionaries" ${person.assignedTo==='Ward Missionaries'?'selected':''}>📖 Ward Missionaries</option>
-                                                    <option value="Full-time Missionaries" ${person.assignedTo==='Full-time Missionaries'?'selected':''}>👔 Full-time Missionaries</option>
-                                                    <option value="Bishop" ${person.assignedTo==='Bishop'?'selected':''}>🏛️ Bishop</option>
-                                                    <option value="YM President" ${person.assignedTo==='YM President'?'selected':''}>🎯 YM President</option>
-                                                    <option value="YW President" ${person.assignedTo==='YW President'?'selected':''}>⭐ YW President</option>
-                                                    <option value="Sunday School Pres." ${person.assignedTo==='Sunday School Pres.'?'selected':''}>📚 Sunday School Pres.</option>
+                                                    <option value="Elders Quorum" ${person.assignedTo==='Elders Quorum'?'selected':''}>⚡ Elders Quorum</option>
+                                                    <option value="Relief Society" ${person.assignedTo==='Relief Society'?'selected':''}>🌸 Relief Society</option>
+                                                    <option value="Young Men" ${person.assignedTo==='Young Men'?'selected':''}>🎯 Young Men</option>
+                                                    <option value="Young Women" ${person.assignedTo==='Young Women'?'selected':''}>⭐ Young Women</option>
+                                                    <option value="Sunday School/Primary" ${person.assignedTo==='Sunday School/Primary'?'selected':''}>📚 Sunday School/Primary</option>
                                                 </select>
                                                 <input type="date" value="${person.nextContactDate||''}" onchange="updateNextContactDate(${person.id}, this.value)"
                                                     class="w-full px-2 py-1.5 border border-rose-200 rounded-lg text-xs font-semibold mb-1.5 focus:outline-none focus:border-rose-400" title="Next Contact Date" />
@@ -1536,10 +1573,12 @@
                 return Math.ceil((today - d) / (1000*60*60*24));
             }
 
-            const overdue = allPeople.filter(p => p.nextContactDate && getDaysUntil(p.nextContactDate) < 0).sort((a,b)=>parseLocalDate(a.nextContactDate)-parseLocalDate(b.nextContactDate));
-            const dueThisWeek = allPeople.filter(p => p.nextContactDate && getDaysUntil(p.nextContactDate) >= 0 && getDaysUntil(p.nextContactDate) <= 7).sort((a,b)=>parseLocalDate(a.nextContactDate)-parseLocalDate(b.nextContactDate));
-            const upcoming = allPeople.filter(p => p.nextContactDate && getDaysUntil(p.nextContactDate) > 7).sort((a,b)=>parseLocalDate(a.nextContactDate)-parseLocalDate(b.nextContactDate));
-            const noDate = allPeople.filter(p => !p.nextContactDate);
+            const completed = allPeople.filter(p => p.taskDone).sort((a,b)=> (b.taskDoneDate||'').localeCompare(a.taskDoneDate||''));
+            const active = allPeople.filter(p => !p.taskDone);
+            const overdue = active.filter(p => p.nextContactDate && getDaysUntil(p.nextContactDate) < 0).sort((a,b)=>parseLocalDate(a.nextContactDate)-parseLocalDate(b.nextContactDate));
+            const dueThisWeek = active.filter(p => p.nextContactDate && getDaysUntil(p.nextContactDate) >= 0 && getDaysUntil(p.nextContactDate) <= 7).sort((a,b)=>parseLocalDate(a.nextContactDate)-parseLocalDate(b.nextContactDate));
+            const upcoming = active.filter(p => p.nextContactDate && getDaysUntil(p.nextContactDate) > 7).sort((a,b)=>parseLocalDate(a.nextContactDate)-parseLocalDate(b.nextContactDate));
+            const noDate = active.filter(p => !p.nextContactDate);
 
             function renderPersonCard(p, urgency) {
                 const days = getDaysUntil(p.nextContactDate);
@@ -1549,45 +1588,53 @@
                     today: 'border-l-4 border-orange-500 bg-orange-50',
                     week: 'border-l-4 border-yellow-400 bg-yellow-50',
                     upcoming: 'border-l-4 border-green-400 bg-green-50',
-                    none: 'border-l-4 border-gray-200 bg-gray-50'
+                    none: 'border-l-4 border-gray-200 bg-gray-50',
+                    done: 'border-l-4 border-green-500 bg-green-50 opacity-90'
                 };
                 const badgeColors = {
                     overdue: 'bg-red-500 text-white',
                     today: 'bg-orange-500 text-white',
                     week: 'bg-yellow-400 text-yellow-900',
                     upcoming: 'bg-green-100 text-green-800',
-                    none: 'bg-gray-100 text-gray-500'
+                    none: 'bg-gray-100 text-gray-500',
+                    done: 'bg-green-500 text-white'
                 };
                 let badgeText = '';
-                if (days === null) badgeText = '⚪ No date';
+                if (urgency === 'done') badgeText = `✅ ${t('Completed')}${p.taskDoneDate ? ' · '+p.taskDoneDate.slice(5) : ''}`;
+                else if (days === null) badgeText = '⚪ No date';
                 else if (days < 0) badgeText = `🔴 ${Math.abs(days)}d overdue`;
                 else if (days === 0) badgeText = '🔥 Today!';
                 else if (days === 1) badgeText = '⚡ Tomorrow';
                 else badgeText = `📅 In ${days} days`;
 
                 const tabIcon = p._tab === 'investigators' ? '👤' : '💙';
+                const isDone = urgency === 'done';
                 return `
                 <div class="rounded-xl p-4 ${urgencyColors[urgency]} hover:shadow-md transition-all">
                     <div class="flex items-start justify-between gap-3 flex-wrap">
                         <div class="flex items-center gap-3 flex-1 min-w-0">
                             <span class="text-2xl flex-shrink-0">${p.emoji||tabIcon}</span>
-                            <div class="min-w-0">
-                                <div class="font-black text-gray-900 text-base leading-tight">${p.name}</div>
+                            <div class="min-w-0 flex-1">
+                                <div class="font-black text-gray-900 text-base leading-tight ${isDone ? 'line-through opacity-70' : ''}">${p.name}</div>
                                 <div class="flex items-center gap-2 mt-0.5 flex-wrap">
                                     ${p.assignedTo ? `<span class="text-xs bg-white border border-gray-200 text-gray-700 px-2 py-0.5 rounded-full font-bold">👤 ${p.assignedTo}</span>` : `<span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">⚠️ Unassigned</span>`}
-                                    ${p.assignment ? `<span class="text-xs text-gray-400 font-semibold">${p.assignment}</span>` : ''}
+                                    ${p.assignment && p.assignment !== p.assignedTo ? `<span class="text-xs text-gray-400 font-semibold">${p.assignment}</span>` : ''}
                                     <span class="text-xs ${p._tab==='investigators'?'text-amber-600':'text-green-600'} font-bold">${p._tab==='investigators'?'Investigator':'Returning'}</span>
                                 </div>
-                                ${p.nextAction ? `<div class="mt-1.5 text-sm text-gray-700 font-semibold bg-white/70 rounded-lg px-2 py-1">📝 ${p.nextAction}</div>` : `<div class="mt-1.5 text-xs text-gray-400 italic">No next action written</div>`}
+                                ${p.nextAction ? `<div class="mt-1.5 text-sm text-gray-700 font-semibold bg-white/70 rounded-lg px-2 py-1 ${isDone ? 'line-through opacity-70' : ''}">📝 ${p.nextAction}</div>` : `<div class="mt-1.5 text-xs text-gray-400 italic">No next action written</div>`}
                                 ${sinceContact !== null ? `<div class="mt-1 text-xs text-gray-400 font-semibold">Last contacted: ${sinceContact === 0 ? 'today' : sinceContact+'d ago'}</div>` : ''}
+                                <textarea onchange="quickSetNotes('${p.id}','${p._tab}',this.value)" rows="1" placeholder="🗒️ ${t('Note for this contact...')}" class="mt-2 w-full text-xs px-2 py-1.5 border border-gray-300 rounded-lg resize-none focus:outline-none focus:border-rose-400 bg-white/80">${p.notes||''}</textarea>
                             </div>
                         </div>
                         <div class="flex flex-col items-end gap-2 flex-shrink-0">
                             <span class="text-xs font-black px-3 py-1 rounded-full ${badgeColors[urgency]}">${badgeText}</span>
-                            <button onclick="markContacted_tab('${p.id}','${p._tab}')" class="text-xs font-black px-3 py-1.5 bg-white border-2 border-rose-300 text-rose-600 rounded-lg hover:bg-rose-50 transition-all">✅ Mark Contacted</button>
-                            <div class="flex items-center gap-1">
-                                <input type="date" value="${p.nextContactDate||''}" onchange="quickSetDate('${p.id}','${p._tab}',this.value)" class="text-xs border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:border-rose-400 bg-white" title="Set next contact date" />
-                            </div>
+                            ${isDone
+                                ? `<button onclick="toggleTaskDone('${p.id}','${p._tab}')" class="text-xs font-black px-3 py-1.5 bg-white border-2 border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-all">↩️ ${t('Reopen')}</button>`
+                                : `<button onclick="markContacted_tab('${p.id}','${p._tab}')" class="text-xs font-black px-3 py-1.5 bg-white border-2 border-rose-300 text-rose-600 rounded-lg hover:bg-rose-50 transition-all">✅ Mark Contacted</button>
+                                   <button onclick="toggleTaskDone('${p.id}','${p._tab}')" class="text-xs font-black px-3 py-1.5 bg-green-100 border-2 border-green-400 text-green-700 rounded-lg hover:bg-green-200 transition-all">✓ ${t('Mark Done')}</button>
+                                   <div class="flex items-center gap-1">
+                                       <input type="date" value="${p.nextContactDate||''}" onchange="quickSetDate('${p.id}','${p._tab}',this.value)" class="text-xs border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:border-rose-400 bg-white" title="Set next contact date" />
+                                   </div>`}
                         </div>
                     </div>
                 </div>`;
@@ -1679,6 +1726,15 @@
                     <div class="p-4 space-y-3">${noDate.filter(p=>p.name).map(p=>renderPersonCard(p,'none')).join('')}</div>
                 </div>` : ''}
 
+                ${completed.length > 0 ? `
+                <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border-2 border-green-200">
+                    <div class="bg-gradient-to-r from-green-500 to-emerald-600 px-5 py-3 flex items-center gap-2">
+                        <span class="text-xl">✅</span>
+                        <h3 class="font-black text-white text-lg">${t('Task Completed')} <span class="bg-white/30 text-white text-sm px-2 py-0.5 rounded-full ml-1">${completed.length}</span></h3>
+                    </div>
+                    <div class="p-4 space-y-3">${completed.map(p=>renderPersonCard(p,'done')).join('')}</div>
+                </div>` : ''}
+
                 ${allPeople.length === 0 ? `
                 <div class="bg-white/95 rounded-2xl shadow-xl p-12 text-center">
                     <div class="text-7xl mb-4">📋</div>
@@ -1704,6 +1760,23 @@
             else state.returning = state.returning.map(p => p.id === idNum ? { ...p, nextContactDate: dateVal } : p);
             saveToFirebase();
             render();
+        };
+
+        window.toggleTaskDone = (id, tab) => {
+            const idNum = parseInt(id);
+            const today = new Date().toISOString().split('T')[0];
+            const flip = p => p.id === idNum ? { ...p, taskDone: !p.taskDone, taskDoneDate: !p.taskDone ? today : '' } : p;
+            if (tab === 'investigators') state.investigators = state.investigators.map(flip);
+            else state.returning = state.returning.map(flip);
+            saveToFirebase();
+            render();
+        };
+
+        window.quickSetNotes = (id, tab, val) => {
+            const idNum = parseInt(id);
+            if (tab === 'investigators') state.investigators = state.investigators.map(p => p.id === idNum ? { ...p, notes: val } : p);
+            else state.returning = state.returning.map(p => p.id === idNum ? { ...p, notes: val } : p);
+            saveToFirebase();
         };
 
         window.sendWeeklyFocus = () => {
@@ -2143,6 +2216,16 @@
             const engaged = currentList.filter(p=>Object.values(p.progress||{}).flat().length>0).length;
             const engagementRate = currentList.length > 0 ? Math.round((engaged/currentList.length)*100) : 0;
 
+            // ── Follow-up health (mirrors the This Week board) ──
+            const _today = new Date(); _today.setHours(0,0,0,0);
+            const _named = currentList.filter(p => p.name);
+            const fuCompleted = _named.filter(p => p.taskDone).length;
+            const fuActive = _named.filter(p => !p.taskDone);
+            const fuOverdue = fuActive.filter(p => p.nextContactDate && parseLocalDate(p.nextContactDate) < _today).length;
+            const fuNoDate = fuActive.filter(p => !p.nextContactDate).length;
+            const fuTotalTasks = _named.filter(p => p.nextAction || p.nextContactDate || p.taskDone).length;
+            const fuCompletionRate = fuTotalTasks > 0 ? Math.round((fuCompleted / fuTotalTasks) * 100) : 0;
+
             setTimeout(() => {
                 // Chart 1 — Monthly Trend Line Chart
                 const ctx1 = document.getElementById('monthlyTrendChart');
@@ -2315,6 +2398,34 @@
                             <div class="text-3xl mb-1">💬</div>
                             <div class="text-4xl font-black">${topIndicators[0]?.[0] || '—'}</div>
                             <div class="text-xs font-bold opacity-90 mt-1 uppercase tracking-wide">${t('Top Activity')}</div>
+                        </div>
+                    </div>
+
+                    <!-- Follow-Up Health (from This Week board) -->
+                    <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-5 hover-lift border-2 ${accentBorder}">
+                        <h3 class="font-black text-xl mb-1 ${accentText}">📋 ${t('Contact Follow-Up Health')}</h3>
+                        <p class="text-xs text-gray-500 mb-4 font-semibold">${t('Live snapshot of the This Week board for this group')}</p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="rounded-2xl p-4 text-center border-t-4 border-red-400" style="background:var(--ss-red-wash);">
+                                <div class="text-3xl mb-1">🔴</div>
+                                <div class="text-4xl font-black text-red-600">${fuOverdue}</div>
+                                <div class="text-xs font-bold text-gray-500 mt-1 uppercase tracking-wide">${t('Overdue Follow-ups')}</div>
+                            </div>
+                            <div class="rounded-2xl p-4 text-center border-t-4 border-gray-400" style="background:rgba(255,255,255,.05);">
+                                <div class="text-3xl mb-1">⚪</div>
+                                <div class="text-4xl font-black" style="color:var(--ss-muted);">${fuNoDate}</div>
+                                <div class="text-xs font-bold text-gray-500 mt-1 uppercase tracking-wide">${t('Awaiting Date')}</div>
+                            </div>
+                            <div class="rounded-2xl p-4 text-center border-t-4 border-green-400" style="background:var(--ss-sage-wash);">
+                                <div class="text-3xl mb-1">✅</div>
+                                <div class="text-4xl font-black text-green-600">${fuCompleted}</div>
+                                <div class="text-xs font-bold text-gray-500 mt-1 uppercase tracking-wide">${t('Task Completed')}</div>
+                            </div>
+                            <div class="rounded-2xl p-4 text-center border-t-4 border-emerald-400" style="background:var(--ss-sage-wash);">
+                                <div class="text-3xl mb-1">🎯</div>
+                                <div class="text-4xl font-black text-emerald-600">${fuCompletionRate}%</div>
+                                <div class="text-xs font-bold text-gray-500 mt-1 uppercase tracking-wide">${t('Task Completion Rate')}</div>
+                            </div>
                         </div>
                     </div>
 
