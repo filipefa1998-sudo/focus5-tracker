@@ -776,6 +776,8 @@
             'Referred to missionaries': { to: 'ʻAve ki he Faifekau' },
             'No one has taken the challenge yet.': { to: 'ʻOku teʻeki ke toʻo ʻe ha taha ʻa e polé.' },
             'Tap "Take the challenge" to light the first candle.': { to: 'Tā "Toʻo ʻa e Pole" ke tutu ʻa e ʻuluaki maamá.' },
+            'Name of the person': { to: 'Hingoa ʻo e tokotahá' },
+            'Organization to follow up…': { to: 'Kautaha ke muimuiʻi…' },
             // Image slots
             'Add a photo': { to: 'Tānaki ha foto' },
             'Tap to upload · shared with everyone': { to: 'Tā ke ʻuploadi · vahevahe mo e kakai kotoa' },
@@ -847,10 +849,10 @@
             return new Date(y, m - 1, d);   // local midnight — no timezone shift
         }
 
-        // Editor lock (view-only by default) — declared early so the data listener/render can read it
+        // Photo-edit lock: the whole tracker is open to everyone; only image upload/change/remove
+        // is gated behind the editor code (declared early so render can read it).
         const EDITOR_CODE = "f524";
         let editMode = false;
-        const LOCK_MUTATORS = ['addEvent','addEventOnDay','addPerson','addPrayerPerson','bomAdd','bomCycle','bomDelete','deleteEvent','editEvent','markContacted','markContacted_tab','openEmojiPicker','openIndicatorModal','removeFromCovenantPath','removeImage','removePerson','removePrayerPerson','saveNewEvent','thisWeekAddTask','toggleAddContact','toggleTaskDone','updateBackgroundImage','updateCovenantField','updateEmoji','updateEvent','showBackgroundImageModal','uploadImage'];
 
         let state = {
             investigators: Array(5).fill().map((_, i) => ({ id: i + 1, name: '', notes: '', progress: {}, assignment: '', goal: '', emoji: '👤', assignedTo: '', nextContactDate: '', nextAction: '', lastContactDate: '', taskDone: false, taskDoneDate: '' })),
@@ -900,36 +902,20 @@
             render();
         });
 
-        // ── Editor lock (view-only by default; enter the code to edit) ──
+        // ── Photo-edit lock (enter the code to add/replace/remove images) ──
         window.toggleEditMode = () => {
             if (!editMode) {
-                const code = prompt(currentLang==='to' ? 'Fakahū ʻa e fika fakatonutonú:' : 'Enter editor code:');
+                const code = prompt(currentLang==='to' ? 'Fakahū ʻa e fika ke liliu ʻa e ngaahi fotó:' : 'Enter the code to edit photos:');
                 if (code === null) return;
                 if (code.trim().toLowerCase() !== EDITOR_CODE) { showSaveMessage(currentLang==='to' ? '🔒 Fika hala' : '🔒 Wrong code'); return; }
-                editMode = true; showSaveMessage(currentLang==='to' ? '🔓 Kuo ava ki he fakatonutonú' : '🔓 Editing unlocked');
+                editMode = true; showSaveMessage(currentLang==='to' ? '🔓 Kuo ava ʻa e liliu fotó' : '🔓 Photo editing unlocked');
             } else {
-                editMode = false; showSaveMessage(currentLang==='to' ? '🔒 Kuo tāpuni' : '🔒 Editing locked (view-only)');
+                editMode = false; showSaveMessage(currentLang==='to' ? '🔒 Kuo tāpuni ʻa e liliu fotó' : '🔒 Photo editing locked');
             }
             render();
         };
-        // Disable every data-entry control when locked (nav/toggles are <button>s and stay active).
-        function applyLockState(){
-            const root = document.getElementById('app');
-            if (!root) return;
-            root.classList.toggle('locked', !editMode);
-            if (!editMode) {
-                root.querySelectorAll('input, textarea, select').forEach(el => {
-                    if (!el.hasAttribute('data-free')) el.disabled = true;
-                });
-                root.querySelectorAll('button[onclick]').forEach(el => {
-                    const oc = el.getAttribute('onclick') || '';
-                    if (LOCK_MUTATORS.some(m => oc.includes(m + '('))) { el.disabled = true; el.style.opacity = '.45'; el.style.cursor = 'not-allowed'; }
-                });
-            }
-        }
 
         function saveToFirebase() {
-            if (!editMode) { showSaveMessage(currentLang==='to' ? '🔒 Lau pē — fakaava ʻa e fakatonutonú' : '🔒 View-only — unlock editing to save'); return; }
             state.syncing = true;
             set(dataRef, {
                 investigators: state.investigators,
@@ -1284,7 +1270,6 @@
 
         // ── Feature #6: Emoji/Avatar picker ─────────────────
         window.openEmojiPicker = (id) => {
-            if (!editMode) { showSaveMessage(currentLang==='to' ? '🔒 Lau pē' : '🔒 View-only — unlock editing first'); return; }
             const emojis = ['👤','👦','👧','👨','👩','👴','👵','🧑','👨‍👩‍👦','🏃','🙏','⭐','💙','❤️','🌟','🎯','✨','🌸','🌺','🌻','🏅','🎖️','👑','🕊️','🌈','🔥','💫','🎉','🤝','💪'];
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4';
@@ -1362,7 +1347,7 @@
         };
 
         window.setActiveTab = (tab) => { state.activeTab = tab; render(); };
-        window.setViewMode = (mode) => { state.viewMode = mode; render(); };
+        window.setViewMode = (mode) => { state.viewMode = mode; try { history.replaceState(null, '', '#' + mode); } catch(e){} render(); };
         // ES-module scope fix: inline on* handlers run in global scope, so expose these.
         window.state = state;
         window.render = render;
@@ -1458,7 +1443,6 @@
 
         window.addEvent = () => { addEventOnDay(''); };
         window.addEventOnDay = (dateStr) => {
-            if (!editMode) { showSaveMessage(currentLang==='to' ? '🔒 Lau pē' : '🔒 View-only — unlock editing first'); return; }
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4';
             modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
@@ -1554,7 +1538,6 @@
         };
 
         window.openIndicatorModal = (personId, month) => {
-            if (!editMode) { showSaveMessage(currentLang==='to' ? '🔒 Lau pē' : '🔒 View-only — unlock editing first'); return; }
             const list = getCurrentList();
             const person = list.find(p => p.id === personId);
             const monthData = person.progress?.[month] || [];
@@ -1665,17 +1648,16 @@
                                 </div>
                                 <div class="flex gap-2 flex-wrap items-center">
                                     ${syncIndicatorHTML()}
-                                    <button onclick="toggleEditMode()" class="iconbtn ${editMode ? 'gold' : ''}" title="${editMode ? (currentLang==='to'?'Tāpuni ʻa e fakatonutonú':'Lock editing') : (currentLang==='to'?'Fakaava ʻa e fakatonutonú':'Unlock editing')}">${editMode ? '🔓' : '🔒'} <span class="hidden sm:inline">${editMode ? (currentLang==='to'?'Fakatonutonu':'Editing') : (currentLang==='to'?'Lau pē':'View only')}</span></button>
+                                    <button onclick="toggleEditMode()" class="iconbtn ${editMode ? 'gold' : ''}" title="${editMode ? (currentLang==='to'?'Tāpuni ʻa e liliu fotó':'Lock photo editing') : (currentLang==='to'?'Fakaava ʻa e liliu fotó':'Unlock photo editing')}">${editMode ? '🔓' : '🔒'} <span class="hidden sm:inline">${currentLang==='to'?'Foto':'Photos'}</span></button>
                                     <button onclick="toggleLanguage()" class="iconbtn" title="${currentLang === 'to' ? 'Switch to English' : 'Liliu ki he Lea Faka Tonga'}">🇹🇴 ${currentLang === 'to' ? 'English' : 'Lea Faka Tonga'}</button>
-                                    ${editMode ? `<button onclick="saveToFirebase()" class="iconbtn gold" title="${t('Save')}">💾 <span class="hidden sm:inline">${t('Save')}</span></button>` : ''}
+                                    <button onclick="saveToFirebase()" class="iconbtn gold" title="${t('Save')}">💾 <span class="hidden sm:inline">${t('Save')}</span></button>
                                     <button onclick="showWardCouncilReport()" class="iconbtn" title="${t('Ward Council Report')}">📋</button>
                                     <button onclick="toggleTheme()" class="iconbtn" title="${t('Toggle theme')}">${currentThemeIsLight() ? '🌙' : '☀️'}</button>
-                                    ${editMode ? `<button onclick="showBackgroundImageModal()" class="iconbtn" title="${t('Background')}">🖼️</button>` : ''}
+                                    <button onclick="showBackgroundImageModal()" class="iconbtn" title="${t('Background')}">🖼️</button>
                                     <button onclick="exportData()" class="iconbtn" title="${t('Export')}">📥</button>
-                                    ${editMode ? `<label class="iconbtn cursor-pointer" title="${t('Import')}">📤<input type="file" accept=".json" data-free onchange="importData(event)" class="hidden" /></label>` : ''}
+                                    <label class="iconbtn cursor-pointer" title="${t('Import')}">📤<input type="file" accept=".json" onchange="importData(event)" class="hidden" /></label>
                                 </div>
                             </div>
-                            ${!editMode ? `<div class="mb-4 flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-xl" style="background:var(--ss-surface-2);border:1px solid var(--ss-line-2);color:var(--ss-muted);"><span>🔒</span>${currentLang==='to' ? 'Lau pē. Fakaava ʻa e fakatonutonú ke liliu.' : 'View-only mode. Unlock editing to make changes.'}</div>` : ''}
 
                             ${state.saveMessage ? `<div class="mb-4 p-3 md:p-4 rounded-xl font-bold text-sm md:text-base shadow-xl" style="background:var(--ss-sage-wash);color:var(--ss-sage);border:1px solid var(--ss-line);">${state.saveMessage}</div>` : ''}
 
@@ -1708,7 +1690,6 @@
                     </div>
                 </div>
             `;
-            applyLockState();
         }
 
         function renderTracker(currentList) {
@@ -1910,7 +1891,7 @@
                                                 </button>
                                             </td>
                                             <td class="p-2 md:p-3">
-                                                ${editMode ? `<button onclick="removePerson(${person.id})" class="p-2 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all text-xl" ${currentList.length === 1 ? 'disabled' : ''}>🗑️</button>` : ''}
+                                                <button onclick="removePerson(${person.id})" class="p-2 text-red-400 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all text-xl" ${currentList.length === 1 ? 'disabled' : ''}>🗑️</button>
                                             </td>
                                         </tr>
                                     `;
@@ -1919,7 +1900,7 @@
                         </table>
                     </div>
                     <div class="p-4 md:p-6 border-t border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-                        ${editMode ? `<button onclick="addPerson()" class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl hover:from-indigo-700 hover:to-purple-700 transition-all font-bold text-base shadow-xl hover-lift">➕ ${t('Add Person')}</button>` : `<div class="text-sm font-semibold" style="color:var(--ss-muted);">🔒 ${currentLang==='to'?'Lau pē':'View-only'}</div>`}
+                        <button onclick="addPerson()" class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl hover:from-indigo-700 hover:to-purple-700 transition-all font-bold text-base shadow-xl hover-lift">➕ ${t('Add Person')}</button>
                     </div>
                 </div>
                 ${imageSlot('tracker_covenant', { label: t2('Foto ki he Hala Fuakavá','Photo (above the Covenant Path)') })}
@@ -3476,6 +3457,59 @@
             p21 = {}; saveP21(); render();
         };
 
+        // Print just the 21-Day Promise worksheet (fills the #printReport area the print CSS reveals)
+        window.printPromise = () => {
+            const box = (on) => on ? '☑' : '☐';
+            const inv = (state.investigators||[]).map(p=>p.name).filter(n=>n&&n.trim());
+            const ret = (state.returning||[]).map(p=>p.name).filter(n=>n&&n.trim());
+            const days = SCRIPTURES.map((s,i)=>{
+                const n=i+1, d=p21['d'+n]||{};
+                return `<tr><td style="text-align:center;font-weight:bold">${n}</td><td>${esc(t2(s.to,s.en))}</td>
+                    <td style="text-align:center">${box(d.am)}</td><td style="text-align:center">${box(d.pm)}</td><td style="text-align:center">${box(d.read)}</td></tr>`;
+            }).join('');
+            const commits = COMMITMENTS.map((c,i)=>`<div>${box(p21['c'+i])} ${esc(t2(c.to,c.en))}</div>`).join('');
+            const ftm = [0,1].map(i=>{const nm=p21['ftm'+i+'n']||'';const ph=p21['ftm'+i+'p']||'';return (nm||ph)?`<div>${esc(nm)} ${ph?'· '+esc(ph):''}</div>`:'';}).join('');
+            const wml = [0,1].map(i=>{const nm=p21['wml'+i+'n']||'';const ph=p21['wml'+i+'p']||'';return (nm||ph)?`<div>${esc(nm)} ${ph?'· '+esc(ph):''}</div>`:'';}).join('');
+            const names = (arr,label)=>arr.length?`<div style="flex:1"><b>${label}</b>${arr.map(n=>`<div>• ${esc(n)}</div>`).join('')}</div>`:`<div style="flex:1"><b>${label}</b><div style="color:#888">—</div></div>`;
+
+            let box2 = document.getElementById('printReport');
+            if (!box2) { box2 = document.createElement('div'); box2.id='printReport'; box2.style.display='none'; document.body.appendChild(box2); }
+            box2.innerHTML = `<style>
+                body{font-family:Georgia,serif;color:#111;padding:26px}
+                h1{font-size:22px;margin:0 0 2px} h2{font-size:13px;color:#9a7b2e;letter-spacing:.12em;text-transform:uppercase;margin:0 0 14px}
+                h3{font-size:15px;margin:18px 0 6px;border-bottom:1px solid #ccc;padding-bottom:3px}
+                .formula{font-size:18px;color:#9a7b2e;margin:8px 0 10px} .verse{font-style:italic;color:#555;margin:8px 0}
+                table{width:100%;border-collapse:collapse;font-size:12px;font-family:Arial,sans-serif} td,th{border:1px solid #bbb;padding:4px 6px}
+                th{background:#f0ece2} .row{display:flex;gap:24px} .commits div{margin:4px 0;font-family:Arial,sans-serif;font-size:13px}
+            </style>
+            <h1>Riverton 24th Tongan Ward</h1>
+            <h2>${t2('Palōmesi ʻAho ʻe 21','The 21-Day Promise')}</h2>
+            <div class="formula">${t2('TUI','FAITH')} + ${t2('LOTU','PRAYER')} + ${t2('NGĀUE','ACTION')} = ${t2('MANA','MIRACLES')}</div>
+            <div class="verse">${esc(t2(P_VREF.to,P_VREF.en))}</div>
+            <h3>${t2('Kakai Te ke Lotuá','People I Will Pray For')}</h3>
+            <div class="row">${names(inv, t('Investigators'))}${names(ret, t('Returning'))}</div>
+            <h3>${t2('ʻAho ʻe 21','The 21 Days')}</h3>
+            <table><tr><th>#</th><th>${t('Book of Mormon')}</th><th>${t('AM')}</th><th>${t('PM')}</th><th>${t('Read')}</th></tr>${days}</table>
+            <h3>${t2('Ngaahi Tukupaa','Commitments')}</h3><div class="commits">${commits}</div>
+            ${(ftm.trim())?`<h3>${t2('Ongo Faifekau Taimi Kakató','Full-Time Missionaries')}</h3>${ftm}`:''}
+            ${(wml.trim())?`<h3>${t2('Taki Faifekau Fakauōtí','Ward Mission Leaders')}</h3>${wml}`:''}`;
+            window.print();
+            setTimeout(()=>{ box2.innerHTML=''; }, 500);
+        };
+
+        // Share a link to the app (lands on the 21-Day Promise tab)
+        window.sharePromise = async () => {
+            const url = location.origin + location.pathname + '#promise';
+            const data = {
+                title: 'Riverton 24th — ' + t2('Palōmesi ʻAho ʻe 21','21-Day Promise'),
+                text: t2('Fai mo au ʻa e Palōmesi ʻAho ʻe 21 — lotu pongipongi mo efiafi ki he ngaahi faingamālie fakafaifekau.','Take the 21-Day Promise with me — pray morning and evening for missionary opportunities.'),
+                url
+            };
+            try { if (navigator.share) { await navigator.share(data); return; } } catch(e){ if (e && e.name === 'AbortError') return; }
+            try { await navigator.clipboard.writeText(url); showSaveMessage(t2('🔗 Kuo hiki ʻa e liní','🔗 Link copied!')); }
+            catch(e){ prompt(t2('Hiki ʻa e liní:','Copy this link:'), url); }
+        };
+
         function renderPromise(){
             const lng = currentLang==='to' ? 'ton' : 'eng';
             const invNames = (state.investigators||[]).map(p=>p.name).filter(n=>n&&n.trim());
@@ -3543,7 +3577,8 @@
                 <div class="contacts">${wml}</div>
 
                 <div class="flex flex-wrap gap-3 mt-6">
-                    <button class="ss-btn primary" onclick="window.print()">🖨️ ${t2('Pulusi / PDF','Print / Save as PDF')}</button>
+                    <button class="ss-btn primary" onclick="printPromise()">🖨️ ${t2('Pulusi / PDF','Print / Save as PDF')}</button>
+                    <button class="ss-btn ghost" onclick="sharePromise()">🔗 ${t2('Vahevahe ʻa e liní','Share link')}</button>
                     <button class="ss-btn ghost" onclick="p21Reset()">↺ ${t2('Kamata foʻou','Reset')}</button>
                 </div>
                 <p style="font-size:12px;color:var(--ss-muted);margin-top:12px;">${t2('ʻOku tauhi ʻa e fakaʻiló ʻi he tēvaisí ni — ko e palōmesi fakafoʻituituí.','Your progress is saved on this device — this is a personal worksheet.')}</p>
@@ -3562,11 +3597,22 @@
             referred: {to:'ʻAve ki Faifekau',en:'Referred',   emoji:'✨', color:'var(--ss-red)',     wash:'var(--ss-red-wash)'}
         };
         const BOM_ORDER = ['pledged','given','reading','referred'];
+        const BOM_ORGS = [
+            {k:'eq', to:'Kōlomu ʻo e Kau Tangata Mā', en:'Elders Quorum'},
+            {k:'rs', to:'Sōsaieti Tokoni', en:'Relief Society'},
+            {k:'ym', to:'Kau Talavou Tangata', en:'Young Men'},
+            {k:'yw', to:'Kau Talavou Fefine', en:'Young Women'},
+            {k:'primary', to:'Palaimelí', en:'Primary'},
+            {k:'ss', to:'Lautohi Sāpaté', en:'Sunday School'},
+            {k:'ftm', to:'Faifekau Taimi Kakato', en:'Full-Time Missionaries'},
+            {k:'wml', to:'Taki Faifekau Fakauōti', en:'Ward Mission Leader'}
+        ];
+        const bomOrgLabel = (k) => { const o = BOM_ORGS.find(x=>x.k===k); return o ? t2(o.to,o.en) : ''; };
 
         window.bomAdd = () => {
             const id = 'bom_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
             state.bomChallenge = state.bomChallenge || [];
-            state.bomChallenge.unshift({ id, member:'', recipient:'', note:'', status:'pledged', weekOf: ymd(mondayOf(new Date())), date: ymd(new Date()) });
+            state.bomChallenge.unshift({ id, member:'', org:'', status:'pledged', weekOf: ymd(mondayOf(new Date())), date: ymd(new Date()) });
             saveToFirebase(); render();
         };
         window.bomUpdate = (id, field, val) => {
@@ -3595,16 +3641,17 @@
 
             const card = (c)=>{
                 const st = BOM_STATUS[c.status||'pledged'] || BOM_STATUS.pledged;
+                const opts = `<option value="">${t('Organization to follow up…')}</option>` +
+                    BOM_ORGS.map(o=>`<option value="${o.k}" ${c.org===o.k?'selected':''}>${esc(t2(o.to,o.en))}</option>`).join('');
                 return `<div class="bom-card">
                     <div class="bom-top">
                         <span class="flame">${st.emoji}</span>
-                        <input class="ss-input" style="font-weight:700;" value="${esc(c.member||'')}" oninput="bomUpdate('${c.id}','member',this.value)" placeholder="${t('Who took the challenge?')}">
+                        <input class="ss-input" style="font-weight:700;" value="${esc(c.member||'')}" oninput="bomUpdate('${c.id}','member',this.value)" placeholder="${t('Name of the person')}">
                         <button class="bom-status" style="color:${st.color};background:${st.wash};" onclick="bomCycle('${c.id}')" title="${t('Tap to advance')}">${st.emoji} ${t2(st.to,st.en)}</button>
                     </div>
-                    <input class="ss-input" value="${esc(c.recipient||'')}" oninput="bomUpdate('${c.id}','recipient',this.value)" placeholder="${t('Giving it to… (optional)')}">
-                    <input class="ss-input" value="${esc(c.note||'')}" oninput="bomUpdate('${c.id}','note',this.value)" placeholder="${t('A line of testimony to write inside…')}">
+                    <select class="ss-input" onchange="bomUpdate('${c.id}','org',this.value); render();">${opts}</select>
                     <div class="flex items-center justify-between" style="font-size:11.5px;color:var(--ss-muted);">
-                        <span>${t('Week of')} ${fmtWeek(c.weekOf)}</span>
+                        <span>${t('Week of')} ${fmtWeek(c.weekOf)}${c.org?' · 🏛️ '+esc(bomOrgLabel(c.org)):''}</span>
                         <button onclick="bomDelete('${c.id}')" style="background:none;border:0;color:var(--ss-muted);cursor:pointer;font-size:12px;">${t('Remove')}</button>
                     </div>
                 </div>`;
@@ -3729,6 +3776,16 @@
         };
 
         window.saveToFirebase = saveToFirebase;
+
+        // Deep-link routing: a shared link like …/#promise opens that tab.
+        const HASH_VIEWS = { tracker:'tracker', thisweek:'thisweek', actionboard:'actionboard', charts:'charts', kpi:'charts', events:'events', calendar:'events', promise:'promise', '21day':'promise', bom:'bomchallenge', bomchallenge:'bomchallenge' };
+        function applyHashView(){
+            const h = (location.hash || '').replace('#','').toLowerCase();
+            if (HASH_VIEWS[h]) state.viewMode = HASH_VIEWS[h];
+        }
+        applyHashView();
+        window.addEventListener('hashchange', () => { const before = state.viewMode; applyHashView(); if (state.viewMode !== before) render(); });
+
         render();
     </script>
 </body>
