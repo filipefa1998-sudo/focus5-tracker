@@ -346,16 +346,26 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getDatabase, ref, set, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyAMTk39-yO86IA36-ZzBCtpLswW4skCIH4",
             authDomain: "focus5-cd663.firebaseapp.com",
             databaseURL: "https://focus5-cd663-default-rtdb.firebaseio.com",
-            projectId: "focus5-cd663"
+            projectId: "focus5-cd663",
+            // ⚠️ Confirm this matches your Firebase console → Storage (the gs:// bucket).
+            // Newer projects use "focus5-cd663.firebasestorage.app" instead of ".appspot.com".
+            storageBucket: "focus5-cd663.appspot.com"
         };
 
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
+        // Firebase Storage requires the paid Blaze plan. Leaving this OFF keeps the app fully
+        // on the free Spark plan — photos are compressed and stored inline in the database.
+        // Only set this to true AFTER you've upgraded the project to Blaze and enabled Storage.
+        const USE_STORAGE = false;
+        let storage = null;
+        try { if (USE_STORAGE) storage = getStorage(app); } catch(e){ storage = null; }
 
         const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
@@ -3629,20 +3639,36 @@
             const file = ev.target.files && ev.target.files[0];
             if (!file) return;
             if (!file.type.startsWith('image/')){ alert(t('Please choose an image file.')); return; }
+            // Compress first so both Storage uploads and any inline fallback stay small
+            let dataUrl;
             try {
-                // Compress to keep the Firebase payload small (long edge ≤1280px, JPEG ~0.7)
-                let dataUrl = await compressImage(file, 1280, 0.72);
-                // If still large, step quality down so sync stays snappy for all viewers
+                dataUrl = await compressImage(file, 1280, 0.72);
                 if (dataUrl.length > 900000) dataUrl = await compressImage(file, 1100, 0.62);
                 if (dataUrl.length > 900000) dataUrl = await compressImage(file, 900, 0.55);
-                state.images = state.images || {};
-                state.images[key] = dataUrl;
-                saveToFirebase();
-                render();
-            } catch(e){ alert(t('Sorry — that image could not be processed.')); }
+            } catch(e){ alert(t('Sorry — that image could not be processed.')); return; }
+
+            state.images = state.images || {};
+            // Preferred path: upload to Firebase Storage and keep only the URL in the database (tiny payload)
+            if (storage) {
+                try {
+                    const sref = storageRef(storage, 'images/' + key + '.jpg');
+                    await uploadString(sref, dataUrl, 'data_url');
+                    state.images[key] = await getDownloadURL(sref);
+                    saveToFirebase(); render();
+                    return;
+                } catch(e){ console.warn('Storage upload unavailable — saving image inline instead.', e && e.message ? e.message : e); }
+            }
+            // Fallback: store the compressed image inline in the database (works without Storage setup)
+            state.images[key] = dataUrl;
+            saveToFirebase(); render();
         };
-        window.removeImage = (key) => {
+        window.removeImage = async (key) => {
             if (!confirm(t('Remove this image?'))) return;
+            const val = state.images && state.images[key];
+            // If it lives in Storage, delete the object too (ignore failures)
+            if (storage && typeof val === 'string' && /firebasestorage|googleapis|appspot/.test(val)) {
+                try { await deleteObject(storageRef(storage, 'images/' + key + '.jpg')); } catch(e){ /* already gone or blocked */ }
+            }
             if (state.images) delete state.images[key];
             saveToFirebase(); render();
         };
