@@ -138,13 +138,13 @@
 
         /* ── Image slots (uploadable, shared via Firebase) ── */
         .imgslot{ position:relative; display:block; width:100%; border-radius:16px; overflow:hidden; margin-bottom:16px;
-            border:1px solid var(--ss-line); box-shadow:0 10px 30px rgba(0,0,0,.12); }
-        .imgslot img{ display:block; width:100%; max-height:260px; object-fit:cover; }
+            border:1px solid var(--ss-line); box-shadow:0 10px 30px rgba(0,0,0,.12); background:var(--ss-surface-2); }
+        .imgslot img{ display:block; width:auto; max-width:100%; height:auto; max-height:520px; margin:0 auto; }
         .imgslot.empty{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
-            min-height:140px; border:2px dashed var(--ss-line); box-shadow:none; background:var(--ss-surface-2);
-            cursor:pointer; text-align:center; padding:20px; transition:.15s; }
+            min-height:190px; border:2px dashed var(--ss-line); box-shadow:none; background:var(--ss-surface-2);
+            cursor:pointer; text-align:center; padding:24px; transition:.15s; }
         .imgslot.empty:hover{ border-color:var(--ss-gold); background:var(--ss-gold-wash); }
-        .imgslot-ico{ font-size:28px; }
+        .imgslot-ico{ font-size:30px; }
         .imgslot-label{ font-weight:800; color:var(--ss-ink-soft); font-size:14px; }
         .imgslot-hint{ font-size:11.5px; color:var(--ss-muted); }
         .imgslot-tools{ position:absolute; top:10px; right:10px; display:flex; gap:6px; opacity:0; transition:.15s; }
@@ -152,11 +152,19 @@
         .imgbtn{ display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px;
             background:rgba(15,20,40,.62); color:#fff; border:0; cursor:pointer; font-size:14px; }
         .imgbtn:hover{ background:rgba(15,20,40,.88); }
-        .imgslot.side{ width:210px; flex:0 0 210px; margin-bottom:0; align-self:stretch; }
-        .imgslot.side img{ height:100%; max-height:none; min-height:170px; }
-        .imgslot.side.empty{ min-height:170px; }
         @media(hover:none){ .imgslot-tools{ opacity:.92; } }
-        @media(max-width:640px){ .imgslot.side{ width:100%; flex:1 1 auto; margin-bottom:14px; } .imgslot img{ max-height:210px; } }
+
+        /* 21-Day Promise: portrait sits INSIDE the intro card (WJ8 layout) */
+        .promise-intro.has-side{ display:flex; gap:22px; align-items:center; }
+        .promise-intro.has-side .pi-text{ flex:1; min-width:0; }
+        .promise-intro.has-side .pi-side{ flex:0 0 36%; max-width:270px; min-width:0; }
+        .promise-intro.has-side .pi-side .imgslot{ margin-bottom:0; }
+        .promise-intro.has-side .pi-side .imgslot img{ width:100%; max-height:360px; object-fit:cover; }
+        .promise-intro.has-side .pi-side .imgslot.empty{ min-height:200px; }
+        @media(max-width:640px){
+            .promise-intro.has-side{ flex-direction:column; align-items:stretch; }
+            .promise-intro.has-side .pi-side{ flex:none; max-width:none; width:100%; }
+        }
 
         /* ── Shared panel + section heads for new tabs ── */
         .ss-panel{ background:var(--ss-surface); border:1px solid var(--ss-line); border-radius:18px;
@@ -3462,13 +3470,13 @@
 
             return `<div class="ss-panel">
                 <div class="mb-4"><div class="ss-eyebrow">${t2('Ngāue Fakafaifekau','Member Missionary Work')}</div><h2 class="ss-h2">${t2('Palōmesi ʻAho ʻe 21','The 21-Day Promise')}</h2></div>
-                <div style="display:flex;gap:16px;align-items:stretch;flex-wrap:wrap;">
-                    <div class="promise-intro" style="flex:1;min-width:260px;">
+                <div class="promise-intro has-side">
+                    <div class="pi-text">
                         <div class="formula">${t2('TUI','FAITH')} + ${t2('LOTU','PRAYER')} + <em>${t2('NGĀUE','ACTION')}</em> = ${t2('MANA','MIRACLES')}</div>
                         <p>${esc(t2(P_INTRO.to,P_INTRO.en))}<span class="en">${esc(t2(P_INTRO.en,P_INTRO.to))}</span></p>
                         <div class="vref">${esc(t2(P_VREF.to,P_VREF.en))}</div>
                     </div>
-                    ${imageSlot('promise', { variant: 'side', label: t2('Foto','Photo') })}
+                    <div class="pi-side">${imageSlot('promise', { label: t2('Foto','Photo') })}</div>
                 </div>
                 <div class="promise-progress">
                     <div class="big" id="p21-count">${complete}<span style="font-size:15px;color:var(--ss-muted)">/${total}</span></div>
