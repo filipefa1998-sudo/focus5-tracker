@@ -136,6 +136,28 @@
         .iconbtn:hover{ border-color:var(--ss-line); color:var(--ss-ink); }
         .iconbtn.gold{ background:linear-gradient(135deg,var(--ss-gold),var(--ss-gold-deep)); color:#1a1206; border-color:var(--ss-gold-deep); }
 
+        /* ── Image slots (uploadable, shared via Firebase) ── */
+        .imgslot{ position:relative; display:block; width:100%; border-radius:16px; overflow:hidden; margin-bottom:16px;
+            border:1px solid var(--ss-line); box-shadow:0 10px 30px rgba(0,0,0,.12); }
+        .imgslot img{ display:block; width:100%; max-height:260px; object-fit:cover; }
+        .imgslot.empty{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+            min-height:140px; border:2px dashed var(--ss-line); box-shadow:none; background:var(--ss-surface-2);
+            cursor:pointer; text-align:center; padding:20px; transition:.15s; }
+        .imgslot.empty:hover{ border-color:var(--ss-gold); background:var(--ss-gold-wash); }
+        .imgslot-ico{ font-size:28px; }
+        .imgslot-label{ font-weight:800; color:var(--ss-ink-soft); font-size:14px; }
+        .imgslot-hint{ font-size:11.5px; color:var(--ss-muted); }
+        .imgslot-tools{ position:absolute; top:10px; right:10px; display:flex; gap:6px; opacity:0; transition:.15s; }
+        .imgslot:hover .imgslot-tools{ opacity:1; }
+        .imgbtn{ display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:9px;
+            background:rgba(15,20,40,.62); color:#fff; border:0; cursor:pointer; font-size:14px; }
+        .imgbtn:hover{ background:rgba(15,20,40,.88); }
+        .imgslot.side{ width:210px; flex:0 0 210px; margin-bottom:0; align-self:stretch; }
+        .imgslot.side img{ height:100%; max-height:none; min-height:170px; }
+        .imgslot.side.empty{ min-height:170px; }
+        @media(hover:none){ .imgslot-tools{ opacity:.92; } }
+        @media(max-width:640px){ .imgslot.side{ width:100%; flex:1 1 auto; margin-bottom:14px; } .imgslot img{ max-height:210px; } }
+
         /* ── Shared panel + section heads for new tabs ── */
         .ss-panel{ background:var(--ss-surface); border:1px solid var(--ss-line); border-radius:18px;
             box-shadow:0 14px 40px rgba(0,0,0,.18); padding:22px; }
@@ -736,6 +758,14 @@
             'Referred to missionaries': { to: 'ʻAve ki he Faifekau' },
             'No one has taken the challenge yet.': { to: 'ʻOku teʻeki ke toʻo ʻe ha taha ʻa e polé.' },
             'Tap "Take the challenge" to light the first candle.': { to: 'Tā "Toʻo ʻa e Pole" ke tutu ʻa e ʻuluaki maamá.' },
+            // Image slots
+            'Add a photo': { to: 'Tānaki ha foto' },
+            'Tap to upload · shared with everyone': { to: 'Tā ke ʻuploadi · vahevahe mo e kakai kotoa' },
+            'Change image': { to: 'Liliu ʻa e foto' },
+            'Remove image': { to: 'Toʻo ʻa e foto' },
+            'Remove this image?': { to: 'Toʻo ʻa e foto ko ʻení?' },
+            'Please choose an image file.': { to: 'Kātaki ʻo fili ha faile foto.' },
+            'Sorry — that image could not be processed.': { to: 'Fakamolemole — naʻe ʻikai lava ʻo ngāue ʻaki ʻa e fotó.' },
         };
 
         function t(key) {
@@ -806,6 +836,7 @@
             events: [],
             prayerList: [],
             bomChallenge: [],
+            images: {},
             activeTab: 'investigators',
             viewMode: 'tracker',
             saveMessage: '',
@@ -832,6 +863,7 @@
                 state.backgroundImage = data.backgroundImage || state.backgroundImage;
                 state.prayerList = data.prayerList || [];
                 state.bomChallenge = data.bomChallenge || [];
+                state.images = data.images || {};
                 state.darkMode = data.darkMode || false;
             }
             render();
@@ -854,6 +886,7 @@
                 backgroundImage: state.backgroundImage,
                 prayerList: state.prayerList,
                 bomChallenge: state.bomChallenge,
+                images: state.images,
                 darkMode: state.darkMode,
                 lastSaved: Date.now()
             }).then(() => {
@@ -1706,6 +1739,8 @@
                     </div>` : ''}
                 </div>
 
+                ${imageSlot('tracker_top', { label: t2('Foto ki ʻolunga','Photo (top of tracker)') })}
+
                 <!-- Key Indicators Legend -->
                 <div class="bg-white/98 backdrop-blur-xl rounded-2xl md:rounded-3xl shadow-xl p-4 md:p-6 mb-4 hover-lift border-2 ${accentBorder}">
                     <h3 class="text-base md:text-lg mb-3 flex items-center gap-2" style="color:var(--ss-ink);font-weight:600;"><span style="width:8px;height:8px;border-radius:50%;background:var(--ss-gold);display:inline-block;"></span> ${t('Key Indicators')}</h3>
@@ -1829,6 +1864,7 @@
                         <button onclick="addPerson()" class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl hover:from-indigo-700 hover:to-purple-700 transition-all font-bold text-base shadow-xl hover-lift">➕ ${t('Add Person')}</button>
                     </div>
                 </div>
+                ${imageSlot('tracker_covenant', { label: t2('Foto ki he Hala Fuakavá','Photo (above the Covenant Path)') })}
             `;
         }
 
@@ -1951,7 +1987,7 @@
             return `
             <div class="space-y-5">
                 <!-- Header -->
-                <div class="bg-gradient-to-r from-rose-600 to-red-600 rounded-2xl p-5 shadow-xl text-white">
+                <div class="rounded-2xl p-5 shadow-xl text-white" style="background:#b5485a;">
                     <div class="flex items-center justify-between flex-wrap gap-3">
                         <div class="flex items-center gap-3">
                             <span class="text-4xl">📋</span>
@@ -1978,6 +2014,8 @@
                         </div>
                     </div>
                 </div>
+
+                ${imageSlot('thisweek', { label: t2('Foto ki he Ngāue ʻo e Wikí','Photo (This Week Focus)') })}
 
                 <!-- KPI headline strip -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -2262,6 +2300,7 @@
 
             return `
             <div class="space-y-5">
+                ${imageSlot('actionboard', { label: t2('Foto ki he Palanga Ngāué','Photo (above the war-room)') })}
                 <!-- Header -->
                 <div class="bg-gradient-to-r from-violet-700 to-purple-700 rounded-2xl p-5 shadow-xl text-white">
                     <div class="flex items-center justify-between flex-wrap gap-3">
@@ -2718,6 +2757,7 @@
 
             return `
                 <div class="space-y-5">
+                    ${imageSlot('kpi', { label: t2('Foto ki he Tapuleti KPI','Photo (top of KPI Dashboard)') })}
                     <!-- Stat Cards Row -->
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div class="bg-white/95 backdrop-blur-md rounded-2xl p-5 shadow-xl hover-lift border-t-4 border-amber-400 text-center">
@@ -3412,10 +3452,13 @@
 
             return `<div class="ss-panel">
                 <div class="mb-4"><div class="ss-eyebrow">${t2('Ngāue Fakafaifekau','Member Missionary Work')}</div><h2 class="ss-h2">${t2('Palōmesi ʻAho ʻe 21','The 21-Day Promise')}</h2></div>
-                <div class="promise-intro">
-                    <div class="formula">${t2('TUI','FAITH')} + ${t2('LOTU','PRAYER')} + <em>${t2('NGĀUE','ACTION')}</em> = ${t2('MANA','MIRACLES')}</div>
-                    <p>${esc(t2(P_INTRO.to,P_INTRO.en))}<span class="en">${esc(t2(P_INTRO.en,P_INTRO.to))}</span></p>
-                    <div class="vref">${esc(t2(P_VREF.to,P_VREF.en))}</div>
+                <div style="display:flex;gap:16px;align-items:stretch;flex-wrap:wrap;">
+                    <div class="promise-intro" style="flex:1;min-width:260px;">
+                        <div class="formula">${t2('TUI','FAITH')} + ${t2('LOTU','PRAYER')} + <em>${t2('NGĀUE','ACTION')}</em> = ${t2('MANA','MIRACLES')}</div>
+                        <p>${esc(t2(P_INTRO.to,P_INTRO.en))}<span class="en">${esc(t2(P_INTRO.en,P_INTRO.to))}</span></p>
+                        <div class="vref">${esc(t2(P_VREF.to,P_VREF.en))}</div>
+                    </div>
+                    ${imageSlot('promise', { variant: 'side', label: t2('Foto','Photo') })}
                 </div>
                 <div class="promise-progress">
                     <div class="big" id="p21-count">${complete}<span style="font-size:15px;color:var(--ss-muted)">/${total}</span></div>
@@ -3513,6 +3556,7 @@
             const olderWeeks = list.filter(c=>!isThisWeek(c.weekOf));
 
             return `<div class="ss-panel">
+                ${imageSlot('bom', { label: t2('Foto ki he Pole Tohi ʻa Molomoná','Photo (top of B.O.M. Challenge)') })}
                 <div class="flex items-start justify-between flex-wrap gap-3 mb-4">
                     <div><div class="ss-eyebrow">${t2('Pō Tohi ʻa Molomona','Pass the Light')}</div><h2 class="ss-h2">${t2('Pole Tohi ʻa Molomona','Book of Mormon Challenge')}</h2></div>
                     <button class="ss-btn primary" onclick="bomAdd()">＋ ${t('Take the challenge')}</button>
@@ -3536,6 +3580,72 @@
                 ${section(t2('Ngaahi Uike Kuo Hilí','Earlier Weeks'), t2('Maama kuo tutu','Lights already lit'), olderWeeks)}
             </div>`;
         }
+
+        /* =====================================================================
+           IMAGE SLOTS — uploadable photos, compressed client-side, synced via Firebase
+           ===================================================================== */
+        function imageSlot(key, opts){
+            opts = opts || {};
+            const v = opts.variant === 'side' ? 'side ' : '';
+            const url = (state.images || {})[key];
+            if (url){
+                return `<div class="imgslot ${v}">
+                    <img src="${url}" alt="${esc(opts.label || '')}">
+                    <div class="imgslot-tools">
+                        <label class="imgbtn" title="${t('Change image')}">🔄<input type="file" accept="image/*" class="hidden" onchange="uploadImage('${key}', event)"></label>
+                        <button class="imgbtn" title="${t('Remove image')}" onclick="removeImage('${key}')">🗑️</button>
+                    </div>
+                </div>`;
+            }
+            return `<label class="imgslot ${v}empty">
+                <input type="file" accept="image/*" class="hidden" onchange="uploadImage('${key}', event)">
+                <span class="imgslot-ico">🖼️</span>
+                <span class="imgslot-label">${esc(opts.label || t('Add a photo'))}</span>
+                <span class="imgslot-hint">${t('Tap to upload · shared with everyone')}</span>
+            </label>`;
+        }
+
+        function compressImage(file, maxDim, quality){
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let w = img.width, h = img.height;
+                        if (w >= h && w > maxDim){ h = Math.round(h * maxDim / w); w = maxDim; }
+                        else if (h > w && h > maxDim){ w = Math.round(w * maxDim / h); h = maxDim; }
+                        else if (w === h && w > maxDim){ w = h = maxDim; }
+                        const c = document.createElement('canvas'); c.width = w; c.height = h;
+                        c.getContext('2d').drawImage(img, 0, 0, w, h);
+                        resolve(c.toDataURL('image/jpeg', quality));
+                    };
+                    img.onerror = reject; img.src = e.target.result;
+                };
+                reader.onerror = reject; reader.readAsDataURL(file);
+            });
+        }
+
+        window.uploadImage = async (key, ev) => {
+            const file = ev.target.files && ev.target.files[0];
+            if (!file) return;
+            if (!file.type.startsWith('image/')){ alert(t('Please choose an image file.')); return; }
+            try {
+                // Compress to keep the Firebase payload small (long edge ≤1280px, JPEG ~0.7)
+                let dataUrl = await compressImage(file, 1280, 0.72);
+                // If still large, step quality down so sync stays snappy for all viewers
+                if (dataUrl.length > 900000) dataUrl = await compressImage(file, 1100, 0.62);
+                if (dataUrl.length > 900000) dataUrl = await compressImage(file, 900, 0.55);
+                state.images = state.images || {};
+                state.images[key] = dataUrl;
+                saveToFirebase();
+                render();
+            } catch(e){ alert(t('Sorry — that image could not be processed.')); }
+        };
+        window.removeImage = (key) => {
+            if (!confirm(t('Remove this image?'))) return;
+            if (state.images) delete state.images[key];
+            saveToFirebase(); render();
+        };
 
         window.saveToFirebase = saveToFirebase;
         render();
