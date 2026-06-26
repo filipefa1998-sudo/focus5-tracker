@@ -37,16 +37,17 @@
             --ss-violet:#c4a6f7; --ss-violet-wash:rgba(168,120,247,.16);
             --ss-bar:#1b2a52; --ss-bar-text:#f6dfa6;
         }
-        .dark-mode {
-            --ss-ink:#f7f0e6; --ss-ink-soft:#d8cfbf;
-            --ss-bg:#0a1224; --ss-surface:#152144; --ss-surface-2:#101a38;
-            --ss-line:rgba(231,189,106,.28); --ss-line-2:rgba(244,236,224,.12);
-            --ss-muted:#aaa090;
-            --ss-gold:#edc878; --ss-gold-deep:#f6dfa6; --ss-gold-wash:rgba(231,189,106,.18);
-            --ss-red:#ed9aa9; --ss-red-wash:rgba(217,106,122,.20);
-            --ss-sage:#8fdca0; --ss-sage-wash:rgba(120,200,140,.18);
-            --ss-violet:#c4a6f7; --ss-violet-wash:rgba(168,120,247,.18);
-            --ss-bar:#16234a; --ss-bar-text:#f6dfa6;
+        /* ── LIGHT THEME (Sacred Stone) — dark is the default; this flips the palette ── */
+        html[data-theme="light"] {
+            --ss-ink:#15213d; --ss-ink-soft:#3f4d6b;
+            --ss-bg:#f4f1ea; --ss-surface:#fffdf8; --ss-surface-2:#f7f2e8;
+            --ss-line:rgba(176,138,58,.30); --ss-line-2:rgba(13,23,48,.09);
+            --ss-muted:#6c768e;
+            --ss-gold:#b6892f; --ss-gold-deep:#936c1f; --ss-gold-wash:rgba(176,138,58,.14);
+            --ss-red:#c4566a; --ss-red-wash:rgba(196,86,106,.12);
+            --ss-sage:#3f9d6b; --ss-sage-wash:rgba(63,157,107,.12);
+            --ss-violet:#7a5bb0; --ss-violet-wash:rgba(122,91,176,.12);
+            --ss-bar:#1b2a52; --ss-bar-text:#f6dfa6; /* navy+gold accent bar kept in both modes */
         }
         body { background: var(--ss-bg) !important; color: var(--ss-ink); }
         h1,h2,h3 { font-family:'Fraunces', Georgia, serif !important; letter-spacing:-0.01em; color:var(--ss-ink); }
@@ -63,10 +64,32 @@
               radial-gradient(1300px 1000px at 50% 45%, rgba(42,84,118,.40), transparent 72%),
               linear-gradient(160deg, #0e1830 0%, #0c1426 46%, #101a32 100%) !important;
         }
+        /* Ngatu pinwheel (manulua) tapa texture, woven faintly across the canvas */
         .pn-canvas::after{
-            content:"";position:absolute;inset:0;opacity:.08;pointer-events:none;
-            background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'><g fill='none' stroke='%23e7bd6a' stroke-width='1.2'><path d='M80 6 L154 80 L80 154 L6 80 Z'/><path d='M80 30 L130 80 L80 130 L30 80 Z'/><path d='M80 54 L106 80 L80 106 L54 80 Z'/><path d='M80 6 L80 154 M6 80 L154 80'/></g><g fill='none' stroke='%23e7bd6a' stroke-width='0.9'><path d='M0 0 L26 0 L0 26 Z'/><path d='M160 0 L134 0 L160 26 Z'/><path d='M0 160 L26 160 L0 134 Z'/><path d='M160 160 L134 160 L160 134 Z'/></g><circle cx='80' cy='80' r='3.4' fill='%23e7bd6a'/></svg>");
-            background-size:150px 150px;
+            content:"";position:absolute;inset:0;opacity:.05;pointer-events:none;
+            background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><g fill='%23e7bd6a'><polygon points='0,0 40,0 40,40'/><polygon points='80,0 80,40 40,40'/><polygon points='80,80 40,80 40,40'/><polygon points='0,80 0,40 40,40'/></g></svg>");
+            background-size:104px 104px;
+        }
+        /* Light-mode canvas — warm cream paper with a soft gold wash */
+        html[data-theme="light"] .pn-canvas{
+            background:
+              radial-gradient(1100px 620px at 82% -8%, rgba(176,138,58,.14), transparent 60%),
+              radial-gradient(900px 700px at 8% 108%, rgba(60,90,160,.10), transparent 60%),
+              linear-gradient(168deg, #efe9dc 0%, #f4f1ea 60%, #faf7f0 100%) !important;
+        }
+        html[data-theme="light"] .pn-canvas::after{
+            opacity:.045;
+            background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><g fill='%2315213d'><polygon points='0,0 40,0 40,40'/><polygon points='80,0 80,40 40,40'/><polygon points='80,80 40,80 40,40'/><polygon points='0,80 0,40 40,40'/></g></svg>");
+        }
+
+        /* ── Ngatu band: a woven tapa divider (matches the EQ lessons app) ── */
+        .ngatu-band{
+            height:16px;width:100%;border-top:1.5px solid var(--ss-gold);border-bottom:1.5px solid var(--ss-gold);
+            background:var(--ss-surface-2) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><g fill='%23b6892f'><polygon points='0,0 16,0 16,16'/><polygon points='32,0 32,16 16,16'/><polygon points='32,32 16,32 16,16'/><polygon points='0,32 0,16 16,16'/></g></svg>");
+            background-repeat:repeat-x;background-position:center;background-size:auto 16px;border-radius:2px;
+        }
+        html:not([data-theme="light"]) .ngatu-band{
+            background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><g fill='%23edc878'><polygon points='0,0 16,0 16,16'/><polygon points='32,0 32,16 16,16'/><polygon points='32,32 16,32 16,16'/><polygon points='0,32 0,16 16,16'/></g></svg>");
         }
         /* Ngatu (tapa) overlay usable on panels */
         .ngatu-panel{ position:relative; overflow:hidden; }
@@ -76,6 +99,107 @@
             background-size:130px 130px;
         }
         .ngatu-panel > *{ position:relative; z-index:1; }
+
+        /* ── Sleek primary tab bar (numbered) ── */
+        .tabbar{ display:flex; gap:2px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none;
+            border-bottom:1px solid var(--ss-line-2); padding:0 2px; }
+        .tabbar::-webkit-scrollbar{ display:none; }
+        .tabchip{ flex:0 0 auto; display:flex; align-items:center; gap:9px; background:transparent; border:0;
+            color:var(--ss-muted); padding:13px 16px 12px; font-weight:700; font-size:13.5px; letter-spacing:.005em;
+            white-space:nowrap; cursor:pointer; border-bottom:2.5px solid transparent; transition:color .15s, border-color .15s;
+            font-family:'Manrope',sans-serif; }
+        .tabchip:hover{ color:var(--ss-ink); }
+        .tabchip .tn{ font-family:'Fraunces',Georgia,serif; font-style:italic; font-size:12px; color:var(--ss-muted); opacity:.8; }
+        .tabchip .tic{ font-size:15px; line-height:1; }
+        .tabchip[aria-selected="true"]{ color:var(--ss-ink); border-bottom-color:var(--ss-gold); }
+        .tabchip[aria-selected="true"] .tn{ color:var(--ss-gold); opacity:1; }
+        .tabchip .tbadge{ font-family:'Manrope'; font-style:normal; font-size:10.5px; font-weight:800; line-height:1;
+            background:var(--ss-gold-wash); color:var(--ss-gold); border:1px solid var(--ss-line); border-radius:999px; padding:3px 6px; }
+        @media(max-width:640px){ .tabchip{ padding:11px 12px 10px; font-size:12.5px; gap:7px; } .tabchip .tn{ font-size:11px; } }
+
+        /* ── Compact segmented scope toggle (Investigators / Returning) ── */
+        .seg{ display:inline-flex; padding:3px; gap:3px; background:var(--ss-surface-2); border:1px solid var(--ss-line-2);
+            border-radius:12px; }
+        .seg button{ display:flex; align-items:center; gap:6px; border:0; background:transparent; cursor:pointer;
+            color:var(--ss-muted); font-weight:700; font-size:13px; padding:8px 14px; border-radius:9px; transition:.15s;
+            font-family:'Manrope',sans-serif; white-space:nowrap; }
+        .seg button .cnt{ font-size:11px; font-weight:700; opacity:.7; }
+        .seg button[aria-pressed="true"]{ background:linear-gradient(135deg,var(--ss-gold),var(--ss-gold-deep));
+            color:#1a1206; box-shadow:0 4px 14px rgba(231,189,106,.28); }
+        .seg button[aria-pressed="true"] .cnt{ opacity:.85; }
+
+        /* ── Quiet icon buttons in the header utility row ── */
+        .iconbtn{ display:inline-flex; align-items:center; justify-content:center; gap:6px;
+            width:auto; min-width:40px; height:40px; padding:0 11px; border-radius:11px; cursor:pointer;
+            background:var(--ss-surface-2); border:1px solid var(--ss-line-2); color:var(--ss-ink-soft);
+            font-size:14px; font-weight:700; transition:.15s; font-family:'Manrope',sans-serif; }
+        .iconbtn:hover{ border-color:var(--ss-line); color:var(--ss-ink); }
+        .iconbtn.gold{ background:linear-gradient(135deg,var(--ss-gold),var(--ss-gold-deep)); color:#1a1206; border-color:var(--ss-gold-deep); }
+
+        /* ── Shared panel + section heads for new tabs ── */
+        .ss-panel{ background:var(--ss-surface); border:1px solid var(--ss-line); border-radius:18px;
+            box-shadow:0 14px 40px rgba(0,0,0,.18); padding:22px; }
+        .ss-eyebrow{ font-size:11px; letter-spacing:.26em; text-transform:uppercase; color:var(--ss-gold); font-weight:700; }
+        .ss-h2{ font-family:'Fraunces',Georgia,serif; font-size:clamp(22px,5vw,30px); color:var(--ss-ink); margin:6px 0 0; }
+        .ss-blockhead{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin:26px 0 12px; }
+        .ss-blockhead h3{ font-family:'Fraunces',Georgia,serif; font-size:19px; color:var(--ss-ink); margin:0; }
+        .ss-blockhead .en{ font-size:13px; color:var(--ss-muted); }
+        .ss-input{ width:100%; min-width:0; background:var(--ss-surface-2); border:1px solid var(--ss-line-2);
+            color:var(--ss-ink); border-radius:11px; padding:11px 13px; font-size:14px; font-family:'Manrope',sans-serif; }
+        .ss-input:focus{ outline:none; border-color:var(--ss-gold); }
+
+        /* 21-Day Promise */
+        .promise-intro{ padding:22px; border-radius:16px; border:1px solid var(--ss-line);
+            background:radial-gradient(600px 300px at 90% -40%,var(--ss-gold-wash),transparent 60%), var(--ss-surface-2); }
+        .promise-intro .formula{ font-family:'Fraunces',Georgia,serif; font-size:clamp(16px,4.4vw,22px); color:var(--ss-gold-deep); letter-spacing:.02em; }
+        .promise-intro p{ font-size:14.5px; color:var(--ss-ink-soft); margin:14px 0 0; max-width:66ch; line-height:1.6; }
+        .promise-intro p .en{ display:block; color:var(--ss-muted); font-size:13px; margin-top:8px; }
+        .promise-intro .vref{ margin-top:14px; font-style:italic; font-family:'Fraunces',Georgia,serif; color:var(--ss-gold); font-size:14px; }
+        .promise-progress{ display:flex; align-items:center; gap:14px; margin:16px 0; padding:14px 18px; border-radius:14px;
+            border:1px solid var(--ss-line); background:var(--ss-surface-2); }
+        .promise-progress .big{ font-family:'Fraunces',Georgia,serif; font-size:28px; color:var(--ss-gold-deep); font-variant-numeric:tabular-nums; }
+        .promise-progress .lbl{ font-size:12px; color:var(--ss-muted); }
+        .promise-progress .pbar{ flex:1; height:9px; border-radius:999px; background:var(--ss-surface); overflow:hidden; border:1px solid var(--ss-line-2); }
+        .promise-progress .pbar > i{ display:block; height:100%; width:0; background:linear-gradient(90deg,var(--ss-gold),var(--ss-gold-deep)); transition:width .5s; }
+        .prayfor{ display:grid; gap:8px; }
+        .daygrid{ display:grid; gap:8px; }
+        .dayrow{ display:grid; grid-template-columns:46px 1fr; gap:10px; align-items:stretch; border:1px solid var(--ss-line-2);
+            border-radius:12px; background:var(--ss-surface-2); overflow:hidden; }
+        .dayrow.full{ border-color:var(--ss-sage); background:var(--ss-sage-wash); }
+        .daynum{ display:flex; align-items:center; justify-content:center; font-family:'Fraunces',Georgia,serif; font-size:20px;
+            font-weight:700; color:var(--ss-gold); background:var(--ss-surface); border-right:1px solid var(--ss-line-2); }
+        .dayrow.full .daynum{ color:var(--ss-sage); }
+        .daymain{ padding:11px 13px; display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; }
+        .scrip{ flex:1 1 160px; min-width:0; }
+        .scrip a{ font-weight:700; font-size:15px; color:var(--ss-ink); text-decoration:none; }
+        .scrip a:hover{ color:var(--ss-gold); }
+        .scrip .sub{ font-size:11px; color:var(--ss-muted); }
+        .checks{ display:flex; gap:14px; flex:0 0 auto; }
+        .chk{ display:flex; align-items:center; gap:7px; font-size:12px; color:var(--ss-muted); font-weight:600; cursor:pointer; }
+        .chk input{ width:19px; height:19px; accent-color:var(--ss-gold); }
+        .chk.read input{ accent-color:var(--ss-sage); }
+        .commit{ display:flex; align-items:flex-start; gap:11px; padding:13px 15px; border-radius:11px; border:1px solid var(--ss-line-2); background:var(--ss-surface-2); margin-bottom:8px; cursor:pointer; }
+        .commit input{ flex:0 0 auto; width:20px; height:20px; margin-top:1px; accent-color:var(--ss-gold); }
+        .commit .txt{ font-size:14.5px; color:var(--ss-ink); }
+        .commit .txt .en{ display:block; color:var(--ss-muted); font-size:13px; margin-top:3px; }
+        .contacts{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px; }
+        .contact{ display:grid; grid-template-columns:1fr 130px; gap:8px; }
+
+        /* Book of Mormon Challenge */
+        .bom-hero{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:8px; }
+        .bom-stat{ padding:16px 18px; border-radius:14px; border:1px solid var(--ss-line); background:var(--ss-surface-2); }
+        .bom-stat .num{ font-family:'Fraunces',Georgia,serif; font-size:30px; color:var(--ss-gold-deep); line-height:1; font-variant-numeric:tabular-nums; }
+        .bom-stat .lbl{ font-size:12px; color:var(--ss-muted); margin-top:6px; }
+        .bom-card{ border:1px solid var(--ss-line-2); border-radius:14px; background:var(--ss-surface-2); padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+        .bom-card .bom-top{ display:flex; align-items:center; gap:10px; }
+        .bom-card .flame{ font-size:22px; flex:0 0 auto; }
+        .bom-status{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:800; padding:5px 10px; border-radius:999px; cursor:pointer; border:1px solid var(--ss-line); white-space:nowrap; }
+        .bom-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px; }
+        .ss-btn{ display:inline-flex; align-items:center; gap:8px; border:0; cursor:pointer; font-family:'Manrope',sans-serif;
+            font-weight:700; font-size:14px; padding:11px 18px; border-radius:12px; transition:.15s; }
+        .ss-btn.primary{ background:linear-gradient(135deg,var(--ss-gold),var(--ss-gold-deep)); color:#1a1206; }
+        .ss-btn.ghost{ background:var(--ss-surface-2); color:var(--ss-ink-soft); border:1px solid var(--ss-line-2); }
+        @media(max-width:560px){ .contact{ grid-template-columns:1fr; } .checks{ gap:10px; } .ss-panel{ padding:16px; } }
 
         /* surfaces -> dark glass panels */
         [class~="bg-white"],[class~="bg-white/90"],[class~="bg-white/95"],[class~="bg-white/98"],[class~="bg-gray-50"]{ background-color:var(--ss-surface)!important; }
@@ -176,8 +300,17 @@
             #printReport { display: block !important; }
         }
     </style>
+    <script>
+        /* Apply saved theme before paint to avoid a flash. Dark is the default. */
+        (function(){
+            try{
+                var saved = localStorage.getItem('f5Theme');
+                if(saved === 'light'){ document.documentElement.setAttribute('data-theme','light'); }
+            }catch(e){}
+        })();
+    </script>
 </head>
-<body class="bg-gray-900">
+<body>
     <div id="app"></div>
 
     <script type="module">
@@ -558,12 +691,51 @@
             'Go to Monthly Tracker': { to: 'ʻAlu ki he Tracker Māhina' },
             'Add contacts in the Monthly Tracker first, then assign tasks to them here.': { to: 'Tānaki kakai ʻi he Tracker Māhina ʻuluaki, pea vahevahe ngāue kiate kinautolu ʻi heni.' },
             'Assign a task to an existing contact. Add new contacts in the Monthly Tracker.': { to: 'Vahe ha ngāue ki ha kakai ʻoku ʻi ai. Tānaki kakai foʻou ʻi he Tracker Māhina.' },
+            // New tab labels + utilities
+            'Monthly Tracker': { to: 'Tracker Māhina' },
+            'This Week': { to: 'Uike Ní' },
+            'Action Board': { to: 'Palanga Ngāue' },
+            'KPI Dashboard': { to: 'Tapuleti KPI' },
+            'Ward Calendar': { to: 'Kalena ʻo e Uōti' },
+            '21-Day Promise': { to: 'Palōmesi ʻAho ʻe 21' },
+            'Book of Mormon Challenge': { to: 'Pole Tohi ʻa Molomona' },
+            'Scope': { to: 'Faʻahinga' },
+            'Save': { to: 'Tauhi' },
+            'Ward Council Report': { to: 'Lipoti Fakataha Uōti' },
+            'Toggle theme': { to: 'Liliu ʻa e lanu' },
+            'Background': { to: 'Tumutumu' },
+            'Export': { to: 'ʻAve' },
+            'Import': { to: 'ʻOmi' },
+            // 21-day field labels
+            'Name…': { to: 'Hingoa…' },
+            'Book of Mormon': { to: 'Tohi ʻa Molomona' },
+            'AM': { to: 'Pongipongi' },
+            'PM': { to: 'Efiafi' },
+            'Read': { to: 'Lau' },
+            'Full-time missionary': { to: 'Faifekau Taimi Kakato' },
+            'Phone': { to: 'Fika telefoni' },
+            'Ward mission leader': { to: 'Taki Faifekau Fakauōti' },
+            // BoM challenge labels
+            'Who took the challenge?': { to: 'Ko hai naʻe toʻo ʻa e polé?' },
+            'Tap to advance': { to: 'Tā ke laka kī muʻa' },
+            'Giving it to… (optional)': { to: 'Foaki ki…' },
+            'A line of testimony to write inside…': { to: 'Ha laine fakamoʻoni ke tohi ʻi loto…' },
+            'Week of': { to: 'Uike ʻo' },
+            'Remove': { to: 'Toʻo' },
+            'Take the challenge': { to: 'Toʻo ʻa e Pole' },
+            'Pledged this week': { to: 'Toʻo he uike ní' },
+            'Copies given away': { to: 'Tohi kuo foaki' },
+            'Referred to missionaries': { to: 'ʻAve ki he Faifekau' },
+            'No one has taken the challenge yet.': { to: 'ʻOku teʻeki ke toʻo ʻe ha taha ʻa e polé.' },
+            'Tap "Take the challenge" to light the first candle.': { to: 'Tā "Toʻo ʻa e Pole" ke tutu ʻa e ʻuluaki maamá.' },
         };
 
         function t(key) {
             if (currentLang === 'en') return key;
             return T[key]?.to || key;
         }
+        // Inline bilingual: pass both strings, get the active language back.
+        function t2(to, en) { return currentLang === 'to' ? to : en; }
         // Renders a nav label from a full translated phrase; first word hides on small screens.
         function navLabel(key) {
             const p = t(key).split(' ');
@@ -625,6 +797,7 @@
             covenantPath: [],
             events: [],
             prayerList: [],
+            bomChallenge: [],
             activeTab: 'investigators',
             viewMode: 'tracker',
             saveMessage: '',
@@ -650,6 +823,7 @@
                 state.covenantPath = data.covenantPath || [];
                 state.backgroundImage = data.backgroundImage || state.backgroundImage;
                 state.prayerList = data.prayerList || [];
+                state.bomChallenge = data.bomChallenge || [];
                 state.darkMode = data.darkMode || false;
             }
             render();
@@ -671,6 +845,7 @@
                 covenantPath: state.covenantPath,
                 backgroundImage: state.backgroundImage,
                 prayerList: state.prayerList,
+                bomChallenge: state.bomChallenge,
                 darkMode: state.darkMode,
                 lastSaved: Date.now()
             }).then(() => {
@@ -1051,7 +1226,14 @@
         };
 
         // ── Feature #10: Dark Mode ───────────────────────────
-        window.toggleDarkMode = () => { state.darkMode = !state.darkMode; render(); };
+        window.toggleTheme = () => {
+            const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+            if (isLight) { document.documentElement.removeAttribute('data-theme'); }
+            else { document.documentElement.setAttribute('data-theme', 'light'); }
+            try { localStorage.setItem('f5Theme', isLight ? 'dark' : 'light'); } catch(e){}
+            render();
+        };
+        function currentThemeIsLight(){ return document.documentElement.getAttribute('data-theme') === 'light'; }
 
         window.updateBackgroundImage = (url) => {
             if (url && url.trim()) { state.backgroundImage = url.trim(); saveToFirebase(); render(); }
@@ -1344,11 +1526,22 @@
             return { total, unique };
         }
 
+        function tabChip(mode, num, icon, label, badge) {
+            const sel = state.viewMode === mode;
+            return `<button class="tabchip" role="tab" aria-selected="${sel}" onclick="setViewMode('${mode}')">
+                <span class="tn">${num}</span><span class="tic">${icon}</span><span>${label}</span>${badge ? `<span class="tbadge">${badge}</span>` : ''}
+            </button>`;
+        }
+        function bomWeekBadge() {
+            const n = (state.bomChallenge || []).filter(c => isThisWeek(c.weekOf)).length;
+            return n > 0 ? String(n) : '';
+        }
         function render() {
             const currentList = getCurrentList();
+            const scopeRelevant = ['tracker','thisweek','actionboard','charts'].includes(state.viewMode);
             const app = document.getElementById('app');
             app.innerHTML = `
-                <div class="min-h-screen relative overflow-hidden ${state.darkMode ? 'dark-mode' : ''}">
+                <div class="min-h-screen relative overflow-hidden">
                     <div class="fixed inset-0 z-0">
                         <div class="absolute inset-0 pn-canvas"></div>
                     </div>
@@ -1356,58 +1549,64 @@
                         <div class="max-w-7xl mx-auto">
 
                             <!-- ✅ HEADER TITLE -->
-                            <div class="text-center mb-5 md:mb-7 pt-2">
-                                <div style="width:46px;height:3px;background:var(--ss-gold);margin:0 auto 14px;border-radius:2px;"></div>
+                            <div class="text-center mb-3 md:mb-4 pt-2">
+                                <div style="width:42px;height:2.5px;background:var(--ss-gold);margin:0 auto 12px;border-radius:2px;"></div>
                                 <h1 class="text-2xl md:text-4xl lg:text-5xl leading-tight" style="color:var(--ss-ink);font-weight:600;">
                                     Riverton 24th Tongan Ward
                                 </h1>
-                                <h2 class="text-lg md:text-2xl lg:text-3xl mt-1" style="color:var(--ss-gold-deep);font-weight:500;letter-spacing:.04em;text-transform:uppercase;">
+                                <h2 class="text-base md:text-xl lg:text-2xl mt-1" style="color:var(--ss-gold-deep);font-weight:500;letter-spacing:.16em;text-transform:uppercase;">
                                     Focus Five Tracker
                                 </h2>
                             </div>
 
-                            <!-- Tabs -->
-                            <div class="ss-sticky ngatu-panel flex gap-2 md:gap-4 mb-4 md:mb-6 flex-wrap items-center justify-between">
-                                <div class="flex gap-2 md:gap-4 flex-wrap flex-1">
-                                    <button onclick="setActiveTab('investigators')" class="flex items-center gap-2 md:gap-3 px-4 md:px-8 py-3 md:py-5 rounded-xl md:rounded-2xl font-black text-sm md:text-xl transition-all shadow-xl hover-lift flex-1 min-w-[140px] justify-center border-2 ${state.activeTab === 'investigators' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white border-amber-700 scale-105 md:scale-110' : 'bg-white/95 backdrop-blur-lg text-amber-900 border-amber-200 hover:bg-white'}">
-                                        <span class="text-xl md:text-2xl">👤</span>
-                                        <div class="text-left"><div class="leading-tight">${t('Investigators')}</div><div class="text-xs font-normal opacity-80">(${state.investigators.length})</div></div>
-                                    </button>
-                                    <button onclick="setActiveTab('returning')" class="flex items-center gap-2 md:gap-3 px-4 md:px-8 py-3 md:py-5 rounded-xl md:rounded-2xl font-black text-sm md:text-xl transition-all shadow-xl hover-lift flex-1 min-w-[140px] justify-center border-2 ${state.activeTab === 'returning' ? 'bg-gradient-to-r from-green-600 to-green-700 text-white border-green-800 scale-105 md:scale-110' : 'bg-white/95 backdrop-blur-lg text-green-900 border-green-200 hover:bg-white'}">
-                                        <span class="text-xl md:text-2xl">💙</span>
-                                        <div class="text-left"><div class="leading-tight">${t('Returning')}</div><div class="text-xs font-normal opacity-80">(${state.returning.length})</div></div>
-                                    </button>
+                            <!-- Ngatu band -->
+                            <div class="ngatu-band mb-4 md:mb-5" role="presentation" aria-hidden="true"></div>
+
+                            <!-- Top bar: scope toggle + utilities -->
+                            <div class="ss-sticky flex gap-3 mb-4 flex-wrap items-center justify-between">
+                                <div class="seg" role="group" aria-label="${t('Scope')}" style="${scopeRelevant ? '' : 'visibility:hidden;pointer-events:none;'}">
+                                    <button onclick="setActiveTab('investigators')" aria-pressed="${state.activeTab === 'investigators'}">👤 ${t('Investigators')} <span class="cnt">${state.investigators.length}</span></button>
+                                    <button onclick="setActiveTab('returning')" aria-pressed="${state.activeTab === 'returning'}">💙 ${t('Returning')} <span class="cnt">${state.returning.length}</span></button>
                                 </div>
-                                <div class="flex gap-2 md:gap-3 flex-wrap items-center">
+                                <div class="flex gap-2 flex-wrap items-center">
                                     ${syncIndicatorHTML()}
-                                    <button onclick="toggleLanguage()" class="flex items-center gap-2 px-4 md:px-5 py-2 md:py-3 rounded-xl font-black text-sm md:text-base shadow-xl hover-lift transition-all border-2 ${currentLang === 'to' ? 'bg-red-600 text-white border-red-800' : 'bg-white/95 text-red-700 border-red-300 hover:bg-white'}" title="${currentLang === 'to' ? 'Switch to English' : 'Liliu ki he Lea Tonga'}">🇹🇴 ${currentLang === 'to' ? 'English' : 'Lea Tonga'}</button>
-                                    <button onclick="saveToFirebase()" class="flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-xl hover:from-amber-700 hover:to-amber-800 transition-all shadow-xl font-bold text-sm md:text-base hover-lift">${t('💾 Save')}</button>
-                                    <button onclick="showWardCouncilReport()" class="flex items-center gap-1 px-3 md:px-4 py-2 md:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 transition-all shadow-lg hover-lift font-bold text-sm" title="Ward Council Report">📋 ${t('Report')}</button>
-                                    <button onclick="toggleDarkMode()" class="flex items-center gap-1 px-3 md:px-4 py-2 md:py-3 bg-white/90 backdrop-blur-sm text-amber-800 rounded-xl hover:bg-white transition-all shadow-lg hover-lift border border-amber-300/50" title="Dark Mode">${state.darkMode ? '☀️' : '🌙'}</button>
-                                    <button onclick="showBackgroundImageModal()" class="flex items-center gap-1 px-3 md:px-4 py-2 md:py-3 bg-white/90 backdrop-blur-sm text-amber-800 rounded-xl hover:bg-white transition-all shadow-lg hover-lift border border-amber-300/50" title="Background">🖼️</button>
-                                    <button onclick="exportData()" class="flex items-center gap-1 px-3 md:px-4 py-2 md:py-3 bg-white/90 backdrop-blur-sm text-amber-800 rounded-xl hover:bg-white transition-all shadow-lg hover-lift border border-amber-300/50">📥</button>
-                                    <label class="flex items-center gap-1 px-3 md:px-4 py-2 md:py-3 bg-white/90 backdrop-blur-sm text-amber-800 rounded-xl hover:bg-white transition-all cursor-pointer shadow-lg hover-lift border border-amber-300/50">
-                                        📤<input type="file" accept=".json" onchange="importData(event)" class="hidden" />
-                                    </label>
+                                    <button onclick="toggleLanguage()" class="iconbtn" title="${currentLang === 'to' ? 'Switch to English' : 'Liliu ki he Lea Tonga'}">🇹🇴 ${currentLang === 'to' ? 'EN' : 'TO'}</button>
+                                    <button onclick="saveToFirebase()" class="iconbtn gold" title="${t('Save')}">💾 <span class="hidden sm:inline">${t('Save')}</span></button>
+                                    <button onclick="showWardCouncilReport()" class="iconbtn" title="${t('Ward Council Report')}">📋</button>
+                                    <button onclick="toggleTheme()" class="iconbtn" title="${t('Toggle theme')}">${currentThemeIsLight() ? '🌙' : '☀️'}</button>
+                                    <button onclick="showBackgroundImageModal()" class="iconbtn" title="${t('Background')}">🖼️</button>
+                                    <button onclick="exportData()" class="iconbtn" title="${t('Export')}">📥</button>
+                                    <label class="iconbtn cursor-pointer" title="${t('Import')}">📤<input type="file" accept=".json" onchange="importData(event)" class="hidden" /></label>
                                 </div>
                             </div>
 
-                            ${state.saveMessage ? `<div class="mb-4 p-3 md:p-4 bg-green-500 text-white rounded-xl md:rounded-2xl font-bold text-sm md:text-lg shadow-xl">${state.saveMessage}</div>` : ''}
+                            ${state.saveMessage ? `<div class="mb-4 p-3 md:p-4 rounded-xl font-bold text-sm md:text-base shadow-xl" style="background:var(--ss-sage-wash);color:var(--ss-sage);border:1px solid var(--ss-line);">${state.saveMessage}</div>` : ''}
 
-                            <!-- View Toggle -->
-                            <div class="bg-white/95 backdrop-blur-xl rounded-xl md:rounded-2xl shadow-xl p-3 md:p-5 mb-4 md:mb-6 border-2 border-amber-200">
-                                <div class="flex gap-2 md:gap-3 justify-center flex-wrap">
-                                    <button onclick="setViewMode('tracker')" class="nav-tab flex items-center gap-1 md:gap-2 px-4 md:px-8 py-2 md:py-4 rounded-lg md:rounded-xl font-bold text-xs md:text-lg transition-all hover-lift border-2" style="${state.viewMode === 'tracker' ? NAV_ACTIVE : NAV_INACTIVE}">📅 <span class="hidden sm:inline">${t('Monthly')}</span> ${t('Tracker')}</button>
-                                    <button onclick="setViewMode('thisweek')" class="nav-tab flex items-center gap-1 md:gap-2 px-4 md:px-8 py-2 md:py-4 rounded-lg md:rounded-xl font-bold text-xs md:text-lg transition-all hover-lift border-2" style="${state.viewMode === 'thisweek' ? NAV_ACTIVE : NAV_INACTIVE}">📋 ${navLabel('This Week')} ${renderWeekBadge()}</button>
-                                    <button onclick="setViewMode('actionboard')" class="nav-tab flex items-center gap-1 md:gap-2 px-4 md:px-8 py-2 md:py-4 rounded-lg md:rounded-xl font-bold text-xs md:text-lg transition-all hover-lift border-2" style="${state.viewMode === 'actionboard' ? NAV_ACTIVE : NAV_INACTIVE}">🗂️ ${navLabel('Action Board')}</button>
-                                    <button onclick="setViewMode('charts')" class="nav-tab flex items-center gap-1 md:gap-2 px-4 md:px-8 py-2 md:py-4 rounded-lg md:rounded-xl font-bold text-xs md:text-lg transition-all hover-lift border-2" style="${state.viewMode === 'charts' ? NAV_ACTIVE : NAV_INACTIVE}">📊 <span class="hidden sm:inline">${t('KPI')}</span> ${t('Dashboard')}</button>
-                                    <button onclick="setViewMode('events')" class="nav-tab flex items-center gap-1 md:gap-2 px-4 md:px-8 py-2 md:py-4 rounded-lg md:rounded-xl font-bold text-xs md:text-lg transition-all hover-lift border-2" style="${state.viewMode === 'events' ? NAV_ACTIVE : NAV_INACTIVE}">🎉 ${navLabel('Ward Calendar')}</button>
-                                    <button onclick="setViewMode('prayer')" class="nav-tab flex items-center gap-1 md:gap-2 px-4 md:px-8 py-2 md:py-4 rounded-lg md:rounded-xl font-bold text-xs md:text-lg transition-all hover-lift border-2" style="${state.viewMode === 'prayer' ? NAV_ACTIVE : NAV_INACTIVE}">🙏 ${navLabel('Prayer List')} ${state.prayerList.length > 0 ? `<span class="ml-1 bg-indigo-200 text-indigo-800 rounded-full px-1.5 text-xs font-black">${state.prayerList.length}</span>` : ''}</button>
+                            <!-- Primary tab bar (numbered) -->
+                            <div class="ngatu-panel mb-5 md:mb-6" style="background:var(--ss-surface);border:1px solid var(--ss-line);border-radius:16px;box-shadow:0 14px 40px rgba(0,0,0,.18);padding:0 4px;">
+                                <div class="tabbar">
+                                    ${tabChip('tracker','1','📅', t('Monthly Tracker'))}
+                                    ${tabChip('thisweek','2','📋', t('This Week'), renderWeekBadge())}
+                                    ${tabChip('actionboard','3','🗂️', t('Action Board'))}
+                                    ${tabChip('charts','4','📊', t('KPI Dashboard'))}
+                                    ${tabChip('events','5','🎉', t('Ward Calendar'))}
+                                    ${tabChip('promise','6','🙏', t('21-Day Promise'))}
+                                    ${tabChip('bomchallenge','7','📖', t('Book of Mormon Challenge'), bomWeekBadge())}
                                 </div>
                             </div>
 
-                            ${state.viewMode === 'tracker' ? renderTracker(currentList) : state.viewMode === 'thisweek' ? renderThisWeek() : state.viewMode === 'actionboard' ? renderActionBoard() : state.viewMode === 'charts' ? renderCharts(currentList) : state.viewMode === 'prayer' ? renderPrayer() : renderEvents()}
-                            ${state.covenantPath.length > 0 ? renderCovenantPath() : ''}
+                            ${
+                                state.viewMode === 'tracker' ? renderTracker(currentList)
+                                : state.viewMode === 'thisweek' ? renderThisWeek()
+                                : state.viewMode === 'actionboard' ? renderActionBoard()
+                                : state.viewMode === 'charts' ? renderCharts(currentList)
+                                : state.viewMode === 'events' ? renderEvents()
+                                : state.viewMode === 'promise' ? renderPromise()
+                                : state.viewMode === 'bomchallenge' ? renderBomChallenge()
+                                : state.viewMode === 'prayer' ? renderPrayer()
+                                : renderTracker(currentList)
+                            }
+                            ${(state.viewMode === 'tracker' || state.viewMode === 'charts') && state.covenantPath.length > 0 ? renderCovenantPath() : ''}
                         </div>
                     </div>
                 </div>
@@ -3084,6 +3283,242 @@
                         ` : ''}
                     </div>
                 </div>`;
+        }
+
+        /* =====================================================================
+           NEW TABS — helpers
+           ===================================================================== */
+        function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+        function mondayOf(d){ const x = new Date(d); const day = (x.getDay()+6)%7; x.setHours(0,0,0,0); x.setDate(x.getDate()-day); return x; }
+        function ymd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+        function isThisWeek(weekOf){ if(!weekOf) return false; return weekOf === ymd(mondayOf(new Date())); }
+        function fmtWeek(weekOf){
+            if(!weekOf) return '';
+            const start = parseLocalDate(weekOf); const end = new Date(start); end.setDate(end.getDate()+6);
+            const o = {month:'short', day:'numeric'};
+            return start.toLocaleDateString('en-US',o)+' – '+end.toLocaleDateString('en-US',o);
+        }
+
+        /* =====================================================================
+           TAB 6 — 21-DAY PROMISE  (Palōmesi ʻAho ʻe 21)
+           Personal worksheet; progress saved on this device (localStorage).
+           ===================================================================== */
+        const SCRIPTURES = [
+            {to:'1 Nīfai 3:7',en:'1 Nephi 3:7',path:'bofm/1-ne/3.7'},
+            {to:'1 Nīfai 11:1–6',en:'1 Nephi 11:1–6',path:'bofm/1-ne/11.1-6'},
+            {to:'2 Nīfai 2:24–29',en:'2 Nephi 2:24–29',path:'bofm/2-ne/2.24-29'},
+            {to:'2 Nīfai 31:10–15',en:'2 Nephi 31:10–15',path:'bofm/2-ne/31.10-15'},
+            {to:'2 Nīfai 32:7–9',en:'2 Nephi 32:7–9',path:'bofm/2-ne/32.7-9'},
+            {to:'2 Nīfai 33:4–12',en:'2 Nephi 33:4–12',path:'bofm/2-ne/33.4-12'},
+            {to:'ʻInosi 1:1–8',en:'Enos 1:1–8',path:'bofm/enos/1.1-8'},
+            {to:'Alamā 5:13, 33–36, 46',en:'Alma 5:13, 33–36, 46',path:'bofm/alma/5'},
+            {to:'Alamā 17:2–4',en:'Alma 17:2–4',path:'bofm/alma/17.2-4'},
+            {to:'Alamā 34:18–24',en:'Alma 34:18–24',path:'bofm/alma/34.18-24'},
+            {to:'Alamā 37:37–40, 43–45',en:'Alma 37:37–40, 43–45',path:'bofm/alma/37'},
+            {to:'Hilamani 3:27–30, 35',en:'Helaman 3:27–30, 35',path:'bofm/hel/3'},
+            {to:'3 Nīfai 12:2–16',en:'3 Nephi 12:2–16',path:'bofm/3-ne/12.2-16'},
+            {to:'3 Nīfai 13:7–15',en:'3 Nephi 13:7–15',path:'bofm/3-ne/13.7-15'},
+            {to:'3 Nīfai 17:18–25',en:'3 Nephi 17:18–25',path:'bofm/3-ne/17.18-25'},
+            {to:'Molonai 6:1–6',en:'Moroni 6:1–6',path:'bofm/moro/6.1-6'},
+            {to:'Molonai 7:6–9',en:'Moroni 7:6–9',path:'bofm/moro/7.6-9'},
+            {to:'Molonai 7:15–18, 26',en:'Moroni 7:15–18, 26',path:'bofm/moro/7'},
+            {to:'Molonai 7:44–48',en:'Moroni 7:44–48',path:'bofm/moro/7.44-48'},
+            {to:'Molonai 10:3–5',en:'Moroni 10:3–5',path:'bofm/moro/10.3-5'},
+            {to:'3 Nīfai 18:18–21',en:'3 Nephi 18:18–21',path:'bofm/3-ne/18.18-21'}
+        ];
+        const COMMITMENTS = [
+            {to:'Ngāue ʻi ha ngaahi ʻaho siʻi ke teuteuʻi fakalaumālie koe.',en:'Spend a few days preparing yourself spiritually.'},
+            {to:'ʻAukai mo ho fāmilí ʻi he ʻuluaki ʻaho ʻe nimá.',en:'Fast with your family during the first five days.'},
+            {to:'Lau e Tohi ʻa Molomoná he ʻaho kotoa pē.',en:'Read the Book of Mormon every day.'},
+            {to:'Feinga ke talangofua makehe.',en:'Strive for greater obedience.'}
+        ];
+        const COMMIT_INTRO = {
+            to:'Te ke lava ʻo fai mo e ngaahi meʻa ko ʻeni ke fakahā ki he ʻEiki ko Sīsū Kalaisi ʻokú ke maʻu ha tui mālohi kiate ia ʻi hoʻo hoko ko ʻEne tamaioʻeiki/kaungangā:',
+            en:'You can do these things to show the Lord Jesus Christ that you have strong faith in Him as you become His servant and fellow labourer:'
+        };
+        const P_INTRO = {
+            to:'Naʻe fai mai ʻe Elder M. Russell Ballard ʻo e Kōlomu ʻo e Toko Hongofulu Mā Uá mo Elder Robert E. Wells ʻo e Kōlomu ʻUluaki ʻo e Kau Fitungofulú, ha palōmesi makehe ki he kāingalotu kotoa pē ʻo e Siasí. Hiki ha lisi ʻo hotau ngaahi kaungāmeʻa teʻeki Siasi pe ʻoku ʻikai ke nau mālohi ʻi he Siasí, pea lotuaʻi kinautolu ʻi heʻetau lotu pongipongi mo e efiafi. Kapau te tau fai ʻení ʻi ha ʻaho hokohoko ʻe 21, ʻo ʻikai ke hala ha ʻaho, ʻoku talaʻofa mai ʻe he ʻEikí ʻe ʻi ai ha taha — ha hingoa ʻi heʻetau lisí, pe ko ha taha kehe — te ne tali ha fakaafe ke fanongo ki he ngaahi lēsoni ʻa e kau faifekaú ʻi he ʻosi ʻa e ʻaho ʻe 21. ʻOku mau fakaafeʻi kimoutolu ke mou ʻahiʻahiʻi ʻa e talaʻofa ko ʻení, he kuó Ne folofola mai:',
+            en:'Elder M. Russell Ballard of the Quorum of the Twelve and Elder Robert E. Wells of the First Quorum of the Seventy gave a special promise to all members of the Church. Make a list of your not-yet-member or less-active friends, and pray for them by name in your morning and evening prayers. If you do this for 21 consecutive days without missing a single day, the Lord promises that at least one person — a name on your list, or someone else — will accept an invitation to hear the missionary lessons by the end of the 21 days. We invite you to test this promise, for He has declared:'
+        };
+        const P_VREF = {
+            to:'“Ko au, ko e ʻEikí, ʻoku ou haʻisia ʻoka mou ka fai ʻa e meʻa kuó u lea ʻakí.” — Tokāteline mo e Ngaahi Fuakava 82:10',
+            en:'“I, the Lord, am bound when ye do what I say.” — Doctrine & Covenants 82:10'
+        };
+
+        let p21 = {};
+        try { p21 = JSON.parse(localStorage.getItem('f5_p21') || '{}'); } catch(e){ p21 = {}; }
+        function saveP21(){ try { localStorage.setItem('f5_p21', JSON.stringify(p21)); } catch(e){} }
+        let _p21sv;
+        function saveP21Debounced(){ clearTimeout(_p21sv); _p21sv = setTimeout(saveP21, 500); }
+
+        function p21Complete(){ let c=0; for(let i=1;i<=SCRIPTURES.length;i++){ const d=p21['d'+i]||{}; if(d.am&&d.pm&&d.read) c++; } return c; }
+
+        window.p21Check = (n, field, checked) => {
+            p21['d'+n] = p21['d'+n] || {}; p21['d'+n][field] = checked; saveP21();
+            const d = p21['d'+n]; const full = d.am&&d.pm&&d.read;
+            const row = document.querySelector(`.dayrow[data-day="${n}"]`);
+            if(row) row.classList.toggle('full', !!full);
+            const total = SCRIPTURES.length, complete = p21Complete(), pct = Math.round(complete/total*100);
+            const cEl = document.getElementById('p21-count'); if(cEl) cEl.innerHTML = `${complete}<span style="font-size:15px;color:var(--ss-muted)">/${total}</span>`;
+            const bEl = document.getElementById('p21-bar'); if(bEl) bEl.style.width = pct+'%';
+        };
+        window.p21Text = (key, val) => { p21[key] = val; saveP21Debounced(); };
+        window.p21Commit = (i, checked) => { p21['c'+i] = checked; saveP21(); };
+        window.p21Reset = () => {
+            if(!confirm(currentLang==='to' ? 'Kamata foʻou ʻa e palōmesi? ʻE tamateʻi ʻa e fakaʻilonga kotoa.' : 'Reset the promise? This clears all of your check marks.')) return;
+            p21 = {}; saveP21(); render();
+        };
+
+        function renderPromise(){
+            const lng = currentLang==='to' ? 'ton' : 'eng';
+            const pray = Array.from({length:6}, (_,i) =>
+                `<input class="ss-input" oninput="p21Text('pray${i}', this.value)" value="${esc(p21['pray'+i]||'')}" placeholder="${t('Name…')}">`
+            ).join('');
+            const days = SCRIPTURES.map((s,i)=>{
+                const n=i+1, d=p21['d'+n]||{}, full=d.am&&d.pm&&d.read;
+                return `<div class="dayrow${full?' full':''}" data-day="${n}">
+                    <div class="daynum">${n}</div>
+                    <div class="daymain">
+                        <div class="scrip"><a href="https://www.churchofjesuschrist.org/study/scriptures/${s.path}?lang=${lng}" target="_blank" rel="noopener">${esc(t2(s.to,s.en))}</a><div class="sub">${t('Book of Mormon')}</div></div>
+                        <div class="checks">
+                            <label class="chk"><input type="checkbox" onchange="p21Check(${n},'am',this.checked)" ${d.am?'checked':''}>${t('AM')}</label>
+                            <label class="chk"><input type="checkbox" onchange="p21Check(${n},'pm',this.checked)" ${d.pm?'checked':''}>${t('PM')}</label>
+                            <label class="chk read"><input type="checkbox" onchange="p21Check(${n},'read',this.checked)" ${d.read?'checked':''}>${t('Read')}</label>
+                        </div>
+                    </div></div>`;
+            }).join('');
+            const commits = COMMITMENTS.map((c,i)=>
+                `<label class="commit"><input type="checkbox" onchange="p21Commit(${i},this.checked)" ${p21['c'+i]?'checked':''}><span class="txt">${esc(t2(c.to,c.en))}<span class="en">${esc(t2(c.en,c.to))}</span></span></label>`
+            ).join('');
+            const ftm = [0,1].map(i=>`<div class="contact"><input class="ss-input" oninput="p21Text('ftm${i}n',this.value)" value="${esc(p21['ftm'+i+'n']||'')}" placeholder="${t('Full-time missionary')}"><input class="ss-input" oninput="p21Text('ftm${i}p',this.value)" value="${esc(p21['ftm'+i+'p']||'')}" placeholder="${t('Phone')}"></div>`).join('');
+            const wml = [0,1].map(i=>`<div class="contact"><input class="ss-input" oninput="p21Text('wml${i}n',this.value)" value="${esc(p21['wml'+i+'n']||'')}" placeholder="${t('Ward mission leader')}"><input class="ss-input" oninput="p21Text('wml${i}p',this.value)" value="${esc(p21['wml'+i+'p']||'')}" placeholder="${t('Phone')}"></div>`).join('');
+            const total = SCRIPTURES.length, complete = p21Complete(), pct = Math.round(complete/total*100);
+
+            return `<div class="ss-panel">
+                <div class="mb-4"><div class="ss-eyebrow">${t2('Ngāue Fakafaifekau','Member Missionary Work')}</div><h2 class="ss-h2">${t2('Palōmesi ʻAho ʻe 21','The 21-Day Promise')}</h2></div>
+                <div class="promise-intro">
+                    <div class="formula">${t2('TUI','FAITH')} + ${t2('LOTU','PRAYER')} + <em>${t2('NGĀUE','ACTION')}</em> = ${t2('MANA','MIRACLES')}</div>
+                    <p>${esc(t2(P_INTRO.to,P_INTRO.en))}<span class="en">${esc(t2(P_INTRO.en,P_INTRO.to))}</span></p>
+                    <div class="vref">${esc(t2(P_VREF.to,P_VREF.en))}</div>
+                </div>
+                <div class="promise-progress">
+                    <div class="big" id="p21-count">${complete}<span style="font-size:15px;color:var(--ss-muted)">/${total}</span></div>
+                    <div style="flex:1"><div class="lbl">${t2('ʻAho kakato (Pongipongi · Efiafi · Lau)','Days completed (AM · PM · Read)')}</div>
+                        <div class="pbar"><i id="p21-bar" style="width:${pct}%"></i></div></div>
+                </div>
+
+                <div class="ss-blockhead"><h3>${t2('Lisi ʻo e Kakai Te ke Lotuá','People I Will Pray For')}</h3><span class="en">${t2('Teʻeki Siasi pe ʻikai mālohi','Not-yet members or less-active')}</span></div>
+                <div class="prayfor">${pray}</div>
+
+                <div class="ss-blockhead"><h3>${t2('ʻAho ʻe 21','The 21 Days')}</h3><span class="en">${t2('Fakaʻilongaʻi ʻa e lotú mo e lau folofolá','Check each prayer & reading')}</span></div>
+                <div class="daygrid">${days}</div>
+
+                <div class="ss-blockhead"><h3>${t2('Ngaahi Tukupaa','Commitments')}</h3></div>
+                <p style="font-size:14px;color:var(--ss-ink-soft);margin:0 0 12px;max-width:66ch;line-height:1.55;">${esc(t2(COMMIT_INTRO.to,COMMIT_INTRO.en))}</p>
+                <div>${commits}</div>
+
+                <div class="ss-blockhead"><h3>${t2('Hoʻo Ongo Faifekau Taimi Kakató','Your Full-Time Missionaries')}</h3></div>
+                <div class="contacts">${ftm}</div>
+                <div class="ss-blockhead"><h3>${t2('Hoʻo Taki Faifekau Fakauōtí','Your Ward Mission Leaders')}</h3></div>
+                <div class="contacts">${wml}</div>
+
+                <div class="flex flex-wrap gap-3 mt-6">
+                    <button class="ss-btn primary" onclick="window.print()">🖨️ ${t2('Pulusi / PDF','Print / Save as PDF')}</button>
+                    <button class="ss-btn ghost" onclick="p21Reset()">↺ ${t2('Kamata foʻou','Reset')}</button>
+                </div>
+                <p style="font-size:12px;color:var(--ss-muted);margin-top:12px;">${t2('ʻOku tauhi ʻa e fakaʻiló ʻi he tēvaisí ni — ko e palōmesi fakafoʻituituí.','Your progress is saved on this device — this is a personal worksheet.')}</p>
+            </div>`;
+        }
+
+        /* =====================================================================
+           TAB 7 — BOOK OF MORMON CHALLENGE  (Pō Tohi ʻa Molomona)
+           "Pass the Light" — track who took a copy to give away this week.
+           Synced to Firebase so the quorum sees the chain grow.
+           ===================================================================== */
+        const BOM_STATUS = {
+            pledged:  {to:'Naʻe Toʻo',   en:'Pledged',        emoji:'🕯️', color:'var(--ss-gold)',    wash:'var(--ss-gold-wash)'},
+            given:    {to:'Foaki Atu',   en:'Given Away',     emoji:'🤝', color:'var(--ss-sage)',    wash:'var(--ss-sage-wash)'},
+            reading:  {to:'Lau Lolotonga',en:"They're Reading",emoji:'📖', color:'var(--ss-violet)',  wash:'var(--ss-violet-wash)'},
+            referred: {to:'ʻAve ki Faifekau',en:'Referred',   emoji:'✨', color:'var(--ss-red)',     wash:'var(--ss-red-wash)'}
+        };
+        const BOM_ORDER = ['pledged','given','reading','referred'];
+
+        window.bomAdd = () => {
+            const id = 'bom_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+            state.bomChallenge = state.bomChallenge || [];
+            state.bomChallenge.unshift({ id, member:'', recipient:'', note:'', status:'pledged', weekOf: ymd(mondayOf(new Date())), date: ymd(new Date()) });
+            saveToFirebase(); render();
+        };
+        window.bomUpdate = (id, field, val) => {
+            const c = (state.bomChallenge||[]).find(x=>x.id===id); if(!c) return;
+            c[field] = val; saveToFirebaseDebounced();
+        };
+        window.bomCycle = (id) => {
+            const c = (state.bomChallenge||[]).find(x=>x.id===id); if(!c) return;
+            const i = BOM_ORDER.indexOf(c.status||'pledged');
+            c.status = BOM_ORDER[(i+1) % BOM_ORDER.length];
+            saveToFirebase(); render();
+        };
+        window.bomDelete = (id) => {
+            if(!confirm(currentLang==='to' ? 'Tāmateʻi ʻa e fakamatalá ni?' : 'Remove this entry?')) return;
+            state.bomChallenge = (state.bomChallenge||[]).filter(x=>x.id!==id);
+            saveToFirebase(); render();
+        };
+        let _bomsv;
+        function saveToFirebaseDebounced(){ clearTimeout(_bomsv); _bomsv = setTimeout(saveToFirebase, 700); }
+
+        function renderBomChallenge(){
+            const list = (state.bomChallenge||[]);
+            const thisWeek = list.filter(c=>isThisWeek(c.weekOf));
+            const givenAll = list.filter(c=>c.status==='given'||c.status==='reading'||c.status==='referred').length;
+            const referredAll = list.filter(c=>c.status==='referred').length;
+
+            const card = (c)=>{
+                const st = BOM_STATUS[c.status||'pledged'] || BOM_STATUS.pledged;
+                return `<div class="bom-card">
+                    <div class="bom-top">
+                        <span class="flame">${st.emoji}</span>
+                        <input class="ss-input" style="font-weight:700;" value="${esc(c.member||'')}" oninput="bomUpdate('${c.id}','member',this.value)" placeholder="${t('Who took the challenge?')}">
+                        <button class="bom-status" style="color:${st.color};background:${st.wash};" onclick="bomCycle('${c.id}')" title="${t('Tap to advance')}">${st.emoji} ${t2(st.to,st.en)}</button>
+                    </div>
+                    <input class="ss-input" value="${esc(c.recipient||'')}" oninput="bomUpdate('${c.id}','recipient',this.value)" placeholder="${t('Giving it to… (optional)')}">
+                    <input class="ss-input" value="${esc(c.note||'')}" oninput="bomUpdate('${c.id}','note',this.value)" placeholder="${t('A line of testimony to write inside…')}">
+                    <div class="flex items-center justify-between" style="font-size:11.5px;color:var(--ss-muted);">
+                        <span>${t('Week of')} ${fmtWeek(c.weekOf)}</span>
+                        <button onclick="bomDelete('${c.id}')" style="background:none;border:0;color:var(--ss-muted);cursor:pointer;font-size:12px;">${t('Remove')}</button>
+                    </div>
+                </div>`;
+            };
+
+            const section = (title, en, arr) => arr.length ? `
+                <div class="ss-blockhead"><h3>${title}</h3><span class="en">${en} · ${arr.length}</span></div>
+                <div class="bom-grid">${arr.map(card).join('')}</div>` : '';
+
+            const olderWeeks = list.filter(c=>!isThisWeek(c.weekOf));
+
+            return `<div class="ss-panel">
+                <div class="flex items-start justify-between flex-wrap gap-3 mb-4">
+                    <div><div class="ss-eyebrow">${t2('Pō Tohi ʻa Molomona','Pass the Light')}</div><h2 class="ss-h2">${t2('Pole Tohi ʻa Molomona','Book of Mormon Challenge')}</h2></div>
+                    <button class="ss-btn primary" onclick="bomAdd()">＋ ${t('Take the challenge')}</button>
+                </div>
+                <p style="font-size:14px;color:var(--ss-ink-soft);max-width:64ch;line-height:1.6;margin:0 0 18px;">
+                    ${t2('Ko e taha taki taha ʻe toʻo ha tohi ʻe taha he uike ní, tohi honau fakamoʻoní ʻi loto, pea foaki ki ha taha. Tau vakai ki he maama ʻoku tupu!','Each week, one by one, take a copy, write your testimony inside, and give it to someone. Watch the light spread.')}
+                </p>
+
+                <div class="bom-hero">
+                    <div class="bom-stat"><div class="num">${thisWeek.length}</div><div class="lbl">${t('Pledged this week')}</div></div>
+                    <div class="bom-stat"><div class="num">${givenAll}</div><div class="lbl">${t('Copies given away')}</div></div>
+                    <div class="bom-stat"><div class="num">${referredAll}</div><div class="lbl">${t('Referred to missionaries')}</div></div>
+                </div>
+
+                ${section(t2('ʻO e Uike Ní','This Week'), t2('Toʻo ʻi he uike ní','Taken this week'), thisWeek)}
+                ${list.length===0 ? `<div style="text-align:center;padding:40px 16px;color:var(--ss-muted);">
+                    <div style="font-size:40px;margin-bottom:10px;">🕯️</div>
+                    <p style="font-weight:700;color:var(--ss-ink-soft);">${t('No one has taken the challenge yet.')}</p>
+                    <p style="font-size:13px;">${t('Tap "Take the challenge" to light the first candle.')}</p>
+                </div>` : ''}
+                ${section(t2('Ngaahi Uike Kuo Hilí','Earlier Weeks'), t2('Maama kuo tutu','Lights already lit'), olderWeeks)}
+            </div>`;
         }
 
         window.saveToFirebase = saveToFirebase;
