@@ -214,7 +214,7 @@
 
         /* flatten gradients, re-solid by family using the Noir palette */
         [class*="bg-gradient"]:not(.pn-canvas){ background-image:none!important; }
-        [class~="from-amber-500"],[class~="from-amber-600"],[class~="from-green-500"],[class~="from-green-600"],[class~="from-indigo-500"],[class~="from-indigo-600"],[class~="from-purple-600"],[class~="from-orange-500"],[class~="from-yellow-400"],[class~="from-teal-600"],[class~="from-blue-600"]{ background-color:var(--ss-bar)!important; color:var(--ss-bar-text)!important; border-color:var(--ss-line)!important; }
+        [class~="from-amber-500"],[class~="from-amber-600"],[class~="from-green-500"],[class~="from-green-600"],[class~="from-indigo-500"],[class~="from-indigo-600"],[class~="from-purple-600"],[class~="from-orange-500"],[class~="from-yellow-400"],[class~="from-teal-500"],[class~="from-teal-600"],[class~="from-blue-600"],[class~="from-pink-500"],[class~="from-cyan-500"],[class~="from-cyan-600"]{ background-color:var(--ss-bar)!important; color:var(--ss-bar-text)!important; border-color:var(--ss-line)!important; }
         [class~="from-rose-600"],[class~="from-red-500"],[class~="from-red-600"]{ background-color:rgba(217,106,122,.18)!important; color:var(--ss-red)!important; border-color:var(--ss-line)!important; }
         [class~="from-emerald-500"]{ background-color:var(--ss-sage-wash)!important; color:var(--ss-sage)!important; }
         [class~="from-gray-50"]{ background-color:var(--ss-surface-2)!important; }
@@ -1562,15 +1562,14 @@
                             <!-- Ngatu band -->
                             <div class="ngatu-band mb-4 md:mb-5" role="presentation" aria-hidden="true"></div>
 
-                            <!-- Top bar: scope toggle + utilities -->
+                            <!-- Top bar: utilities -->
                             <div class="ss-sticky flex gap-3 mb-4 flex-wrap items-center justify-between">
-                                <div class="seg" role="group" aria-label="${t('Scope')}" style="${scopeRelevant ? '' : 'visibility:hidden;pointer-events:none;'}">
-                                    <button onclick="setActiveTab('investigators')" aria-pressed="${state.activeTab === 'investigators'}">👤 ${t('Investigators')} <span class="cnt">${state.investigators.length}</span></button>
-                                    <button onclick="setActiveTab('returning')" aria-pressed="${state.activeTab === 'returning'}">💙 ${t('Returning')} <span class="cnt">${state.returning.length}</span></button>
+                                <div class="hidden md:block" style="font-family:'Fraunces',Georgia,serif;font-style:italic;color:var(--ss-muted);font-size:13px;">
+                                    ${t2('Muimui ʻi he Nima','Focus Five')}
                                 </div>
                                 <div class="flex gap-2 flex-wrap items-center">
                                     ${syncIndicatorHTML()}
-                                    <button onclick="toggleLanguage()" class="iconbtn" title="${currentLang === 'to' ? 'Switch to English' : 'Liliu ki he Lea Tonga'}">🇹🇴 ${currentLang === 'to' ? 'EN' : 'TO'}</button>
+                                    <button onclick="toggleLanguage()" class="iconbtn" title="${currentLang === 'to' ? 'Switch to English' : 'Liliu ki he Lea Faka Tonga'}">🇹🇴 ${currentLang === 'to' ? 'English' : 'Lea Faka Tonga'}</button>
                                     <button onclick="saveToFirebase()" class="iconbtn gold" title="${t('Save')}">💾 <span class="hidden sm:inline">${t('Save')}</span></button>
                                     <button onclick="showWardCouncilReport()" class="iconbtn" title="${t('Ward Council Report')}">📋</button>
                                     <button onclick="toggleTheme()" class="iconbtn" title="${t('Toggle theme')}">${currentThemeIsLight() ? '🌙' : '☀️'}</button>
@@ -1591,7 +1590,7 @@
                                     ${tabChip('charts','4','📊', t('KPI Dashboard'))}
                                     ${tabChip('events','5','🎉', t('Ward Calendar'))}
                                     ${tabChip('promise','6','🙏', t('21-Day Promise'))}
-                                    ${tabChip('bomchallenge','7','📖', t('Book of Mormon Challenge'), bomWeekBadge())}
+                                    ${tabChip('bomchallenge','7','📖', t2('Pole Tohi Molomona','B.O.M. Challenge'), bomWeekBadge())}
                                 </div>
                             </div>
 
@@ -1642,14 +1641,16 @@
                 <div class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl mb-4 overflow-hidden border-2 ${accentBorder}">
                     <div class="bg-gradient-to-r ${accentBtn} px-4 md:px-6 py-3 md:py-4">
                         <div class="flex items-center justify-between flex-wrap gap-3">
-                            <!-- View toggle -->
-                            <div class="flex bg-white/20 rounded-xl p-1 gap-1">
-                                <button onclick="setTrackerView('quarter')" class="px-3 md:px-5 py-2 rounded-lg font-black text-xs md:text-sm transition-all ${state.trackerView === 'quarter' ? 'bg-white text-amber-700 shadow-md' : 'text-white'}">
-                                    📅 ${t('Quarterly')}
-                                </button>
-                                <button onclick="setTrackerView('year')" class="px-3 md:px-5 py-2 rounded-lg font-black text-xs md:text-sm transition-all ${state.trackerView === 'year' ? 'bg-white text-amber-700 shadow-md' : 'text-white'}">
-                                    📆 ${t('Full Year')}
-                                </button>
+                            <!-- Scope toggle (Investigators / Returning) + View toggle -->
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <div class="seg">
+                                    <button onclick="setActiveTab('investigators')" aria-pressed="${state.activeTab === 'investigators'}">👤 ${t('Investigators')} <span class="cnt">${state.investigators.length}</span></button>
+                                    <button onclick="setActiveTab('returning')" aria-pressed="${state.activeTab === 'returning'}">💙 ${t('Returning')} <span class="cnt">${state.returning.length}</span></button>
+                                </div>
+                                <div class="seg">
+                                    <button onclick="setTrackerView('quarter')" aria-pressed="${state.trackerView === 'quarter'}">📅 ${t('Quarterly')}</button>
+                                    <button onclick="setTrackerView('year')" aria-pressed="${state.trackerView === 'year'}">📆 ${t('Full Year')}</button>
+                                </div>
                             </div>
 
                             <!-- Quarter navigation -->
