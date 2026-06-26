@@ -162,6 +162,12 @@
         .promise-progress .pbar{ flex:1; height:9px; border-radius:999px; background:var(--ss-surface); overflow:hidden; border:1px solid var(--ss-line-2); }
         .promise-progress .pbar > i{ display:block; height:100%; width:0; background:linear-gradient(90deg,var(--ss-gold),var(--ss-gold-deep)); transition:width .5s; }
         .prayfor{ display:grid; gap:8px; }
+        .prayfor.two{ grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); align-items:start; }
+        .praygroup-title{ font-size:11.5px; font-weight:800; color:var(--ss-muted); text-transform:uppercase; letter-spacing:.09em; margin:0 0 8px; display:flex; align-items:center; gap:7px; }
+        .praygroup-title .n{ color:var(--ss-gold); }
+        .prayname{ display:flex; align-items:center; gap:10px; padding:10px 13px; border:1px solid var(--ss-line-2); border-radius:11px; background:var(--ss-surface-2); font-size:14.5px; font-weight:600; color:var(--ss-ink); margin-bottom:7px; }
+        .prayname .dot{ width:8px; height:8px; border-radius:999px; flex:0 0 auto; }
+        .praynote{ font-size:13px; color:var(--ss-muted); padding:10px 13px; border:1px dashed var(--ss-line); border-radius:11px; }
         .daygrid{ display:grid; gap:8px; }
         .dayrow{ display:grid; grid-template-columns:46px 1fr; gap:10px; align-items:stretch; border:1px solid var(--ss-line-2);
             border-radius:12px; background:var(--ss-surface-2); overflow:hidden; }
@@ -217,6 +223,8 @@
         [class~="from-amber-500"],[class~="from-amber-600"],[class~="from-green-500"],[class~="from-green-600"],[class~="from-indigo-500"],[class~="from-indigo-600"],[class~="from-purple-600"],[class~="from-orange-500"],[class~="from-yellow-400"],[class~="from-teal-500"],[class~="from-teal-600"],[class~="from-blue-600"],[class~="from-pink-500"],[class~="from-cyan-500"],[class~="from-cyan-600"]{ background-color:var(--ss-bar)!important; color:var(--ss-bar-text)!important; border-color:var(--ss-line)!important; }
         [class~="from-rose-600"],[class~="from-red-500"],[class~="from-red-600"]{ background-color:rgba(217,106,122,.18)!important; color:var(--ss-red)!important; border-color:var(--ss-line)!important; }
         [class~="from-emerald-500"]{ background-color:var(--ss-sage-wash)!important; color:var(--ss-sage)!important; }
+        /* Immersive dark cards (Action Board header, Covenant Path Dashboard) — keep dark so white text stays readable in light mode */
+        [class~="from-violet-700"],[class~="from-purple-700"],[class~="from-purple-900"],[class~="from-indigo-700"],[class~="from-indigo-800"],[class~="from-indigo-900"]{ background-color:#221a47!important; color:#fff!important; }
         [class~="from-gray-50"]{ background-color:var(--ss-surface-2)!important; }
 
         /* text */
@@ -2206,10 +2214,10 @@
             }
 
             const columns = {
-                new: { label: '🌱 New', subtitle: 'No engagement yet', color: 'from-slate-500 to-slate-600', bg: 'bg-slate-50', border: 'border-slate-200', people: [] },
-                inprogress: { label: '🔄 In Progress', subtitle: 'Actively engaged', color: 'from-blue-500 to-blue-600', bg: 'bg-blue-50', border: 'border-blue-200', people: [] },
-                attention: { label: '⚡ Needs Attention', subtitle: '30+ days no contact', color: 'from-orange-500 to-red-500', bg: 'bg-orange-50', border: 'border-orange-200', people: [] },
-                milestone: { label: '🏆 Milestone Hit', subtitle: 'Baptism date or baptized', color: 'from-emerald-500 to-teal-600', bg: 'bg-emerald-50', border: 'border-emerald-200', people: [] },
+                new: { label: '🌱 New', subtitle: 'No engagement yet', color: 'from-slate-500 to-slate-600', head: '#3a7d5e', bg: 'bg-slate-50', border: 'border-slate-200', people: [] },
+                inprogress: { label: '🔄 In Progress', subtitle: 'Actively engaged', color: 'from-blue-500 to-blue-600', head: '#34618f', bg: 'bg-blue-50', border: 'border-blue-200', people: [] },
+                attention: { label: '⚡ Needs Attention', subtitle: '30+ days no contact', color: 'from-orange-500 to-red-500', head: '#b3553f', bg: 'bg-orange-50', border: 'border-orange-200', people: [] },
+                milestone: { label: '🏆 Milestone Hit', subtitle: 'Baptism date or baptized', color: 'from-emerald-500 to-teal-600', head: '#9a7b2e', bg: 'bg-emerald-50', border: 'border-emerald-200', people: [] },
             };
 
             filteredPeople.forEach(p => {
@@ -2280,9 +2288,9 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                     ${Object.entries(columns).map(([k,col])=>`
                     <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border-2 ${col.border}">
-                        <div class="bg-gradient-to-r ${col.color} px-4 py-3">
+                        <div class="px-4 py-3" style="background:${col.head};">
                             <h3 class="font-black text-white text-base">${col.label} <span class="bg-white/30 text-white text-xs px-2 py-0.5 rounded-full ml-1">${col.people.length}</span></h3>
-                            <p class="text-white/75 text-xs font-semibold mt-0.5">${col.subtitle}</p>
+                            <p class="text-white/85 text-xs font-semibold mt-0.5">${col.subtitle}</p>
                         </div>
                         <div class="p-3 space-y-2 min-h-[120px]">
                             ${col.people.length > 0 ? col.people.map(renderCard).join('') : `<div class="text-center py-6 text-gray-300"><div class="text-3xl mb-1">✨</div><div class="text-xs font-bold">No one here</div></div>`}
@@ -3372,9 +3380,16 @@
 
         function renderPromise(){
             const lng = currentLang==='to' ? 'ton' : 'eng';
-            const pray = Array.from({length:6}, (_,i) =>
-                `<input class="ss-input" oninput="p21Text('pray${i}', this.value)" value="${esc(p21['pray'+i]||'')}" placeholder="${t('Name…')}">`
-            ).join('');
+            const invNames = (state.investigators||[]).map(p=>p.name).filter(n=>n&&n.trim());
+            const retNames = (state.returning||[]).map(p=>p.name).filter(n=>n&&n.trim());
+            const prayGroup = (title, names, dot) => `
+                <div>
+                    <div class="praygroup-title">${title} <span class="n">${names.length}</span></div>
+                    ${names.length
+                        ? names.map(n=>`<div class="prayname"><span class="dot" style="background:${dot};"></span>${esc(n)}</div>`).join('')
+                        : `<div class="praynote">${t2('Tānaki kakai ʻi he Tracker Māhiná','Add people in the Monthly Tracker')}</div>`}
+                </div>`;
+            const pray = prayGroup('👤 '+t('Investigators'), invNames, 'var(--ss-gold)') + prayGroup('💙 '+t('Returning'), retNames, 'var(--ss-violet)');
             const days = SCRIPTURES.map((s,i)=>{
                 const n=i+1, d=p21['d'+n]||{}, full=d.am&&d.pm&&d.read;
                 return `<div class="dayrow${full?' full':''}" data-day="${n}">
@@ -3408,8 +3423,8 @@
                         <div class="pbar"><i id="p21-bar" style="width:${pct}%"></i></div></div>
                 </div>
 
-                <div class="ss-blockhead"><h3>${t2('Lisi ʻo e Kakai Te ke Lotuá','People I Will Pray For')}</h3><span class="en">${t2('Teʻeki Siasi pe ʻikai mālohi','Not-yet members or less-active')}</span></div>
-                <div class="prayfor">${pray}</div>
+                <div class="ss-blockhead"><h3>${t2('Lisi ʻo e Kakai Te ke Lotuá','People I Will Pray For')}</h3><span class="en">${t2('Mei he Tracker Māhiná — Muimui & Foki Mai','Auto-filled from the Monthly Tracker')}</span></div>
+                <div class="prayfor two">${pray}</div>
 
                 <div class="ss-blockhead"><h3>${t2('ʻAho ʻe 21','The 21 Days')}</h3><span class="en">${t2('Fakaʻilongaʻi ʻa e lotú mo e lau folofolá','Check each prayer & reading')}</span></div>
                 <div class="daygrid">${days}</div>
