@@ -1717,6 +1717,8 @@
             const visibleMonths = state.trackerView === 'year' ? MONTHS : quarterMonths;
 
             return `
+                ${imageSlot('tracker_top', { label: t2('Foto ki ʻolunga','Photo (top of tracker)') })}
+
                 <!-- Quarter Nav Bar -->
                 <div class="bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl mb-4 overflow-hidden border-2 ${accentBorder}">
                     <div class="bg-gradient-to-r ${accentBtn} px-4 md:px-6 py-3 md:py-4">
@@ -1777,8 +1779,6 @@
                         })()}
                     </div>` : ''}
                 </div>
-
-                ${imageSlot('tracker_top', { label: t2('Foto ki ʻolunga','Photo (top of tracker)') })}
 
                 <!-- Key Indicators Legend -->
                 <div class="bg-white/98 backdrop-blur-xl rounded-2xl md:rounded-3xl shadow-xl p-4 md:p-6 mb-4 hover-lift border-2 ${accentBorder}">
@@ -2025,6 +2025,7 @@
 
             return `
             <div class="space-y-5">
+                ${imageSlot('thisweek', { label: t2('Foto ki he Ngāue ʻo e Wikí','Photo (This Week Focus)') })}
                 <!-- Header -->
                 <div class="rounded-2xl p-5 shadow-xl text-white" style="background:#b5485a;">
                     <div class="flex items-center justify-between flex-wrap gap-3">
@@ -2053,8 +2054,6 @@
                         </div>
                     </div>
                 </div>
-
-                ${imageSlot('thisweek', { label: t2('Foto ki he Ngāue ʻo e Wikí','Photo (This Week Focus)') })}
 
                 <!-- KPI headline strip -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -3544,17 +3543,7 @@
 
             return `<div class="ss-panel">
                 <div class="mb-4"><div class="ss-eyebrow">${t2('Ngāue Fakafaifekau','Member Missionary Work')}</div><h2 class="ss-h2">${t2('Palōmesi ʻAho ʻe 21','The 21-Day Promise')}</h2></div>
-                ${(() => {
-                    const showSide = editMode || !!(state.images && state.images['promise']);
-                    return `<div class="promise-intro ${showSide ? 'has-side' : ''}">
-                        <div class="pi-text">
-                            <div class="formula">${t2('TUI','FAITH')} + ${t2('LOTU','PRAYER')} + <em>${t2('NGĀUE','ACTION')}</em> = ${t2('MANA','MIRACLES')}</div>
-                            <p>${esc(t2(P_INTRO.to,P_INTRO.en))}<span class="en">${esc(t2(P_INTRO.en,P_INTRO.to))}</span></p>
-                            <div class="vref">${esc(t2(P_VREF.to,P_VREF.en))}</div>
-                        </div>
-                        ${showSide ? `<div class="pi-side">${imageSlot('promise', { label: t2('Foto','Photo') })}</div>` : ''}
-                    </div>`;
-                })()}
+                ${imageSlot('promise', { label: t2('Foto','Photo') })}
                 <div class="promise-progress">
                     <div class="big" id="p21-count">${complete}<span style="font-size:15px;color:var(--ss-muted)">/${total}</span></div>
                     <div style="flex:1"><div class="lbl">${t2('ʻAho kakato (Pongipongi · Efiafi · Lau)','Days completed (AM · PM · Read)')}</div>
