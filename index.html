@@ -824,6 +824,7 @@
             { code: 'ASP', name: 'Attended Service Project', toName: 'Ō ki Ngāue Tokoni', color: 'from-teal-600 to-teal-700', emoji: '💪' },
             { code: 'ACTIVE', name: 'Active Member', toName: 'Kāinga ʻOku Ngāue', color: 'from-emerald-500 to-emerald-600', emoji: '⭐' }
         ];
+        const INVITATION_CODES = ['IAC','IRB','IACA','IFHE','ITM','ITB','IFH','ISP'];
         // Unified nav-tab styling — gold when active, dark glass when not (consistent across all tabs)
         const NAV_ACTIVE = 'background:linear-gradient(135deg,#edc878,#f6dfa6);color:#1a1206;border:1px solid #f6dfa6;box-shadow:0 8px 22px rgba(231,189,106,.30);';
         const NAV_INACTIVE = 'background:rgba(255,255,255,.05);color:var(--ss-ink-soft);border:1px solid var(--ss-line-2);';
@@ -861,9 +862,11 @@
             events: [],
             prayerList: [],
             bomChallenge: [],
+            promisePeople: [],
             images: {},
             activeTab: 'investigators',
             viewMode: 'tracker',
+            chartsScope: 'active',
             saveMessage: '',
             backgroundImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1920&q=80',
             calendarYear: new Date().getFullYear(),
@@ -888,6 +891,7 @@
                 state.backgroundImage = data.backgroundImage || state.backgroundImage;
                 state.prayerList = data.prayerList || [];
                 state.bomChallenge = data.bomChallenge || [];
+                state.promisePeople = data.promisePeople || [];
                 state.images = data.images || {};
                 state.darkMode = data.darkMode || false;
             }
@@ -924,6 +928,7 @@
                 backgroundImage: state.backgroundImage,
                 prayerList: state.prayerList,
                 bomChallenge: state.bomChallenge,
+                promisePeople: state.promisePeople,
                 images: state.images,
                 darkMode: state.darkMode,
                 lastSaved: Date.now()
@@ -969,6 +974,10 @@
         window.updateName = (id, name) => {
             const l = getCurrentList(); setCurrentList(l.map(p => p.id === id ? { ...p, name } : p));
             debounce('name_'+id, () => saveToFirebase());
+        };
+        window.updateCategory = (id, category) => {
+            const l = getCurrentList(); setCurrentList(l.map(p => p.id === id ? { ...p, category } : p));
+            saveToFirebase(); render();
         };
         window.updateNotes = (id, notes) => {
             const l = getCurrentList(); setCurrentList(l.map(p => p.id === id ? { ...p, notes } : p));
@@ -1125,6 +1134,22 @@
             const needsAttentionInv = inv.filter(p=>p.name&&Object.values(p.progress||{}).flat().length===0);
             const needsAttentionRet = ret.filter(p=>p.name&&Object.values(p.progress||{}).flat().length===0);
 
+            // KPI strengths / weaknesses — year-to-date, across Non Member + Returning
+            const allTracked = [...inv, ...ret];
+            const wcIndCounts = {};
+            INDICATORS.forEach(ind => { wcIndCounts[ind.code] = 0; });
+            allTracked.forEach(p => Object.values(p.progress||{}).flat().forEach(code => { if(wcIndCounts[code] !== undefined) wcIndCounts[code]++; }));
+            const wcRanked = Object.entries(wcIndCounts).sort((a,b)=>b[1]-a[1]);
+            const wcStrong = wcRanked.filter(([,v])=>v>0).slice(0,3);
+            const wcWeak = wcRanked.filter(([,v])=>v===0).slice(0,5);
+            const wcEngaged = allTracked.filter(p=>p.name && Object.values(p.progress||{}).flat().length>0).length;
+            const wcNamedTotal = allTracked.filter(p=>p.name).length;
+            const wcEngagementRate = wcNamedTotal>0 ? Math.round((wcEngaged/wcNamedTotal)*100) : 0;
+            const wcInvAll = INVITATION_CODES.reduce((s,c)=>s+(wcIndCounts[c]||0),0);
+            const wcTodayD = new Date(); wcTodayD.setHours(0,0,0,0);
+            const wcOverdueAll = allTracked.filter(p=>p.name && p.nextContactDate && parseLocalDate(p.nextContactDate)<wcTodayD).length;
+
+
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4';
             modal.onclick = (e) => { if(e.target===modal) modal.remove(); };
@@ -1240,6 +1265,41 @@
                                 ${state.prayerList.map(p=>`<span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-bold">${p.name}</span>`).join('')}
                             </div>
                         </div>` : ''}
+                        <div>
+                            <h3 class="font-black text-lg text-slate-800 mb-2">📈 ${t2('Mālohi mo e Tāpekia ʻo e KPI','KPI Strengths & Gaps')}</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                                <div class="bg-emerald-50 rounded-xl p-3 text-center border-2 border-emerald-200">
+                                    <div class="text-2xl font-black text-emerald-700">${wcEngagementRate}%</div>
+                                    <div class="text-xs font-bold text-emerald-600 mt-1">${t2('Tuʻunga Ngāue','Engagement Rate')}</div>
+                                </div>
+                                <div class="bg-blue-50 rounded-xl p-3 text-center border-2 border-blue-200">
+                                    <div class="text-2xl font-black text-blue-700">${wcInvAll}</div>
+                                    <div class="text-xs font-bold text-blue-600 mt-1">${t2('Fakaʻaʻaa Kotoa','Total Invitations')}</div>
+                                </div>
+                                <div class="bg-red-50 rounded-xl p-3 text-center border-2 border-red-200">
+                                    <div class="text-2xl font-black text-red-700">${wcOverdueAll}</div>
+                                    <div class="text-xs font-bold text-red-600 mt-1">${t2('Tuʻutāmaki','Overdue Contacts')}</div>
+                                </div>
+                                <div class="bg-purple-50 rounded-xl p-3 text-center border-2 border-purple-200">
+                                    <div class="text-2xl font-black text-purple-700">${wcNamedTotal}</div>
+                                    <div class="text-xs font-bold text-purple-600 mt-1">${t2('Kau Kotoa','Total Tracked')}</div>
+                                </div>
+                            </div>
+                            <div class="grid md:grid-cols-2 gap-3">
+                                <div>
+                                    <div class="text-xs font-black text-emerald-700 uppercase tracking-wide mb-1">✅ ${t2('Mālohi Ai','Where We\'re Strong')}</div>
+                                    <div class="space-y-1">
+                                        ${wcStrong.length ? wcStrong.map(([code,v])=>{const ind=INDICATORS.find(i=>i.code===code);return `<div class="flex items-center justify-between bg-emerald-50 rounded-lg px-3 py-1.5"><span class="text-xs font-bold">${ind?.emoji||''} ${code}</span><span class="text-xs font-black text-emerald-700">${v}×</span></div>`;}).join('') : `<div class="text-xs text-gray-400">${t2('ʻIkai ha fakamatala','No data yet')}</div>`}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="text-xs font-black text-red-700 uppercase tracking-wide mb-1">⚠️ ${t2('Vaivai / Fie Fakalakalaka','Weak / Needs Improvement')}</div>
+                                    <div class="space-y-1">
+                                        ${wcWeak.length ? wcWeak.map(([code])=>{const ind=INDICATORS.find(i=>i.code===code);return `<div class="flex items-center justify-between bg-red-50 rounded-lg px-3 py-1.5"><span class="text-xs font-bold">${ind?.emoji||''} ${code}</span><span class="text-xs font-black text-red-700">0×</span></div>`;}).join('') : `<div class="text-xs text-gray-400">${t2('Lelei ʻaupito','Nothing flagged 🎉')}</div>`}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         ${upcomingEvents.length > 0 ? `
                         <div>
                             <h3 class="font-black text-lg text-teal-800 mb-2">📅 ${t('Upcoming Events')}</h3>
@@ -1346,7 +1406,8 @@
             }
         };
 
-        window.setActiveTab = (tab) => { state.activeTab = tab; render(); };
+        window.setActiveTab = (tab) => { state.activeTab = tab; state.chartsScope = 'active'; render(); };
+        window.setChartsScope = (scope) => { state.chartsScope = scope; render(); };
         window.setViewMode = (mode) => { state.viewMode = mode; try { history.replaceState(null, '', '#' + mode); } catch(e){} render(); };
         // ES-module scope fix: inline on* handlers run in global scope, so expose these.
         window.state = state;
@@ -1615,6 +1676,10 @@
             const n = (state.bomChallenge || []).filter(c => isThisWeek(c.weekOf)).length;
             return n > 0 ? String(n) : '';
         }
+        function covenantBadge() {
+            const n = (state.covenantPath || []).length;
+            return n > 0 ? String(n) : '';
+        }
         function render() {
             const currentList = getCurrentList();
             const scopeRelevant = ['tracker','thisweek','actionboard','charts'].includes(state.viewMode);
@@ -1653,7 +1718,6 @@
                                     <button onclick="saveToFirebase()" class="iconbtn gold" title="${t('Save')}">💾 <span class="hidden sm:inline">${t('Save')}</span></button>
                                     <button onclick="showWardCouncilReport()" class="iconbtn" title="${t('Ward Council Report')}">📋</button>
                                     <button onclick="toggleTheme()" class="iconbtn" title="${t('Toggle theme')}">${currentThemeIsLight() ? '🌙' : '☀️'}</button>
-                                    <button onclick="showBackgroundImageModal()" class="iconbtn" title="${t('Background')}">🖼️</button>
                                     <button onclick="exportData()" class="iconbtn" title="${t('Export')}">📥</button>
                                     <label class="iconbtn cursor-pointer" title="${t('Import')}">📤<input type="file" accept=".json" onchange="importData(event)" class="hidden" /></label>
                                 </div>
@@ -1671,6 +1735,7 @@
                                     ${tabChip('events','5','🎉', t('Ward Calendar'))}
                                     ${tabChip('promise','6','🙏', t('21-Day Promise'))}
                                     ${tabChip('bomchallenge','7','📖', t2('Pole Tohi Molomona','B.O.M. Challenge'), bomWeekBadge())}
+                                    ${tabChip('covenant','8','✨', t('Covenant Path'), covenantBadge())}
                                 </div>
                             </div>
 
@@ -1682,10 +1747,10 @@
                                 : state.viewMode === 'events' ? renderEvents()
                                 : state.viewMode === 'promise' ? renderPromise()
                                 : state.viewMode === 'bomchallenge' ? renderBomChallenge()
+                                : state.viewMode === 'covenant' ? renderCovenantPath()
                                 : state.viewMode === 'prayer' ? renderPrayer()
                                 : renderTracker(currentList)
                             }
-                            ${(state.viewMode === 'tracker' || state.viewMode === 'charts') && state.covenantPath.length > 0 ? renderCovenantPath() : ''}
                         </div>
                     </div>
                 </div>
@@ -1726,7 +1791,7 @@
                             <!-- Scope toggle (Investigators / Returning) + View toggle -->
                             <div class="flex items-center gap-2 flex-wrap">
                                 <div class="seg">
-                                    <button onclick="setActiveTab('investigators')" aria-pressed="${state.activeTab === 'investigators'}">👤 ${t('Investigators')} <span class="cnt">${state.investigators.length}</span></button>
+                                    <button onclick="setActiveTab('investigators')" aria-pressed="${state.activeTab === 'investigators'}">👤 ${t2('Tangata ʻIkai Kāinga','Non Member')} <span class="cnt">${state.investigators.length}</span></button>
                                     <button onclick="setActiveTab('returning')" aria-pressed="${state.activeTab === 'returning'}">💙 ${t('Returning')} <span class="cnt">${state.returning.length}</span></button>
                                 </div>
                                 <div class="seg">
@@ -1822,6 +1887,12 @@
                                                     <button onclick="openEmojiPicker(${person.id})" class="text-2xl md:text-3xl hover:scale-110 transition-transform flex-shrink-0" title="${currentLang==='to'?'Liliu fakaʻilonga':'Change avatar'}">${person.emoji||'👤'}</button>
                                                     <div class="flex-1 min-w-0">
                                                         <input type="text" value="${person.name || ''}" onchange="updateName(${person.id}, this.value)" placeholder="${idx + 1}. ${currentLang==='to'?'Hingoa...':'Name...'}" class="w-full px-2 py-1.5 border-2 border-amber-200 rounded-lg focus:border-amber-500 focus:outline-none font-bold text-sm shadow-sm" />
+                                                        ${isInv ? `<select onchange="updateCategory(${person.id}, this.value)" class="mt-1 w-full px-2 py-1 border border-amber-200 rounded-lg text-xs font-bold focus:outline-none focus:border-amber-500" title="${t2('Faʻahinga','Category')}">
+                                                            <option value="" ${!person.category?'selected':''}>${t2('Fili Faʻahinga…','Category…')}</option>
+                                                            <option value="NM" ${person.category==='NM'?'selected':''}>NM — ${t2('Tangata ʻIkai Kāinga','Non Member')}</option>
+                                                            <option value="PM" ${person.category==='PM'?'selected':''}>PM — ${t2('Fāmili ʻOku Konga Kāinga','Part Member Family')}</option>
+                                                            <option value="OAY" ${person.category==='OAY'?'selected':''}>OAY — ${t2('Talavou Motuʻa Ange','Over Aged Youth')}</option>
+                                                        </select>` : ''}
                                                         <div class="mt-1.5">
                                                             ${(() => {
                                                                 const streak = (() => { let s=0; for(let i=new Date().getMonth();i>=0;i--){ if((person.progress?.[MONTHS[i]]?.length||0)>0)s++;else break;} return s; })();
@@ -1903,7 +1974,6 @@
                         <button onclick="addPerson()" class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl hover:from-indigo-700 hover:to-purple-700 transition-all font-bold text-base shadow-xl hover-lift">➕ ${t('Add Person')}</button>
                     </div>
                 </div>
-                ${imageSlot('tracker_covenant', { label: t2('Foto ki he Hala Fuakavá','Photo (above the Covenant Path)') })}
             `;
         }
 
@@ -2227,6 +2297,10 @@
             }
             const overdue = allPeople.filter(p => p.nextContactDate && getDaysUntil(p.nextContactDate) < 0);
             const dueThisWeek = allPeople.filter(p => p.nextContactDate && getDaysUntil(p.nextContactDate) >= 0 && getDaysUntil(p.nextContactDate) <= 7);
+            const weekEvents = (state.events||[]).filter(e => {
+                const d = parseLocalDate(e.date); d.setHours(0,0,0,0);
+                return d >= today && d <= in7;
+            }).sort((a,b)=>parseLocalDate(a.date)-parseLocalDate(b.date));
             const lines = ['📋 This Week\'s Focus — Riverton 24th Tongan Ward\n'];
             if (overdue.length) {
                 lines.push('🔴 OVERDUE:');
@@ -2240,7 +2314,14 @@
                     lines.push(`  • ${p.name} — ${when}${p.assignedTo?' ('+p.assignedTo+')':''}: ${p.nextAction||'Follow up'}`);
                 });
             }
-            if (!overdue.length && !dueThisWeek.length) lines.push('✅ No urgent contacts this week!');
+            if (weekEvents.length) {
+                lines.push('\n🎉 CALENDAR THIS WEEK:');
+                weekEvents.forEach(e => {
+                    const when = parseLocalDate(e.date).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+                    lines.push(`  • ${e.name} — ${when}${e.time?' · '+e.time:''}${e.location?' · 📍'+e.location:''}`);
+                });
+            }
+            if (!overdue.length && !dueThisWeek.length && !weekEvents.length) lines.push('✅ No urgent contacts or events this week!');
             const text = lines.join('\n');
             if (navigator.share) {
                 navigator.share({ title: 'This Week\'s Focus', text });
@@ -2624,9 +2705,11 @@
         }
 
         function renderCharts(currentList) {
+            const scope = state.chartsScope || 'active';
+            if (scope === 'both') currentList = [...state.investigators, ...state.returning];
             const totalActivities = currentList.reduce((sum, p) => sum + Object.values(p.progress||{}).flat().length, 0);
             const avgPerPerson = currentList.length > 0 ? (totalActivities/currentList.length).toFixed(1) : 0;
-            const isInv = state.activeTab === 'investigators';
+            const isInv = scope === 'both' ? true : state.activeTab === 'investigators';
 
             // Most active month
             const monthTotals = MONTHS.map(m => currentList.reduce((s,p) => s + (p.progress?.[m]?.length||0), 0));
@@ -2757,36 +2840,47 @@
                     });
                 }
 
-                // Chart 4 — Radar Chart per person
-                const ctx4 = document.getElementById('radarChart');
-                if (ctx4 && currentList.length > 0) {
+                // Chart 4 — Invitations Given by Month (replaces the old bi-monthly radar)
+                const ctx4 = document.getElementById('invitationsChart');
+                if (ctx4) {
                     if (ctx4._chartInstance) ctx4._chartInstance.destroy();
-                    const radarLabels = ['Jan-Feb','Mar-Apr','May-Jun','Jul-Aug','Sep-Oct','Nov-Dec'];
-                    const radarColors = ['#f59e0b','#3b82f6','#10b981','#a855f7','#f97316'];
-                    const datasets = currentList.filter(p=>p.name).map((person, i) => {
-                        const pairs = [[0,1],[2,3],[4,5],[6,7],[8,9],[10,11]];
-                        return {
-                            label: person.name||`P${i+1}`,
-                            data: pairs.map(([a,b]) => (person.progress?.[MONTHS[a]]?.length||0)+(person.progress?.[MONTHS[b]]?.length||0)),
-                            borderColor: radarColors[i%radarColors.length],
-                            backgroundColor: radarColors[i%radarColors.length]+'33',
-                            borderWidth: 2,
-                            pointRadius: 4
-                        };
-                    });
+                    const invColors = { IAC:'#3b82f6', IRB:'#10b981', IACA:'#a855f7', IFHE:'#eab308', ITM:'#f97316', ITB:'#ec4899', IFH:'#6366f1', ISP:'#14b8a6' };
+                    const datasets = INVITATION_CODES.map(code => ({
+                        label: code,
+                        data: MONTHS.map(m => currentList.reduce((s,p)=>s+((p.progress?.[m]||[]).filter(c=>c===code).length),0)),
+                        backgroundColor: invColors[code] || '#94a3b8'
+                    })).filter(ds => ds.data.some(v=>v>0));
                     if (datasets.length > 0) {
                         ctx4._chartInstance = new Chart(ctx4, {
-                            type: 'radar',
-                            data: { labels: radarLabels, datasets },
+                            type: 'bar',
+                            data: { labels: MONTHS, datasets },
                             options: {
                                 responsive: true, maintainAspectRatio: false,
-                                scales: { r: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.08)' }, ticks: { font: { weight: 'bold' }, backdropColor: 'transparent' } } },
-                                plugins: { legend: { labels: { font: { weight: 'bold' } } } }
+                                plugins: { legend: { position: 'bottom', labels: { font: { weight: 'bold', size: 10 }, boxWidth: 12 } } },
+                                scales: {
+                                    x: { stacked: true, grid: { display: false }, ticks: { font: { weight: 'bold' } } },
+                                    y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { font: { weight: 'bold' }, precision: 0 } }
+                                }
                             }
                         });
                     }
                 }
             }, 100);
+
+            // Invitation-type breakdown — which kinds of invitations we're strong/weak on
+            const invCounts = {};
+            INVITATION_CODES.forEach(code => { invCounts[code] = 0; });
+            currentList.forEach(p => Object.values(p.progress||{}).flat().forEach(code => { if(invCounts[code] !== undefined) invCounts[code]++; }));
+            const totalInvitations = Object.values(invCounts).reduce((a,b)=>a+b,0);
+            const invRanked = Object.entries(invCounts).sort((a,b)=>b[1]-a[1]);
+            const invStrong = invRanked.filter(([,v])=>v>0).slice(0,3);
+            const invWeak = invRanked.filter(([,v])=>v===0);
+
+            // 21-Day Promise participation
+            const ppl = state.promisePeople || [];
+            const promiseStarted = ppl.filter(p=>p.startDate).length;
+            const promiseFinished = ppl.filter(p=>p.completeDate).length;
+            const promiseRate = ppl.length > 0 ? Math.round((promiseFinished/ppl.length)*100) : 0;
 
             const accentFrom = isInv ? 'from-amber-500' : 'from-green-500';
             const accentTo = isInv ? 'to-orange-500' : 'to-emerald-500';
@@ -2796,6 +2890,12 @@
             return `
                 <div class="space-y-5">
                     ${imageSlot('kpi', { label: t2('Foto ki he Tapuleti KPI','Photo (top of KPI Dashboard)') })}
+                    <!-- Scope toggle: Investigators / Returning / Both -->
+                    <div class="seg" style="display:inline-flex;">
+                        <button onclick="setActiveTab('investigators')" aria-pressed="${scope!=='both' && state.activeTab==='investigators'}">👤 ${t('Investigators')}</button>
+                        <button onclick="setActiveTab('returning')" aria-pressed="${scope!=='both' && state.activeTab==='returning'}">💙 ${t('Returning')}</button>
+                        <button onclick="setChartsScope('both')" aria-pressed="${scope==='both'}">🔗 ${t2('Fakatahaʻi','Both')}</button>
+                    </div>
                     <!-- Stat Cards Row -->
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div class="bg-white/95 backdrop-blur-md rounded-2xl p-5 shadow-xl hover-lift border-t-4 border-amber-400 text-center">
@@ -2890,7 +2990,7 @@
                         </div>
                     </div>
 
-                    <!-- Indicator Donut + Radar -->
+                    <!-- Indicator Donut + Invitations by Month -->
                     <div class="grid md:grid-cols-2 gap-5">
                         <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-6 hover-lift border-2 ${accentBorder}">
                             <h3 class="font-black text-xl mb-1 ${accentText}">🎯 ${t('Top Indicators Used')}</h3>
@@ -2902,12 +3002,53 @@
                             </div>
                         </div>
                         <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-6 hover-lift border-2 ${accentBorder}">
-                            <h3 class="font-black text-xl mb-1 ${accentText}">🕸️ ${t('Bi-Monthly Radar')}</h3>
-                            <p class="text-xs text-gray-500 mb-4 font-semibold">${t('Activity spread across the year per person')}</p>
+                            <h3 class="font-black text-xl mb-1 ${accentText}">📣 ${t2('Ngaahi Fakaʻaʻaa ʻi he Māhiná','Invitations Given by Month')}</h3>
+                            <p class="text-xs text-gray-500 mb-4 font-semibold">${t2('Ko e ngaahi fakaʻaʻaa kuo fai ʻi he māhina kotoa','How many invitations went out each month')}</p>
                             <div style="height:220px;position:relative;">
-                                ${currentList.filter(p=>p.name).length > 0
-                                    ? `<canvas id="radarChart"></canvas>`
-                                    : `<div class="flex items-center justify-center h-full text-gray-400 text-center"><div><div class="text-5xl mb-3">🕸️</div><div class="font-bold">${t('Add names to see radar')}</div></div></div>`}
+                                ${totalInvitations > 0
+                                    ? `<canvas id="invitationsChart"></canvas>`
+                                    : `<div class="flex items-center justify-center h-full text-gray-400 text-center"><div><div class="text-5xl mb-3">📣</div><div class="font-bold">${t2('Heʻeki ai ha fakaʻaʻaa kuo lekooti','No invitations logged yet')}</div></div></div>`}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Invitation strengths & gaps -->
+                    ${totalInvitations > 0 ? `
+                    <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-6 hover-lift border-2 ${accentBorder}">
+                        <h3 class="font-black text-xl mb-1 ${accentText}">🧭 ${t2('Mālohi mo e Vaivai ʻi he Fakaʻaʻaá','Where We\'re Strong / Where We Lack')}</h3>
+                        <p class="text-xs text-gray-500 mb-4 font-semibold">${t2('Ko e ngaahi faʻahinga fakaʻaʻaa ʻoku lahi mo siʻi hono fakaʻaongaʻí','Invitation types ranked by how often they\'re used')}</p>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <div class="text-xs font-black text-emerald-600 uppercase tracking-wide mb-2">✅ ${t2('Mālohi','Strongest')}</div>
+                                <div class="space-y-1.5">
+                                    ${invStrong.map(([code,v])=>{const ind=INDICATORS.find(i=>i.code===code);return `<div class="flex items-center justify-between bg-emerald-50 rounded-lg px-3 py-2"><span class="text-sm font-bold">${ind?.emoji||'📣'} ${code} — ${ind?(currentLang==='to'?ind.toName:ind.name):code}</span><span class="text-sm font-black text-emerald-700">${v}×</span></div>`;}).join('') || `<div class="text-xs text-gray-400">${t2('ʻIkai ha fakamatala','No data yet')}</div>`}
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-xs font-black text-red-600 uppercase tracking-wide mb-2">⚠️ ${t2('Vaivai / ʻOku Siʻi','Lacking — never used')}</div>
+                                <div class="space-y-1.5">
+                                    ${invWeak.length > 0 ? invWeak.map(([code])=>{const ind=INDICATORS.find(i=>i.code===code);return `<div class="flex items-center justify-between bg-red-50 rounded-lg px-3 py-2"><span class="text-sm font-bold">${ind?.emoji||'📣'} ${code} — ${ind?(currentLang==='to'?ind.toName:ind.name):code}</span><span class="text-sm font-black text-red-600">0×</span></div>`;}).join('') : `<div class="text-xs text-gray-400">${t2('Naʻe fakaʻaongaʻi e fakaʻaʻaa kotoa','Every invitation type has been used 🎉')}</div>`}
+                                </div>
+                            </div>
+                        </div>
+                    </div>` : ''}
+
+                    <!-- 21-Day Promise participation -->
+                    <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-6 hover-lift border-2 ${accentBorder}">
+                        <h3 class="font-black text-xl mb-1 ${accentText}">🙏 ${t2('Kau ʻi he Palōmesi ʻAho ʻe 21','21-Day Promise Participation')}</h3>
+                        <p class="text-xs text-gray-500 mb-4 font-semibold">${t2('Mei he tracker ʻo e Palōmesí','From the 21-Day Promise tab')}</p>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="rounded-xl p-3 text-center" style="background:var(--ss-surface-2);border:1px solid var(--ss-line-2);">
+                                <div class="text-2xl font-black ${accentText}">${ppl.length}</div>
+                                <div class="text-xs font-bold text-gray-500 mt-1 uppercase">${t2('Kau','Tracked')}</div>
+                            </div>
+                            <div class="rounded-xl p-3 text-center" style="background:var(--ss-surface-2);border:1px solid var(--ss-line-2);">
+                                <div class="text-2xl font-black text-blue-600">${promiseStarted}</div>
+                                <div class="text-xs font-bold text-gray-500 mt-1 uppercase">${t2('Kamata','Started')}</div>
+                            </div>
+                            <div class="rounded-xl p-3 text-center" style="background:var(--ss-surface-2);border:1px solid var(--ss-line-2);">
+                                <div class="text-2xl font-black text-emerald-600">${promiseFinished} <span style="font-size:14px;">(${promiseRate}%)</span></div>
+                                <div class="text-xs font-bold text-gray-500 mt-1 uppercase">${t2('Kakato','Completed')}</div>
                             </div>
                         </div>
                     </div>
@@ -2977,162 +3118,6 @@
                             }).join('')}
                         </div>
                     </div>` : ''}
-
-                    <!-- ✅ COVENANT PATH KPI SECTION -->
-                    ${state.covenantPath.length > 0 ? (() => {
-                        const cp = state.covenantPath;
-                        const cpTotalActs = cp.reduce((s,p)=>s+Object.values(p.progress||{}).flat().length,0);
-                        const cpBaptized = cp.length;
-                        const cpMale = cp.filter(p=>p.type==='Male').length;
-                        const cpFemale = cp.filter(p=>p.type==='Female').length;
-                        const cpOAY = cp.filter(p=>p.type==='OAY').length;
-                        const cpEndowed = cp.filter(p=>p.ordinances?.endowment||p.femaleOrdinances?.endowment).length;
-                        const cpMelch = cp.filter(p=>p.ordinances?.melchizedekPriesthood).length;
-                        const cpPatriarchal = cp.filter(p=>p.ordinances?.patriarchalBlessing||p.femaleOrdinances?.patriarchalBlessing).length;
-                        const cpTemple = cp.filter(p=>p.ordinances?.templeBaptisms||p.femaleOrdinances?.templeBaptisms).length;
-                        const cpAaronic = cp.filter(p=>p.ordinances?.aaronicPriesthood).length;
-                        const srKeys = ['emotionalResilience','personalFinances','startGrowBusiness','educationBetterWork','findBetterJob'];
-                        const srLabels = ['Emotional Resilience','Personal Finances','Start & Grow Business','Education for Work','Find a Better Job'];
-                        const srCounts = srKeys.map(k=>cp.filter(p=>p.selfRelianceCompleted?.[k]).length);
-                        const totalOrdinances = cpEndowed + cpMelch + cpPatriarchal + cpTemple + cpAaronic;
-                        const maxOrdinances = cp.length * 5;
-                        const ordPct = maxOrdinances > 0 ? Math.round((totalOrdinances/maxOrdinances)*100) : 0;
-
-                        setTimeout(() => {
-                            const ctx5 = document.getElementById('cpTypeDonut');
-                            if (ctx5 && (cpMale+cpFemale+cpOAY) > 0) {
-                                if (ctx5._chartInstance) ctx5._chartInstance.destroy();
-                                ctx5._chartInstance = new Chart(ctx5, {
-                                    type: 'doughnut',
-                                    data: {
-                                        labels: ['Male','Female','OAY'],
-                                        datasets: [{ data: [cpMale,cpFemale,cpOAY], backgroundColor: ['#3b82f6','#ec4899','#8b5cf6'], borderWidth: 3, borderColor: '#fff', hoverOffset: 8 }]
-                                    },
-                                    options: { responsive:true, maintainAspectRatio:false, cutout:'60%', plugins:{ legend:{ position:'right', labels:{ font:{ weight:'bold', size:12 }, padding:10 } } } }
-                                });
-                            }
-                            const ctx6 = document.getElementById('cpSRBar');
-                            if (ctx6) {
-                                if (ctx6._chartInstance) ctx6._chartInstance.destroy();
-                                ctx6._chartInstance = new Chart(ctx6, {
-                                    type: 'bar',
-                                    data: {
-                                        labels: ['Emotional','Finances','Business','Education','Job'],
-                                        datasets: [{ label: 'Completed', data: srCounts, backgroundColor: ['#a855f7','#3b82f6','#10b981','#f59e0b','#ef4444'], borderRadius: 8, borderSkipped: false }]
-                                    },
-                                    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, max: Math.max(cpBaptized,1), ticks:{ stepSize:1, font:{ weight:'bold' } }, grid:{ color:'rgba(0,0,0,0.06)' } }, x:{ grid:{ display:false }, ticks:{ font:{ weight:'700', size:11 } } } } }
-                                });
-                            }
-                        }, 150);
-
-                        return `
-                        <div class="bg-gradient-to-br from-purple-900 via-indigo-900 to-purple-900 rounded-2xl shadow-2xl p-6 hover-lift border-2 border-purple-400/40">
-                            <div class="flex items-center gap-3 mb-6">
-                                <div class="text-4xl">📖</div>
-                                <div>
-                                    <h3 class="font-black text-2xl text-white">${t('Covenant Path Dashboard')}</h3>
-                                    <p class="text-purple-300 text-sm font-semibold">${t('Progress tracking for baptized members')}</p>
-                                </div>
-                            </div>
-
-                            <!-- CP Stat Cards -->
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-                                <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center border border-white/20">
-                                    <div class="text-3xl mb-1">✨</div>
-                                    <div class="text-3xl font-black text-white">${cpBaptized}</div>
-                                    <div class="text-xs text-purple-300 font-bold mt-1 uppercase tracking-wide">Baptized</div>
-                                </div>
-                                <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center border border-white/20">
-                                    <div class="text-3xl mb-1">⭐</div>
-                                    <div class="text-3xl font-black text-white">${cpTotalActs}</div>
-                                    <div class="text-xs text-purple-300 font-bold mt-1 uppercase tracking-wide">Pre-Baptism Acts</div>
-                                </div>
-                                <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center border border-white/20">
-                                    <div class="text-3xl mb-1">🏛️</div>
-                                    <div class="text-3xl font-black text-white">${cpEndowed}</div>
-                                    <div class="text-xs text-purple-300 font-bold mt-1 uppercase tracking-wide">Endowed</div>
-                                </div>
-                                <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center border border-white/20">
-                                    <div class="text-3xl mb-1">📜</div>
-                                    <div class="text-3xl font-black text-amber-300">${Math.round((totalOrdinances/Math.max(maxOrdinances,1))*100)}%</div>
-                                    <div class="text-xs text-purple-300 font-bold mt-1 uppercase tracking-wide">Ordinance Rate</div>
-                                </div>
-                            </div>
-
-                            <!-- Charts row -->
-                            <div class="grid md:grid-cols-2 gap-4 mb-5">
-                                <div class="bg-white/10 backdrop-blur rounded-xl p-5 border border-white/20">
-                                    <h4 class="font-black text-white mb-1">👥 ${t('Member Types')}</h4>
-                                    <p class="text-xs text-purple-300 mb-3 font-semibold">${t('Male / Female / OAY breakdown')}</p>
-                                    <div style="height:180px;position:relative;">
-                                        ${(cpMale+cpFemale+cpOAY)>0 ? '<canvas id="cpTypeDonut"></canvas>' : `<div class="flex items-center justify-center h-full text-purple-300 text-sm font-bold">${t('Assign types to members first')}</div>`}
-                                    </div>
-                                </div>
-                                <div class="bg-white/10 backdrop-blur rounded-xl p-5 border border-white/20">
-                                    <h4 class="font-black text-white mb-1">💼 ${t('Self-Reliance Classes')}</h4>
-                                    <p class="text-xs text-purple-300 mb-3 font-semibold">${t('Completed courses across all members')}</p>
-                                    <div style="height:180px;position:relative;">
-                                        <canvas id="cpSRBar"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Ordinance Progress Bars -->
-                            <div class="bg-white/10 backdrop-blur rounded-xl p-5 border border-white/20 mb-4">
-                                <h4 class="font-black text-white mb-4">🏆 ${t('Ordinance Progress')} (${totalOrdinances} / ${maxOrdinances} total)</h4>
-                                <div class="space-y-3">
-                                    ${[
-                                        { label: t('Aaronic Priesthood'), count: cpAaronic, emoji: '✋', color: 'from-blue-400 to-blue-500' },
-                                        { label: t('Temple Baptisms'), count: cpTemple, emoji: '🏛️', color: 'from-indigo-400 to-indigo-500' },
-                                        { label: t('Patriarchal Blessing'), count: cpPatriarchal, emoji: '📜', color: 'from-purple-400 to-purple-500' },
-                                        { label: t('Melchizedek Priesthood'), count: cpMelch, emoji: '👔', color: 'from-pink-400 to-pink-500' },
-                                        { label: t('Temple Endowment'), count: cpEndowed, emoji: '⭐', color: 'from-amber-400 to-amber-500' },
-                                    ].map(ord => {
-                                        const pct = cpBaptized > 0 ? Math.round((ord.count/cpBaptized)*100) : 0;
-                                        return `<div>
-                                            <div class="flex justify-between mb-1">
-                                                <span class="text-sm font-bold text-white">${ord.emoji} ${ord.label}</span>
-                                                <span class="text-sm font-black text-amber-300">${ord.count} / ${cpBaptized}</span>
-                                            </div>
-                                            <div class="bg-white/10 rounded-full h-5 overflow-hidden">
-                                                <div class="bg-gradient-to-r ${ord.color} h-full rounded-full transition-all flex items-center justify-end pr-2" style="width:${pct}%">
-                                                    ${pct > 15 ? `<span class="text-white text-xs font-black">${pct}%</span>` : ''}
-                                                </div>
-                                            </div>
-                                        </div>`;
-                                    }).join('')}
-                                </div>
-                            </div>
-
-                            <!-- Member list with pre-baptism activity count -->
-                            <div class="bg-white/10 backdrop-blur rounded-xl p-5 border border-white/20">
-                                <h4 class="font-black text-white mb-4">📋 ${t('Member Overview')}</h4>
-                                <div class="space-y-3">
-                                    ${cp.map(person => {
-                                        const preActs = Object.values(person.progress||{}).flat().length;
-                                        const ordinanceDone = [
-                                            person.ordinances?.aaronicPriesthood, person.ordinances?.templeBaptisms,
-                                            person.ordinances?.patriarchalBlessing, person.ordinances?.melchizedekPriesthood, person.ordinances?.endowment,
-                                            person.femaleOrdinances?.templeBaptisms, person.femaleOrdinances?.patriarchalBlessing, person.femaleOrdinances?.endowment
-                                        ].filter(Boolean).length;
-                                        const srDone = Object.values(person.selfRelianceCompleted||{}).filter(Boolean).length;
-                                        return `<div class="flex items-center gap-3 bg-white/10 rounded-xl p-3">
-                                            <div class="text-2xl">✨</div>
-                                            <div class="flex-1">
-                                                <div class="font-black text-white text-sm">${person.name}</div>
-                                                <div class="text-xs text-purple-300 font-semibold">${t('Baptized')} ${parseLocalDate(person.baptismDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
-                                            </div>
-                                            <div class="flex gap-2 text-xs font-bold">
-                                                <span class="bg-amber-400/20 text-amber-300 px-2 py-1 rounded-lg">⭐ ${preActs} ${t('pre-acts')}</span>
-                                                <span class="bg-purple-400/20 text-purple-200 px-2 py-1 rounded-lg">🏛️ ${ordinanceDone} ords</span>
-                                                <span class="bg-blue-400/20 text-blue-200 px-2 py-1 rounded-lg">💼 ${srDone} SR</span>
-                                            </div>
-                                        </div>`;
-                                    }).join('')}
-                                </div>
-                            </div>
-                        </div>`;
-                    })() : ''}
                 </div>`;
         }
 
@@ -3343,7 +3328,9 @@
             }
 
             return `
-                <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl mt-6 overflow-hidden border border-purple-200">
+                <div class="space-y-5">
+                ${imageSlot('covenant', { label: t2('Foto ki he Hala Fuakavá','Photo (top of Covenant Path)') })}
+                <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border border-purple-200">
                     <!-- Header -->
                     <div class="bg-gradient-to-r from-purple-700 to-indigo-700 px-5 py-4 flex items-center justify-between">
                         <div class="flex items-center gap-3">
@@ -3359,6 +3346,7 @@
                     </div>
 
                     <div class="p-4 space-y-3">
+                        ${state.covenantPath.length === 0 ? `<div style="text-align:center;padding:30px 16px;color:var(--ss-muted);"><div style="font-size:36px;margin-bottom:8px;">📖</div><p style="font-weight:700;">${t2('Heʻeki ai ha taha ʻi he Hala Fuakavá','No one is on the Covenant Path yet')}</p><p style="font-size:13px;">${t2('ʻOku tānaki fakaʻotomatiki ha taha ʻi he taimi te ke fakaʻilongaʻi ai ʻene papitaisó ʻi he Tracker Māhiná.','People are added here automatically when you mark Baptized (B) for them in the Monthly Tracker.')}</p></div>` : ''}
                         ${active.length > 0 ? `
                             <div class="text-xs font-black text-purple-700 uppercase tracking-wider mb-2">🔄 ${t('In Progress')}</div>
                             ${active.map(renderCard).join('')}
@@ -3369,6 +3357,162 @@
                             ${completed.map(renderCard).join('')}
                         ` : ''}
                     </div>
+                </div>
+
+                    ${state.covenantPath.length > 0 ? (() => {
+                        const cp = state.covenantPath;
+                        const cpTotalActs = cp.reduce((s,p)=>s+Object.values(p.progress||{}).flat().length,0);
+                        const cpBaptized = cp.length;
+                        const cpMale = cp.filter(p=>p.type==='Male').length;
+                        const cpFemale = cp.filter(p=>p.type==='Female').length;
+                        const cpOAY = cp.filter(p=>p.type==='OAY').length;
+                        const cpEndowed = cp.filter(p=>p.ordinances?.endowment||p.femaleOrdinances?.endowment).length;
+                        const cpMelch = cp.filter(p=>p.ordinances?.melchizedekPriesthood).length;
+                        const cpPatriarchal = cp.filter(p=>p.ordinances?.patriarchalBlessing||p.femaleOrdinances?.patriarchalBlessing).length;
+                        const cpTemple = cp.filter(p=>p.ordinances?.templeBaptisms||p.femaleOrdinances?.templeBaptisms).length;
+                        const cpAaronic = cp.filter(p=>p.ordinances?.aaronicPriesthood).length;
+                        const srKeys = ['emotionalResilience','personalFinances','startGrowBusiness','educationBetterWork','findBetterJob'];
+                        const srLabels = ['Emotional Resilience','Personal Finances','Start & Grow Business','Education for Work','Find a Better Job'];
+                        const srCounts = srKeys.map(k=>cp.filter(p=>p.selfRelianceCompleted?.[k]).length);
+                        const totalOrdinances = cpEndowed + cpMelch + cpPatriarchal + cpTemple + cpAaronic;
+                        const maxOrdinances = cp.length * 5;
+                        const ordPct = maxOrdinances > 0 ? Math.round((totalOrdinances/maxOrdinances)*100) : 0;
+
+                        setTimeout(() => {
+                            const ctx5 = document.getElementById('cpTypeDonut');
+                            if (ctx5 && (cpMale+cpFemale+cpOAY) > 0) {
+                                if (ctx5._chartInstance) ctx5._chartInstance.destroy();
+                                ctx5._chartInstance = new Chart(ctx5, {
+                                    type: 'doughnut',
+                                    data: {
+                                        labels: ['Male','Female','OAY'],
+                                        datasets: [{ data: [cpMale,cpFemale,cpOAY], backgroundColor: ['#3b82f6','#ec4899','#8b5cf6'], borderWidth: 3, borderColor: '#fff', hoverOffset: 8 }]
+                                    },
+                                    options: { responsive:true, maintainAspectRatio:false, cutout:'60%', plugins:{ legend:{ position:'right', labels:{ font:{ weight:'bold', size:12 }, padding:10 } } } }
+                                });
+                            }
+                            const ctx6 = document.getElementById('cpSRBar');
+                            if (ctx6) {
+                                if (ctx6._chartInstance) ctx6._chartInstance.destroy();
+                                ctx6._chartInstance = new Chart(ctx6, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: ['Emotional','Finances','Business','Education','Job'],
+                                        datasets: [{ label: 'Completed', data: srCounts, backgroundColor: ['#a855f7','#3b82f6','#10b981','#f59e0b','#ef4444'], borderRadius: 8, borderSkipped: false }]
+                                    },
+                                    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, max: Math.max(cpBaptized,1), ticks:{ stepSize:1, font:{ weight:'bold' } }, grid:{ color:'rgba(0,0,0,0.06)' } }, x:{ grid:{ display:false }, ticks:{ font:{ weight:'700', size:11 } } } } }
+                                });
+                            }
+                        }, 150);
+
+                        return `
+                        <div class="bg-gradient-to-br from-purple-900 via-indigo-900 to-purple-900 rounded-2xl shadow-2xl p-6 hover-lift border-2 border-purple-400/40">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="text-4xl">📖</div>
+                                <div>
+                                    <h3 class="font-black text-2xl text-white">${t('Covenant Path Dashboard')}</h3>
+                                    <p class="text-purple-300 text-sm font-semibold">${t('Progress tracking for baptized members')}</p>
+                                </div>
+                            </div>
+
+                            <!-- CP Stat Cards -->
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                                <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center border border-white/20">
+                                    <div class="text-3xl mb-1">✨</div>
+                                    <div class="text-3xl font-black text-white">${cpBaptized}</div>
+                                    <div class="text-xs text-purple-300 font-bold mt-1 uppercase tracking-wide">Baptized</div>
+                                </div>
+                                <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center border border-white/20">
+                                    <div class="text-3xl mb-1">⭐</div>
+                                    <div class="text-3xl font-black text-white">${cpTotalActs}</div>
+                                    <div class="text-xs text-purple-300 font-bold mt-1 uppercase tracking-wide">Pre-Baptism Acts</div>
+                                </div>
+                                <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center border border-white/20">
+                                    <div class="text-3xl mb-1">🏛️</div>
+                                    <div class="text-3xl font-black text-white">${cpEndowed}</div>
+                                    <div class="text-xs text-purple-300 font-bold mt-1 uppercase tracking-wide">Endowed</div>
+                                </div>
+                                <div class="bg-white/10 backdrop-blur rounded-xl p-4 text-center border border-white/20">
+                                    <div class="text-3xl mb-1">📜</div>
+                                    <div class="text-3xl font-black text-amber-300">${Math.round((totalOrdinances/Math.max(maxOrdinances,1))*100)}%</div>
+                                    <div class="text-xs text-purple-300 font-bold mt-1 uppercase tracking-wide">Ordinance Rate</div>
+                                </div>
+                            </div>
+
+                            <!-- Charts row -->
+                            <div class="grid md:grid-cols-2 gap-4 mb-5">
+                                <div class="bg-white/10 backdrop-blur rounded-xl p-5 border border-white/20">
+                                    <h4 class="font-black text-white mb-1">👥 ${t('Member Types')}</h4>
+                                    <p class="text-xs text-purple-300 mb-3 font-semibold">${t('Male / Female / OAY breakdown')}</p>
+                                    <div style="height:180px;position:relative;">
+                                        ${(cpMale+cpFemale+cpOAY)>0 ? '<canvas id="cpTypeDonut"></canvas>' : `<div class="flex items-center justify-center h-full text-purple-300 text-sm font-bold">${t('Assign types to members first')}</div>`}
+                                    </div>
+                                </div>
+                                <div class="bg-white/10 backdrop-blur rounded-xl p-5 border border-white/20">
+                                    <h4 class="font-black text-white mb-1">💼 ${t('Self-Reliance Classes')}</h4>
+                                    <p class="text-xs text-purple-300 mb-3 font-semibold">${t('Completed courses across all members')}</p>
+                                    <div style="height:180px;position:relative;">
+                                        <canvas id="cpSRBar"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Ordinance Progress Bars -->
+                            <div class="bg-white/10 backdrop-blur rounded-xl p-5 border border-white/20 mb-4">
+                                <h4 class="font-black text-white mb-4">🏆 ${t('Ordinance Progress')} (${totalOrdinances} / ${maxOrdinances} total)</h4>
+                                <div class="space-y-3">
+                                    ${[
+                                        { label: t('Aaronic Priesthood'), count: cpAaronic, emoji: '✋', color: 'from-blue-400 to-blue-500' },
+                                        { label: t('Temple Baptisms'), count: cpTemple, emoji: '🏛️', color: 'from-indigo-400 to-indigo-500' },
+                                        { label: t('Patriarchal Blessing'), count: cpPatriarchal, emoji: '📜', color: 'from-purple-400 to-purple-500' },
+                                        { label: t('Melchizedek Priesthood'), count: cpMelch, emoji: '👔', color: 'from-pink-400 to-pink-500' },
+                                        { label: t('Temple Endowment'), count: cpEndowed, emoji: '⭐', color: 'from-amber-400 to-amber-500' },
+                                    ].map(ord => {
+                                        const pct = cpBaptized > 0 ? Math.round((ord.count/cpBaptized)*100) : 0;
+                                        return `<div>
+                                            <div class="flex justify-between mb-1">
+                                                <span class="text-sm font-bold text-white">${ord.emoji} ${ord.label}</span>
+                                                <span class="text-sm font-black text-amber-300">${ord.count} / ${cpBaptized}</span>
+                                            </div>
+                                            <div class="bg-white/10 rounded-full h-5 overflow-hidden">
+                                                <div class="bg-gradient-to-r ${ord.color} h-full rounded-full transition-all flex items-center justify-end pr-2" style="width:${pct}%">
+                                                    ${pct > 15 ? `<span class="text-white text-xs font-black">${pct}%</span>` : ''}
+                                                </div>
+                                            </div>
+                                        </div>`;
+                                    }).join('')}
+                                </div>
+                            </div>
+
+                            <!-- Member list with pre-baptism activity count -->
+                            <div class="bg-white/10 backdrop-blur rounded-xl p-5 border border-white/20">
+                                <h4 class="font-black text-white mb-4">📋 ${t('Member Overview')}</h4>
+                                <div class="space-y-3">
+                                    ${cp.map(person => {
+                                        const preActs = Object.values(person.progress||{}).flat().length;
+                                        const ordinanceDone = [
+                                            person.ordinances?.aaronicPriesthood, person.ordinances?.templeBaptisms,
+                                            person.ordinances?.patriarchalBlessing, person.ordinances?.melchizedekPriesthood, person.ordinances?.endowment,
+                                            person.femaleOrdinances?.templeBaptisms, person.femaleOrdinances?.patriarchalBlessing, person.femaleOrdinances?.endowment
+                                        ].filter(Boolean).length;
+                                        const srDone = Object.values(person.selfRelianceCompleted||{}).filter(Boolean).length;
+                                        return `<div class="flex items-center gap-3 bg-white/10 rounded-xl p-3">
+                                            <div class="text-2xl">✨</div>
+                                            <div class="flex-1">
+                                                <div class="font-black text-white text-sm">${person.name}</div>
+                                                <div class="text-xs text-purple-300 font-semibold">${t('Baptized')} ${parseLocalDate(person.baptismDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+                                            </div>
+                                            <div class="flex gap-2 text-xs font-bold">
+                                                <span class="bg-amber-400/20 text-amber-300 px-2 py-1 rounded-lg">⭐ ${preActs} ${t('pre-acts')}</span>
+                                                <span class="bg-purple-400/20 text-purple-200 px-2 py-1 rounded-lg">🏛️ ${ordinanceDone} ords</span>
+                                                <span class="bg-blue-400/20 text-blue-200 px-2 py-1 rounded-lg">💼 ${srDone} SR</span>
+                                            </div>
+                                        </div>`;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        </div>`;
+                    })() : ''}
                 </div>`;
         }
 
@@ -3509,6 +3653,24 @@
             catch(e){ prompt(t2('Hiki ʻa e liní:','Copy this link:'), url); }
         };
 
+        // Participant roster — who is doing the 21-Day Promise, start/complete dates (synced via Firebase for KPI tracking)
+        window.promiseAddPerson = () => {
+            const id = 'p21p_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+            state.promisePeople = state.promisePeople || [];
+            state.promisePeople.unshift({ id, name:'', startDate: ymd(new Date()), completeDate:'' });
+            saveToFirebase(); render();
+        };
+        window.promiseUpdatePerson = (id, field, val) => {
+            const p = (state.promisePeople||[]).find(x=>x.id===id); if(!p) return;
+            p[field] = val;
+            if (field !== 'name') { saveToFirebase(); render(); } else { saveToFirebaseDebounced(); }
+        };
+        window.promiseRemovePerson = (id) => {
+            if(!confirm(currentLang==='to' ? 'Tāmateʻi ʻa e fakamatalá ni?' : 'Remove this person?')) return;
+            state.promisePeople = (state.promisePeople||[]).filter(x=>x.id!==id);
+            saveToFirebase(); render();
+        };
+
         function renderPromise(){
             const lng = currentLang==='to' ? 'ton' : 'eng';
             const invNames = (state.investigators||[]).map(p=>p.name).filter(n=>n&&n.trim());
@@ -3548,6 +3710,29 @@
                     <div class="big" id="p21-count">${complete}<span style="font-size:15px;color:var(--ss-muted)">/${total}</span></div>
                     <div style="flex:1"><div class="lbl">${t2('ʻAho kakato (Pongipongi · Efiafi · Lau)','Days completed (AM · PM · Read)')}</div>
                         <div class="pbar"><i id="p21-bar" style="width:${pct}%"></i></div></div>
+                </div>
+
+                <div class="ss-blockhead"><h3>${t2('Kau Kakai ʻi he Palōmesí','Who\'s Taking the Promise')}</h3><span class="en">${t2('Kamata mo Fakaʻosi ʻAho','Track start & complete dates')}</span></div>
+                <div class="ss-panel" style="padding:14px;margin-bottom:18px;">
+                    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+                        <button class="ss-btn primary" onclick="promiseAddPerson()">＋ ${t2('Tānaki Kakai','Add Person')}</button>
+                    </div>
+                    ${(state.promisePeople||[]).length === 0 ? `<div style="text-align:center;padding:18px;color:var(--ss-muted);font-size:13px;">${t2('Heʻeki ai ha taha ʻoku kau','No one is tracked yet — tap Add Person.')}</div>` : `
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        ${state.promisePeople.map(p => `
+                        <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:8px;align-items:center;background:var(--ss-surface-2);border:1px solid var(--ss-line-2);border-radius:11px;padding:8px 10px;">
+                            <input class="ss-input" value="${esc(p.name||'')}" oninput="promiseUpdatePerson('${p.id}','name',this.value)" placeholder="${t2('Hingoa','Name')}">
+                            <div>
+                                <div style="font-size:10px;font-weight:700;color:var(--ss-muted);text-transform:uppercase;margin-bottom:2px;">${t2('Kamata','Started')}</div>
+                                <input class="ss-input" type="date" value="${p.startDate||''}" onchange="promiseUpdatePerson('${p.id}','startDate',this.value)">
+                            </div>
+                            <div>
+                                <div style="font-size:10px;font-weight:700;color:var(--ss-muted);text-transform:uppercase;margin-bottom:2px;">${t2('Kakato','Completed')}</div>
+                                <input class="ss-input" type="date" value="${p.completeDate||''}" onchange="promiseUpdatePerson('${p.id}','completeDate',this.value)">
+                            </div>
+                            <button onclick="promiseRemovePerson('${p.id}')" style="background:none;border:0;color:var(--ss-muted);cursor:pointer;font-size:16px;">🗑️</button>
+                        </div>`).join('')}
+                    </div>`}
                 </div>
 
                 <div class="ss-blockhead"><h3>${t2('Lisi ʻo e Kakai Te ke Lotuá','People I Will Pray For')}</h3><span class="en">${t2('Mei he Tracker Māhiná — Muimui & Foki Mai','Auto-filled from the Monthly Tracker')}</span></div>
@@ -3601,12 +3786,24 @@
         window.bomAdd = () => {
             const id = 'bom_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
             state.bomChallenge = state.bomChallenge || [];
-            state.bomChallenge.unshift({ id, member:'', org:'', status:'pledged', weekOf: ymd(mondayOf(new Date())), date: ymd(new Date()) });
+            state.bomChallenge.unshift({ id, member:'', org:'', status:'pledged', invited:false, invitedResult:'', weekOf: ymd(mondayOf(new Date())), date: ymd(new Date()) });
             saveToFirebase(); render();
         };
         window.bomUpdate = (id, field, val) => {
             const c = (state.bomChallenge||[]).find(x=>x.id===id); if(!c) return;
             c[field] = val; saveToFirebaseDebounced();
+        };
+        window.bomToggleInvited = (id) => {
+            const c = (state.bomChallenge||[]).find(x=>x.id===id); if(!c) return;
+            c.invited = !c.invited;
+            if (!c.invited) c.invitedResult = '';
+            saveToFirebase(); render();
+        };
+        window.bomSetInviteResult = (id, result) => {
+            const c = (state.bomChallenge||[]).find(x=>x.id===id); if(!c) return;
+            c.invited = true;
+            c.invitedResult = (c.invitedResult === result) ? '' : result;
+            saveToFirebase(); render();
         };
         window.bomCycle = (id) => {
             const c = (state.bomChallenge||[]).find(x=>x.id===id); if(!c) return;
@@ -3627,6 +3824,10 @@
             const thisWeek = list.filter(c=>isThisWeek(c.weekOf));
             const givenAll = list.filter(c=>c.status==='given'||c.status==='reading'||c.status==='referred').length;
             const referredAll = list.filter(c=>c.status==='referred').length;
+            const invitedAll = list.filter(c=>c.invited).length;
+            const acceptedAll = list.filter(c=>c.invitedResult==='accepted').length;
+            const rejectedAll = list.filter(c=>c.invitedResult==='rejected').length;
+            const acceptRate = invitedAll > 0 ? Math.round((acceptedAll/invitedAll)*100) : 0;
 
             const card = (c)=>{
                 const st = BOM_STATUS[c.status||'pledged'] || BOM_STATUS.pledged;
@@ -3639,6 +3840,14 @@
                         <button class="bom-status" style="color:${st.color};background:${st.wash};" onclick="bomCycle('${c.id}')" title="${t('Tap to advance')}">${st.emoji} ${t2(st.to,st.en)}</button>
                     </div>
                     <select class="ss-input" onchange="bomUpdate('${c.id}','org',this.value); render();">${opts}</select>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0 2px;border-top:1px dashed var(--ss-line-2);margin-top:4px;">
+                        <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ss-ink-soft);cursor:pointer;">
+                            <input type="checkbox" data-free ${c.invited?'checked':''} onchange="bomToggleInvited('${c.id}')"> ${t2('Naʻe Fakaʻaʻaa','Invitation given')}
+                        </label>
+                        ${c.invited ? `
+                        <button onclick="bomSetInviteResult('${c.id}','accepted')" style="font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;border:1px solid var(--ss-line-2);cursor:pointer;${c.invitedResult==='accepted'?'background:var(--ss-sage-wash);color:var(--ss-sage);border-color:var(--ss-sage);':'background:var(--ss-surface);color:var(--ss-ink-soft);'}">✅ ${t2('Naʻe Tali','Accepted')}</button>
+                        <button onclick="bomSetInviteResult('${c.id}','rejected')" style="font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px;border:1px solid var(--ss-line-2);cursor:pointer;${c.invitedResult==='rejected'?'background:var(--ss-red-wash);color:var(--ss-red);border-color:var(--ss-red);':'background:var(--ss-surface);color:var(--ss-ink-soft);'}">🚫 ${t2('Naʻe Taliteʻi','Rejected')}</button>` : ''}
+                    </div>
                     <div class="flex items-center justify-between" style="font-size:11.5px;color:var(--ss-muted);">
                         <span>${t('Week of')} ${fmtWeek(c.weekOf)}${c.org?' · 🏛️ '+esc(bomOrgLabel(c.org)):''}</span>
                         <button onclick="bomDelete('${c.id}')" style="background:none;border:0;color:var(--ss-muted);cursor:pointer;font-size:12px;">${t('Remove')}</button>
@@ -3666,6 +3875,20 @@
                     <div class="bom-stat"><div class="num">${thisWeek.length}</div><div class="lbl">${t('Pledged this week')}</div></div>
                     <div class="bom-stat"><div class="num">${givenAll}</div><div class="lbl">${t('Copies given away')}</div></div>
                     <div class="bom-stat"><div class="num">${referredAll}</div><div class="lbl">${t('Referred to missionaries')}</div></div>
+                </div>
+
+                <div class="bom-hero">
+                    <div class="bom-stat"><div class="num">${invitedAll}</div><div class="lbl">${t2('Naʻe Fakaʻaʻaa','Invitations Given')}</div></div>
+                    <div class="bom-stat"><div class="num" style="color:var(--ss-sage);">${acceptedAll}</div><div class="lbl">${t2('Naʻe Tali','Accepted')}</div></div>
+                    <div class="bom-stat"><div class="num" style="color:var(--ss-red);">${rejectedAll}</div><div class="lbl">${t2('Naʻe Taliteʻi','Rejected')}</div></div>
+                    <div class="bom-stat"><div class="num">${acceptRate}%</div><div class="lbl">${t2('Tuʻunga Tali','Acceptance Rate')}</div></div>
+                </div>
+
+                <div style="border-left:3px solid var(--ss-gold);background:var(--ss-gold-wash);border-radius:0 12px 12px 0;padding:14px 18px;margin:0 0 20px;">
+                    <p style="font-family:'Fraunces',Georgia,serif;font-style:italic;font-size:15px;color:var(--ss-ink);line-height:1.6;margin:0;">
+                        “${t2('Naʻa mo kinautolu ʻoku nau taliteʻi koe, ʻe ʻi ai ha ʻaho te nau fakafetaʻi atu kiate koe.','Even those who reject you, will someday thank you.')}”
+                    </p>
+                    <p style="font-size:12.5px;font-weight:700;color:var(--ss-gold-deep);margin:6px 0 0;">— ${t2('Eta Henry B. Eyring','Elder Henry B. Eyring')}</p>
                 </div>
 
                 ${section(t2('ʻO e Uike Ní','This Week'), t2('Toʻo ʻi he uike ní','Taken this week'), thisWeek)}
@@ -3767,7 +3990,7 @@
         window.saveToFirebase = saveToFirebase;
 
         // Deep-link routing: a shared link like …/#promise opens that tab.
-        const HASH_VIEWS = { tracker:'tracker', thisweek:'thisweek', actionboard:'actionboard', charts:'charts', kpi:'charts', events:'events', calendar:'events', promise:'promise', '21day':'promise', bom:'bomchallenge', bomchallenge:'bomchallenge' };
+        const HASH_VIEWS = { tracker:'tracker', thisweek:'thisweek', actionboard:'actionboard', charts:'charts', kpi:'charts', events:'events', calendar:'events', promise:'promise', '21day':'promise', bom:'bomchallenge', bomchallenge:'bomchallenge', covenant:'covenant', covenantpath:'covenant' };
         function applyHashView(){
             const h = (location.hash || '').replace('#','').toLowerCase();
             if (HASH_VIEWS[h]) state.viewMode = HASH_VIEWS[h];
