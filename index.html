@@ -375,6 +375,24 @@
         let storage = null;
         try { if (USE_STORAGE) storage = getStorage(app); } catch(e){ storage = null; }
 
+        // Base URL of "The Challenge" app. Change this ONE line if that repo is named
+        // something other than "the-challenge". No trailing slash.
+        const CHALLENGE_URL = 'https://filipefa1998-sudo.github.io/The-Challenge';
+        // Small link banner shown at the top of the Promise / B.O.M. / Reading tabs.
+        function challengeLink(hash, emoji, titleTo, titleEn, subTo, subEn){
+            return `<a href="${CHALLENGE_URL}/#${hash}" target="_blank" rel="noopener"
+                style="display:flex;align-items:center;justify-content:space-between;gap:12px;text-decoration:none;margin:0 0 16px;padding:14px 18px;border-radius:14px;background:linear-gradient(90deg,var(--ss-gold),var(--ss-gold-deep));box-shadow:0 10px 26px rgba(0,0,0,.16);">
+                <span style="display:flex;align-items:center;gap:12px;">
+                    <span style="font-size:26px;">${emoji}</span>
+                    <span style="display:flex;flex-direction:column;line-height:1.25;">
+                        <span style="font-weight:900;font-size:15px;color:#1a1205;">${t2(titleTo,titleEn)}</span>
+                        <span style="font-weight:700;font-size:11px;color:#5b3f12;">${t2(subTo,subEn)}</span>
+                    </span>
+                </span>
+                <span style="font-weight:900;font-size:20px;color:#1a1205;">→</span>
+            </a>`;
+        }
+
         const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
         // ── Language Toggle ─────────────────────────────────
@@ -1818,6 +1836,7 @@
             let name=''; try { name = localStorage.getItem('f5_checkin_name') || ''; } catch(e){}
             if(!name){
                 return `<div style="max-width:440px;margin:0 auto;">
+                    ${challengeLink('join-read','🐢','Hū ki he ʻAppi “The Challenge”','Open in The Challenge app','Kau ki he lova fonu — Lau Tohi','Join the Reading turtle race')}
                     ${wardThermometerHTML()}
                     <div class="ngatu-panel" style="background:var(--ss-surface);border:1px solid var(--ss-line);border-radius:18px;padding:24px;text-align:center;box-shadow:0 14px 40px rgba(0,0,0,.18);">
                         <div style="font-size:36px;">📖</div>
@@ -1834,6 +1853,7 @@
             const today = new Date().toISOString().split('T')[0];
             const doneToday = dates.includes(today);
             return `<div style="max-width:440px;margin:0 auto;">
+                ${challengeLink('join-read','🐢','Hū ki he ʻAppi “The Challenge”','Open in The Challenge app','Kau ki he lova fonu — Lau Tohi','Join the Reading turtle race')}
                 ${wardThermometerHTML()}
                 <div class="ngatu-panel" style="background:var(--ss-surface);border:1px solid var(--ss-line);border-radius:18px;padding:24px;text-align:center;box-shadow:0 14px 40px rgba(0,0,0,.18);">
                     <p style="color:var(--ss-ink-soft);font-size:13px;margin:0;">${t2('Mālō e lelei','Welcome back')},</p>
@@ -3891,6 +3911,7 @@
             const total = SCRIPTURES.length, complete = p21Complete(), pct = Math.round(complete/total*100);
 
             return `<div class="ss-panel">
+                ${challengeLink('join-21','🏁','Hū ki he ʻAppi “The Challenge”','Open in The Challenge app','Kau ki he lova vaka — ʻAho ʻe 21','Join the 21-Day boat race')}
                 <div class="mb-4"><div class="ss-eyebrow">${t2('Ngāue Fakafaifekau','Member Missionary Work')}</div><h2 class="ss-h2">${t2('Palōmesi ʻAho ʻe 21','The 21-Day Promise')}</h2></div>
                 ${imageSlot('promise', { label: t2('Foto','Photo') })}
                 <div class="promise-progress">
@@ -4050,6 +4071,7 @@
             const olderWeeks = list.filter(c=>!isThisWeek(c.weekOf));
 
             return `<div class="ss-panel">
+                ${challengeLink('join-bom','🚗','Hū ki he ʻAppi “The Challenge”','Open in The Challenge app','Kau ki he lova kaa — Tufa Tohi','Join the Hand-Out car race')}
                 ${imageSlot('bom', { label: t2('Foto ki he Pole Tohi ʻa Molomoná','Photo (top of B.O.M. Challenge)') })}
                 ${wardThermometerHTML()}
                 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 16px;">
