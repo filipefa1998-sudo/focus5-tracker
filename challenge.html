@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>21-Day Book of Mormon Challenge — Riverton 24th Tongan Ward</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+
+        @keyframes bob {
+            0%, 100% { transform: translateY(0) rotate(-1deg); }
+            50% { transform: translateY(-6px) rotate(1deg); }
+        }
+        @keyframes waveMove {
+            0% { background-position-x: 0; }
+            100% { background-position-x: 80px; }
+        }
+        @keyframes sail {
+            0% { left: var(--start); }
+            100% { left: var(--end); }
+        }
+        .boat { animation: bob 3s ease-in-out infinite; }
+        .river {
+            background: linear-gradient(180deg, #7dd3fc 0%, #38bdf8 40%, #0ea5e9 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .river::after {
+            content: '';
+            position: absolute; inset: 0;
+            background-image: repeating-linear-gradient(90deg, rgba(255,255,255,0.25) 0 8px, transparent 8px 40px);
+            animation: waveMove 3s linear infinite;
+            opacity: 0.5;
+        }
+        .hover-lift { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+        .hover-lift:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(0,0,0,0.2); }
+        .boat-track { transition: left 1.2s cubic-bezier(0.34, 1.2, 0.64, 1); }
+        @media (max-width: 768px) {
+            .hover-lift:hover { transform: none; }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div id="app"></div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, set, onValue, update, remove } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAMTk39-yO86IA36-ZzBCtpLswW4skCIH4",
+            authDomain: "focus5-cd663.firebaseapp.com",
+            databaseURL: "https://focus5-cd663-default-rtdb.firebaseio.com",
+            projectId: "focus5-cd663"
+        };
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const challengeRef = ref(database, 'challenge21');
+
+        const CHALLENGE_DAYS = 21;
+        const PAGE_URL = 'https://filipefa1998-sudo.github.io/focus5-tracker/challenge.html';
+
+        const ORGANIZATIONS = [
+            'Elders Quorum', 'Relief Society', 'Young Men', 'Young Women',
+            'Primary', 'Sunday School', 'Young Single Adult'
+        ];
+
+        // Team 1..8 — edit this number to add/remove teams
+        const TEAMS = Array.from({ length: 8 }, (_, i) => `Team ${i + 1}`);
+
+        // Boat colors + emoji per team
+        const TEAM_STYLE = [
+            { boat: '⛵', color: 'from-red-500 to-red-600', text: 'text-red-700', bg: 'bg-red-50', border: 'border-red-300' },
+            { boat: '🚤', color: 'from-blue-500 to-blue-600', text: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-300' },
+            { boat: '⛵', color: 'from-green-500 to-green-600', text: 'text-green-700', bg: 'bg-green-50', border: 'border-green-300' },
+            { boat: '🚤', color: 'from-purple-500 to-purple-600', text: 'text-purple-700', bg: 'bg-purple-50', border: 'border-purple-300' },
+            { boat: '⛵', color: 'from-amber-500 to-amber-600', text: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-300' },
+            { boat: '🚤', color: 'from-pink-500 to-pink-600', text: 'text-pink-700', bg: 'bg-pink-50', border: 'border-pink-300' },
+            { boat: '⛵', color: 'from-teal-500 to-teal-600', text: 'text-teal-700', bg: 'bg-teal-50', border: 'border-teal-300' },
+            { boat: '🚤', color: 'from-indigo-500 to-indigo-600', text: 'text-indigo-700', bg: 'bg-indigo-50', border: 'border-indigo-300' }
+        ];
+
+        let state = {
+            participants: [],
+            loaded: false,
+            view: 'race',        // 'race' | 'join' | 'roster'
+            message: ''
+        };
+
+        // Auto-open join form when scanned via QR anchor
+        if (window.location.hash === '#join' || window.location.hash === '#promise') {
+            state.view = 'join';
+        }
+
+        onValue(challengeRef, (snap) => {
+            const data = snap.val();
+            state.participants = data ? Object.keys(data).map(k => ({ id: k, ...data[k] })) : [];
+            state.loaded = true;
+            render();
+        });
+
+        function showMessage(msg) {
+            state.message = msg;
+            render();
+            setTimeout(() => { state.message = ''; render(); }, 3000);
+        }
+
+        // ---- Data helpers ----
+        function daysCompleted(p) {
+            return (p.days || []).filter(Boolean).length;
+        }
+        function isComplete(p) {
+            return daysCompleted(p) >= CHALLENGE_DAYS;
+        }
+        function teamMembers(team) {
+            return state.participants.filter(p => p.team === team);
+        }
+        // Team progress = average of members' days completed / total days (0..1)
+        function teamProgress(team) {
+            const members = teamMembers(team);
+            if (members.length === 0) return 0;
+            const totalDays = members.reduce((s, p) => s + daysCompleted(p), 0);
+            return totalDays / (members.length * CHALLENGE_DAYS);
+        }
+
+        // ---- Actions ----
+        window.setView = (v) => { state.view = v; render(); };
+
+        window.joinChallenge = () => {
+            const name = document.getElementById('joinName').value.trim();
+            const org = document.getElementById('joinOrg').value;
+            const team = document.getElementById('joinTeam').value;
+            if (!name) { alert('Please enter your name'); return; }
+            if (!team) { alert('Please pick a team'); return; }
+
+            const id = 'p_' + Date.now();
+            set(ref(database, `challenge21/${id}`), {
+                name, org, team,
+                days: Array(CHALLENGE_DAYS).fill(false),
+                startDate: new Date().toISOString().split('T')[0],
+                completedDate: null,
+                createdAt: new Date().toISOString()
+            }).then(() => {
+                state.view = 'roster';
+                showMessage(`🎉 Welcome aboard, ${name}! You're on ${team}.`);
+            });
+        };
+
+        window.toggleDay = (id, dayIdx) => {
+            const p = state.participants.find(x => x.id === id);
+            if (!p) return;
+            const days = [...(p.days || Array(CHALLENGE_DAYS).fill(false))];
+            days[dayIdx] = !days[dayIdx];
+            const completedCount = days.filter(Boolean).length;
+            const completedDate = completedCount >= CHALLENGE_DAYS
+                ? (p.completedDate || new Date().toISOString().split('T')[0])
+                : null;
+            update(ref(database, `challenge21/${id}`), { days, completedDate });
+        };
+
+        window.markAllDone = (id) => {
+            const p = state.participants.find(x => x.id === id);
+            if (!p) return;
+            update(ref(database, `challenge21/${id}`), {
+                days: Array(CHALLENGE_DAYS).fill(true),
+                completedDate: p.completedDate || new Date().toISOString().split('T')[0]
+            });
+            showMessage(`🏁 ${p.name} finished all 21 days!`);
+        };
+
+        window.removeParticipant = (id) => {
+            const p = state.participants.find(x => x.id === id);
+            if (!p) return;
+            if (confirm(`Remove ${p.name} from the challenge?`)) {
+                remove(ref(database, `challenge21/${id}`));
+            }
+        };
+
+        window.printQR = () => {
+            const qrHtml = document.getElementById('qrBox').innerHTML;
+            const w = window.open('', '_blank');
+            w.document.write(`
+                <html><head><title>21-Day Challenge QR</title>
+                <style>body{font-family:sans-serif;text-align:center;padding:40px;}
+                h1{color:#1e3a5f;} p{color:#555;font-size:18px;}</style></head>
+                <body>
+                    <h1>📖 21-Day Book of Mormon Challenge</h1>
+                    <p>Riverton 24th Tongan Ward</p>
+                    <div style="display:inline-block;padding:20px;border:4px solid #d97706;border-radius:20px;margin:20px;">${qrHtml}</div>
+                    <p><strong>Scan to join the challenge!</strong></p>
+                    <p style="font-size:14px;color:#888;">${PAGE_URL}</p>
+                </body></html>
+            `);
+            w.document.close();
+            setTimeout(() => w.print(), 400);
+        };
+
+        // ---- Rendering ----
+        function render() {
+            const appEl = document.getElementById('app');
+            if (!state.loaded) {
+                appEl.innerHTML = `<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-100 to-blue-200"><div class="text-center"><div class="text-6xl mb-4">📖</div><p class="text-xl font-bold text-blue-900">Loading challenge...</p></div></div>`;
+                return;
+            }
+
+            appEl.innerHTML = `
+                <div class="min-h-screen bg-gradient-to-br from-sky-100 via-blue-100 to-indigo-100">
+                    <div class="max-w-6xl mx-auto p-3 md:p-6">
+                        <!-- Header -->
+                        <div class="text-center mb-6 md:mb-8 pt-4">
+                            <div class="text-5xl md:text-7xl mb-2">📖⛵</div>
+                            <h1 class="text-3xl md:text-5xl font-black text-blue-900 mb-1">21-Day Book of Mormon Challenge</h1>
+                            <p class="text-lg md:text-2xl font-bold text-blue-700">Riverton 24th Tongan Ward</p>
+                            <p class="text-sm md:text-base text-blue-600 mt-2 font-semibold">🏁 Finish the Book of Mormon with the Stake by year's end — one team, one voyage!</p>
+                        </div>
+
+                        ${state.message ? `<div class="mb-4 p-4 bg-green-500 text-white rounded-2xl font-bold text-center shadow-xl">${state.message}</div>` : ''}
+
+                        <!-- Nav -->
+                        <div class="flex gap-2 md:gap-3 justify-center mb-6 flex-wrap">
+                            <button onclick="setView('race')" class="px-5 md:px-8 py-3 rounded-xl font-black text-sm md:text-lg transition-all hover-lift border-2 ${state.view === 'race' ? 'bg-gradient-to-r from-blue-600 to-sky-600 text-white border-blue-800 shadow-lg' : 'bg-white text-blue-800 border-blue-200 hover:bg-blue-50'}">🚤 The Race</button>
+                            <button onclick="setView('roster')" class="px-5 md:px-8 py-3 rounded-xl font-black text-sm md:text-lg transition-all hover-lift border-2 ${state.view === 'roster' ? 'bg-gradient-to-r from-blue-600 to-sky-600 text-white border-blue-800 shadow-lg' : 'bg-white text-blue-800 border-blue-200 hover:bg-blue-50'}">📋 Roster & Progress</button>
+                            <button onclick="setView('join')" class="px-5 md:px-8 py-3 rounded-xl font-black text-sm md:text-lg transition-all hover-lift border-2 ${state.view === 'join' ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white border-amber-800 shadow-lg' : 'bg-white text-amber-800 border-amber-200 hover:bg-amber-50'}">➕ Join / QR</button>
+                        </div>
+
+                        ${state.view === 'race' ? renderRace() : state.view === 'roster' ? renderRoster() : renderJoin()}
+                    </div>
+                </div>
+            `;
+
+            if (state.view === 'join') renderQRCode();
+        }
+
+        function renderRace() {
+            // Rank teams by progress
+            const ranked = TEAMS
+                .map((t, i) => ({ team: t, idx: i, prog: teamProgress(t), members: teamMembers(t).length }))
+                .filter(t => t.members > 0)
+                .sort((a, b) => b.prog - a.prog);
+
+            if (ranked.length === 0) {
+                return `<div class="bg-white rounded-3xl shadow-xl p-10 text-center">
+                    <div class="text-7xl mb-4">🌊</div>
+                    <p class="text-2xl font-black text-blue-900">The river is calm...</p>
+                    <p class="text-lg text-blue-600 mt-2">No teams have set sail yet. Be the first — tap "Join / QR"!</p>
+                </div>`;
+            }
+
+            const leader = ranked[0];
+
+            return `
+                <div class="bg-white rounded-3xl shadow-xl p-4 md:p-8 mb-6">
+                    <div class="flex items-center justify-between mb-6 flex-wrap gap-2">
+                        <h2 class="text-2xl md:text-3xl font-black text-blue-900">🏆 Team Boat Race</h2>
+                        <div class="bg-gradient-to-r ${TEAM_STYLE[leader.idx].color} text-white px-4 py-2 rounded-full font-black text-sm md:text-base shadow-lg">
+                            Leading: ${leader.team} ${TEAM_STYLE[leader.idx].boat}
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        ${ranked.map((t, rank) => {
+                            const style = TEAM_STYLE[t.idx];
+                            const pct = Math.round(t.prog * 100);
+                            // Boat position: 2% to 88% of track width
+                            const pos = 2 + t.prog * 86;
+                            const medal = rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `#${rank + 1}`;
+                            return `
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="font-black ${style.text} text-sm md:text-base">${medal} ${t.team}</span>
+                                        <span class="font-bold text-blue-700 text-xs md:text-sm">${pct}% consistent · ${t.members} sailor${t.members !== 1 ? 's' : ''}</span>
+                                    </div>
+                                    <div class="river rounded-xl h-16 md:h-20 relative border-2 border-sky-300">
+                                        <!-- finish line -->
+                                        <div class="absolute top-0 bottom-0 right-1 flex items-center text-2xl md:text-3xl z-10">🏁</div>
+                                        <!-- boat -->
+                                        <div class="boat-track absolute top-1/2 -translate-y-1/2 z-20" style="left:${pos}%;">
+                                            <div class="boat text-3xl md:text-4xl drop-shadow-lg">${style.boat}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+
+                    <div class="mt-6 bg-sky-50 rounded-2xl p-4 border-2 border-sky-200">
+                        <p class="text-sm md:text-base text-blue-800 font-semibold">
+                            🌊 Each boat sails forward as its team reads consistently. A boat reaches the 🏁 finish line when every member completes all 21 days. Keep reading — steady wins the voyage!
+                        </p>
+                    </div>
+                </div>
+
+                ${renderCompletionBoard()}
+            `;
+        }
+
+        function renderCompletionBoard() {
+            const finishers = state.participants.filter(isComplete);
+            if (finishers.length === 0) return '';
+            return `
+                <div class="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-3xl shadow-xl p-4 md:p-8 border-2 border-amber-200">
+                    <h3 class="text-xl md:text-2xl font-black text-amber-900 mb-4">🏁 Finishers — Completed All 21 Days!</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                        ${finishers.map(p => `
+                            <div class="bg-white rounded-xl p-4 shadow-md border-2 border-amber-200 flex items-center gap-3">
+                                <div class="text-3xl">🎉</div>
+                                <div>
+                                    <div class="font-black text-amber-900">${p.name}</div>
+                                    <div class="text-xs text-amber-700 font-semibold">${p.team} · ${p.org || '—'}</div>
+                                    <div class="text-xs text-green-700 font-bold mt-1">✓ ${p.completedDate ? new Date(p.completedDate).toLocaleDateString() : 'Complete'}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderRoster() {
+            if (state.participants.length === 0) {
+                return `<div class="bg-white rounded-3xl shadow-xl p-10 text-center">
+                    <div class="text-7xl mb-4">📋</div>
+                    <p class="text-2xl font-black text-blue-900">No one has joined yet</p>
+                    <p class="text-lg text-blue-600 mt-2">Tap "Join / QR" to sign up or share the QR code.</p>
+                </div>`;
+            }
+
+            // Group participants by team
+            return `
+                <div class="space-y-6">
+                    ${TEAMS.map((team, tIdx) => {
+                        const members = teamMembers(team);
+                        if (members.length === 0) return '';
+                        const style = TEAM_STYLE[tIdx];
+                        return `
+                            <div class="bg-white rounded-3xl shadow-xl p-4 md:p-6 border-2 ${style.border}">
+                                <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                                    <h3 class="text-xl md:text-2xl font-black ${style.text} flex items-center gap-2">
+                                        ${style.boat} ${team}
+                                    </h3>
+                                    <span class="${style.bg} ${style.text} px-3 py-1 rounded-full font-bold text-sm">${members.length} member${members.length !== 1 ? 's' : ''} · ${Math.round(teamProgress(team) * 100)}% consistent</span>
+                                </div>
+                                <div class="space-y-4">
+                                    ${members.map(p => {
+                                        const done = daysCompleted(p);
+                                        const complete = isComplete(p);
+                                        return `
+                                            <div class="rounded-2xl p-4 ${complete ? 'bg-green-50 border-2 border-green-300' : style.bg + ' border-2 ' + style.border}">
+                                                <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                                                    <div>
+                                                        <span class="font-black text-blue-900 text-base md:text-lg">${p.name}</span>
+                                                        <span class="text-xs text-blue-600 font-semibold ml-2">${p.org || '—'}</span>
+                                                        ${complete ? `<span class="ml-2 bg-green-600 text-white px-2 py-1 rounded-full text-xs font-black">🏁 Done ${p.completedDate ? new Date(p.completedDate).toLocaleDateString() : ''}</span>` : ''}
+                                                    </div>
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="font-bold ${style.text} text-sm">${done}/21 days</span>
+                                                        ${!complete ? `<button onclick="markAllDone('${p.id}')" class="bg-green-600 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-green-700">Mark Complete</button>` : ''}
+                                                        <button onclick="removeParticipant('${p.id}')" class="text-red-400 hover:text-red-600 text-lg">🗑️</button>
+                                                    </div>
+                                                </div>
+                                                <!-- 21 day checkboxes -->
+                                                <div class="grid grid-cols-7 gap-1.5">
+                                                    ${Array.from({ length: CHALLENGE_DAYS }, (_, d) => {
+                                                        const checked = (p.days || [])[d];
+                                                        return `
+                                                            <button onclick="toggleDay('${p.id}', ${d})"
+                                                                class="aspect-square rounded-lg text-xs font-black transition-all flex items-center justify-center ${checked ? `bg-gradient-to-br ${style.color} text-white shadow-md` : 'bg-white text-gray-400 border-2 border-gray-200 hover:border-gray-400'}">
+                                                                ${checked ? '✓' : (d + 1)}
+                                                            </button>
+                                                        `;
+                                                    }).join('')}
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function renderJoin() {
+            return `
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Sign up form -->
+                    <div class="bg-white rounded-3xl shadow-xl p-6 md:p-8 border-2 border-amber-200">
+                        <h2 class="text-2xl md:text-3xl font-black text-amber-900 mb-6">➕ Join the Challenge</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-bold mb-2 text-gray-700">Your Name *</label>
+                                <input id="joinName" type="text" placeholder="First and last name" class="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:border-amber-500 focus:ring-4 focus:ring-amber-200 focus:outline-none font-semibold" />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2 text-gray-700">Ward Organization</label>
+                                <select id="joinOrg" class="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:border-amber-500 focus:ring-4 focus:ring-amber-200 focus:outline-none font-semibold">
+                                    <option value="">Select...</option>
+                                    ${ORGANIZATIONS.map(o => `<option value="${o}">${o}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold mb-2 text-gray-700">Challenge Team *</label>
+                                <select id="joinTeam" class="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:border-amber-500 focus:ring-4 focus:ring-amber-200 focus:outline-none font-semibold">
+                                    <option value="">Pick your boat...</option>
+                                    ${TEAMS.map((t, i) => `<option value="${t}">${TEAM_STYLE[i].boat} ${t} (${teamMembers(t).length} aboard)</option>`).join('')}
+                                </select>
+                            </div>
+                            <button onclick="joinChallenge()" class="w-full bg-gradient-to-r from-amber-600 to-amber-700 text-white px-6 py-4 rounded-xl font-black text-lg hover:from-amber-700 hover:to-amber-800 transition-all shadow-lg hover-lift">
+                                ⛵ Set Sail!
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- QR code -->
+                    <div class="bg-white rounded-3xl shadow-xl p-6 md:p-8 border-2 border-blue-200 text-center">
+                        <h2 class="text-2xl md:text-3xl font-black text-blue-900 mb-4">📱 Scan to Join</h2>
+                        <p class="text-sm text-blue-600 mb-4 font-semibold">Share this QR code — anyone who scans it lands right here to sign up.</p>
+                        <div id="qrBox" class="inline-block p-4 bg-white rounded-2xl border-4 border-blue-200 shadow-inner"></div>
+                        <div class="mt-4 flex gap-3 justify-center flex-wrap">
+                            <button onclick="printQR()" class="bg-gradient-to-r from-blue-600 to-sky-600 text-white px-6 py-3 rounded-xl font-bold hover:from-blue-700 hover:to-sky-700 transition-all shadow-lg hover-lift">🖨️ Print QR Flyer</button>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-4 break-all">${PAGE_URL}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderQRCode() {
+            const box = document.getElementById('qrBox');
+            if (!box) return;
+            box.innerHTML = '';
+            new QRCode(box, {
+                text: PAGE_URL + '#join',
+                width: 200,
+                height: 200,
+                colorDark: '#1e3a5f',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        render();
+    </script>
+</body>
+</html>
