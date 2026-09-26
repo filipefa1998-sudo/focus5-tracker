@@ -220,6 +220,10 @@
         .commit .txt .en{ display:block; color:var(--ss-muted); font-size:13px; margin-top:3px; }
         .contacts{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px; }
         .contact{ display:grid; grid-template-columns:1fr 130px; gap:8px; }
+        .p21-row{ display:grid; grid-template-columns:1.3fr 1fr 1fr auto; gap:10px; align-items:start; background:var(--ss-surface-2); border:1px solid var(--ss-line-2); border-radius:11px; padding:10px 12px; }
+        @media(max-width:640px){ .p21-row{ grid-template-columns:1fr 1fr; } .p21-row > :first-child{ grid-column:1 / -1; } .p21-row > :last-child{ grid-column:1 / -1; justify-self:end; } }
+        .fm-card{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:16px 18px; border-radius:14px; border:1px solid var(--ss-line); background:var(--ss-surface-2); }
+        .fm-card .num{ font-family:'Fraunces',Georgia,serif; font-size:22px; color:var(--ss-gold-deep); letter-spacing:.02em; }
 
         /* Book of Mormon Challenge */
         .bom-hero{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:8px; }
@@ -387,6 +391,9 @@
             body { background: white !important; }
             #app { display: none !important; }
             #printReport { display: block !important; }
+            #ssToast, #ssCal, #ssCalBackdrop, .fixed { display: none !important; }
+            html, body { background: #fff !important; }
+            .pn-canvas { display: none !important; }
         }
     </style>
     <script>
@@ -695,6 +702,7 @@
             '📖 Scripture Study': { to: '📖 Ako Tohi Tapu' },
             '🙏 Spiritual': { to: '🙏 Laumālie' },
             '🏃 Youth Activity': { to: '🏃 Ngāue Talavou' },
+            '⛪ Sunday Worship': { to: '⛪ Lotu Sāpate' },
             // ── Bare-text aliases (same translation, no emoji prefix) ──
             'Key Indicators':             { to: 'Fakaʻilonga Mahuʻinga' },
             'Add Person':                 { to: 'Tāpuni Tangata' },
@@ -1268,6 +1276,7 @@
             closeCal();
             if (kind === 'next') quickSetDate(id, tab, iso, true);
             else if (kind === 'bd') setBaptismDate(id, tab, iso);
+            else if (kind === 'promise') promiseUpdatePerson(id, tab, iso);
             else if (kind === 'field') {
                 const inp = document.getElementById(target); if (inp) inp.value = iso;
                 if (btn) { btn.dataset.value = iso; btn.classList.toggle('empty', !iso);
@@ -1360,214 +1369,230 @@
         };
 
         // ── Feature #5: Ward Council Report ─────────────────
+        const MISSIONARY_PHONE = '385-253-9383';   // full-time missionaries — fixed
+        const EVENT_TYPES = ['⛪ Sunday Worship','🏛️ Church Activity','🎉 Social Event','⚾ Sports/Recreation','🤝 Service Project','👨‍👩‍👧 Family Activity','📖 Scripture Study','🙏 Spiritual','🏃 Youth Activity'];
+        // store the English value (so colors/filters work in either language), show the translated label
+        const eventTypeOptions = (sel) => EVENT_TYPES.map(v => `<option value="${v}" ${v===sel?'selected':''}>${t(v)}</option>`).join('');
+
+        // ── Ward Council Report ─────────────────────────────────────────
+        // One builder feeds both the on-screen view and print, with its own light "paper" styling
+        // so it prints cleanly regardless of dark/light theme.
+        const WCR_CSS = `
+            .wcr{font-family:'Manrope',Arial,sans-serif;color:#1b2233;background:#fff;line-height:1.35;font-size:13px}
+            .wcr *{box-sizing:border-box}
+            .wcr h1,.wcr h3,.wcr b,.wcr td,.wcr div{color:#1b2233}
+            .wcr h1,.wcr h3{color:#1b2233!important;-webkit-text-fill-color:#1b2233;text-shadow:none;background:none}
+            .wcr h1{font-family:Georgia,serif;font-size:22px;margin:0}
+            .wcr .sub{color:#7a6326;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;margin-top:3px}
+            .wcr .meta{color:#666;font-size:11.5px;margin-top:4px}
+            .wcr h3{font-family:Georgia,serif;font-size:15.5px;margin:18px 0 8px;padding-bottom:4px;border-bottom:2px solid #e3d6b3;display:flex;align-items:center;gap:8px;page-break-after:avoid}
+            .wcr h3 .n{font-family:Arial,sans-serif;font-size:11px;background:#f3ecd9;color:#7a6326;border-radius:99px;padding:2px 8px}
+            .wcr .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+            .wcr .kpi{border:1px solid #e3d6b3;border-radius:10px;padding:9px 8px;text-align:center;background:#fcfaf4}
+            .wcr .kpi b{display:block;font-size:22px;font-family:Georgia,serif;color:#1b2233;line-height:1.05}
+            .wcr .kpi span{font-size:10.5px;color:#666;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+            .wcr .kpi i{font-style:normal;font-size:10.5px;font-weight:800}
+            .wcr .up{color:#2f7d4f}.wcr .down{color:#b3413f}.wcr .flat{color:#888}
+            .wcr table{width:100%;border-collapse:collapse;font-size:12px}
+            .wcr th{background:#f3ecd9;color:#4d3f17;text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;padding:5px 7px;border:1px solid #e3d6b3}
+            .wcr td{padding:5px 7px;border:1px solid #ebe4d0;vertical-align:top}
+            .wcr tr{page-break-inside:avoid}
+            .wcr td.c,.wcr th.c{text-align:center}
+            .wcr .zero{color:#bbb}
+            .wcr .tag{display:inline-block;font-size:10.5px;font-weight:800;padding:1px 6px;border-radius:5px;background:#f1f1f1;color:#444;margin:1px 2px 1px 0}
+            .wcr .tag.red{background:#fbe3e2;color:#a13431}.wcr .tag.gold{background:#f6ecd0;color:#7a6326}.wcr .tag.green{background:#e0f1e6;color:#2f7d4f}
+            .wcr .empty{color:#888;font-style:italic;padding:6px 0}
+            .wcr .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+            .wcr .funnel{display:flex;gap:4px;align-items:stretch}
+            .wcr .funnel div{flex:1;text-align:center;border:1px solid #e3d6b3;border-radius:8px;padding:6px 4px;background:#fcfaf4}
+            .wcr .funnel b{display:block;font-size:17px;font-family:Georgia,serif}
+            .wcr .funnel span{font-size:10px;color:#666;font-weight:700}
+            .wcr .lines div{border-bottom:1px solid #ccc;height:26px}
+            .wcr .foot{margin-top:18px;padding-top:8px;border-top:1px solid #e3d6b3;color:#888;font-size:10.5px;text-align:center}
+            .wcr .sec{page-break-inside:avoid}
+            @media(max-width:640px){ .wcr .kpis{grid-template-columns:repeat(2,1fr)} .wcr .two{grid-template-columns:1fr} .wcr table{font-size:11px} }
+            @media print{ .wcr{font-size:11.5px} .wcr .kpis{grid-template-columns:repeat(4,1fr)} .wcr .two{grid-template-columns:1fr 1fr} }
+        `;
+
+        function buildWardReportHTML() {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const mIdx = today.getMonth(), mKey = MONTHS[mIdx], prevKey = mIdx > 0 ? MONTHS[mIdx-1] : null;
+            const monthName = today.toLocaleString('en-US', { month:'long' });
+            const ytdKeys = MONTHS.slice(0, mIdx + 1);
+            const named = arr => (arr||[]).filter(p => p.name && p.name.trim());
+            const inv = named(state.investigators).map(p => ({ ...p, _type:'Non-member' }));
+            const ret = named(state.returning).map(p => ({ ...p, _type:'Returning' }));
+            const all = [...inv, ...ret];
+            const cp = state.covenantPath || [];
+            const days = iso => Math.round((parseLocalDate(iso) - today) / 86400000);
+            const fd = iso => iso ? parseLocalDate(iso).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }) : '—';
+            const acts = (p, keys) => keys.reduce((a,k) => a.concat(p.progress?.[k] || []), []);
+            const allActs = p => Object.values(p.progress||{}).flat();
+            const count = (list, keys) => list.reduce((s,p) => s + acts(p, keys).length, 0);
+            const org = p => p.assignedTo ? esc(p.assignedTo) : '<span class="tag red">Unassigned</span>';
+            const typeTag = p => `<span class="tag ${p._type==='Non-member'?'gold':'green'}">${p._type}</span>`;
+            const delta = (cur, prev) => prev === null ? '' : cur > prev ? `<i class="up">▲ ${cur-prev} vs ${MONTHS[mIdx-1]}</i>` : cur < prev ? `<i class="down">▼ ${prev-cur} vs ${MONTHS[mIdx-1]}</i>` : `<i class="flat">= ${MONTHS[mIdx-1]}</i>`;
+
+            // Headline KPIs
+            const actsNow = count(all, [mKey]), actsPrev = prevKey ? count(all, [prevKey]) : null;
+            const contacted30 = all.filter(p => p.lastContactDate && days(p.lastContactDate) >= -30).length;
+            const engagedMonth = all.filter(p => acts(p,[mKey]).length).length;
+            const overdue = all.filter(p => !p.taskDone && p.nextContactDate && days(p.nextContactDate) < 0).sort((a,b)=>a.nextContactDate.localeCompare(b.nextContactDate));
+            const bdPeople = all.filter(p => allActs(p).includes('BD') && !allActs(p).includes('B')).sort((a,b)=>(a.baptismDate||'9999').localeCompare(b.baptismDate||'9999'));
+            const yr = String(today.getFullYear());
+            const baptizedYTD = cp.filter(p => (p.baptismDate||'').startsWith(yr)).length;
+            const churchNow = all.filter(p => acts(p,[mKey]).includes('AC')).length;
+
+            // Upcoming appointments (next 14 days)
+            const appts = all.filter(p => !p.taskDone && p.nextContactDate && days(p.nextContactDate) >= 0 && days(p.nextContactDate) <= 14)
+                .sort((a,b)=>a.nextContactDate.localeCompare(b.nextContactDate));
+
+            // KPI by indicator, split Non-member vs Returning
+            const kRows = INDICATORS.map(ind => {
+                const c = (list, keys) => list.reduce((s,p) => s + acts(p,keys).filter(x=>x===ind.code).length, 0);
+                return { ind, im: c(inv,[mKey]), iy: c(inv,ytdKeys), rm: c(ret,[mKey]), ry: c(ret,ytdKeys) };
+            });
+            const kCell = v => `<td class="c ${v?'':'zero'}">${v}</td>`;
+            const invTotalM = kRows.reduce((s,r)=>s+r.im,0), invTotalY = kRows.reduce((s,r)=>s+r.iy,0);
+            const retTotalM = kRows.reduce((s,r)=>s+r.rm,0), retTotalY = kRows.reduce((s,r)=>s+r.ry,0);
+            const invitesM = kRows.filter(r=>INVITATION_CODES.includes(r.ind.code)).reduce((s,r)=>s+r.im+r.rm,0);
+
+            // Progress funnels (people who have ever reached each step this year)
+            const reached = (list, codes) => list.filter(p => allActs(p).some(c => codes.includes(c))).length;
+            const invFunnel = [['Tracked', inv.length], ['Invited', reached(inv, INVITATION_CODES)], ['At church', reached(inv,['AC'])], ['Lessons', reached(inv,['TML'])], ['Bapt. date', reached(inv,['BD'])], ['Baptized', baptizedYTD]];
+            const retFunnel = [['Tracked', ret.length], ['Contacted', ret.filter(p=>allActs(p).length).length], ['At church', reached(ret,['AC'])], ['Reading BOM', reached(ret,['RBOM'])], ['Activities', reached(ret,['ACA','ASP'])], ['Active', reached(ret,['ACTIVE'])]];
+            const funnel = f => `<div class="funnel">${f.map(([l,v])=>`<div><b>${v}</b><span>${l}</span></div>`).join('')}</div>`;
+
+            // Organization accountability
+            const ORGS = ['Elders Quorum','Relief Society','Young Men','Young Women','Sunday School/Primary','Young Single Adults'];
+            const orgRows = [...ORGS, ''].map(o => {
+                const ppl = all.filter(p => (p.assignedTo||'') === o);
+                if (!ppl.length) return '';
+                return `<tr><td>${o || '<span class="tag red">Unassigned</span>'}</td><td class="c">${ppl.length}</td>
+                    <td class="c">${ppl.filter(p=>p.lastContactDate && days(p.lastContactDate) >= -30).length}</td>
+                    <td class="c ${ppl.filter(p=>!p.taskDone && p.nextContactDate && days(p.nextContactDate)<0).length?'':'zero'}">${ppl.filter(p=>!p.taskDone && p.nextContactDate && days(p.nextContactDate)<0).length}</td>
+                    <td class="c">${count(ppl,[mKey])}</td></tr>`;
+            }).join('');
+
+            // Needs attention
+            // no activity ever, or nothing logged this/last month AND no contact in 30+ days
+            const stale = all.filter(p => {
+                if (!allActs(p).length) return true;
+                const recentActs = acts(p, [mKey, prevKey].filter(Boolean)).length;
+                const recentContact = p.lastContactDate && days(p.lastContactDate) >= -30;
+                return !recentActs && !recentContact;
+            });
+
+            const events = (state.events||[]).filter(e => e.date && days(e.date) >= 0 && days(e.date) <= 14).sort((a,b)=>a.date.localeCompare(b.date));
+
+            // Strengths / gaps (YTD)
+            const ranked = kRows.map(r => [r.ind, r.iy + r.ry]).sort((a,b)=>b[1]-a[1]);
+            const strong = ranked.filter(([,v])=>v>0).slice(0,4);
+            const weak = ranked.filter(([i,v])=>v===0 && !['B','C','ACTIVE'].includes(i.code)).slice(0,5);
+
+            return `<div class="wcr">
+                <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;">
+                    <div><h1>Riverton 24th Tongan Ward</h1><div class="sub">Ward Council Report · ${monthName} ${today.getFullYear()}</div></div>
+                    <div class="meta">Prepared ${today.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}<br>Missionaries: ${MISSIONARY_PHONE}</div>
+                </div>
+
+                <h3>📊 At a Glance</h3>
+                <div class="kpis">
+                    <div class="kpi"><b>${inv.length}</b><span>Non-members</span></div>
+                    <div class="kpi"><b>${ret.length}</b><span>Returning</span></div>
+                    <div class="kpi"><b>${bdPeople.length}</b><span>Baptismal dates</span></div>
+                    <div class="kpi"><b>${baptizedYTD}</b><span>Baptized ${yr}</span></div>
+                    <div class="kpi"><b>${actsNow}</b><span>Activities (${mKey})</span>${delta(actsNow, actsPrev)}</div>
+                    <div class="kpi"><b>${all.length ? Math.round(engagedMonth/all.length*100) : 0}%</b><span>Engaged this month</span></div>
+                    <div class="kpi"><b>${churchNow}</b><span>At church (${mKey})</span></div>
+                    <div class="kpi"><b style="color:${overdue.length?'#b3413f':'inherit'}">${overdue.length}</b><span>Overdue follow-ups</span></div>
+                </div>
+
+                <div class="sec"><h3>📅 Baptismal Dates <span class="n">${bdPeople.length}</span></h3>
+                ${bdPeople.length ? `<table><tr><th>Name</th><th>Type</th><th>Assigned to</th><th>Baptism date</th><th class="c">Days</th><th>Next step</th></tr>
+                    ${bdPeople.map(p => `<tr><td><b>${esc(p.name)}</b></td><td>${typeTag(p)}</td><td>${org(p)}</td>
+                        <td>${p.baptismDate ? fd(p.baptismDate) : '<span class="tag red">Date needed</span>'}</td>
+                        <td class="c">${p.baptismDate ? (days(p.baptismDate) >= 0 ? days(p.baptismDate) : '<span class="tag red">past</span>') : '—'}</td>
+                        <td>${esc(p.nextAction||'')}</td></tr>`).join('')}</table>`
+                    : `<div class="empty">No one has a baptismal date set. (Check 📅 BD in the Monthly Tracker.)</div>`}</div>
+
+                <div class="sec"><h3>🗓️ Upcoming Appointments — next 14 days <span class="n">${appts.length}</span></h3>
+                ${appts.length ? `<table><tr><th>Date</th><th>Name</th><th>Type</th><th>Assigned to</th><th>Planned action</th></tr>
+                    ${appts.map(p => `<tr><td><b>${days(p.nextContactDate)===0?'Today':days(p.nextContactDate)===1?'Tomorrow':fd(p.nextContactDate)}</b></td><td>${esc(p.name)}</td><td>${typeTag(p)}</td><td>${org(p)}</td><td>${esc(p.nextAction||'Follow up')}</td></tr>`).join('')}</table>`
+                    : `<div class="empty">No appointments scheduled in the next two weeks.</div>`}</div>
+
+                ${overdue.length ? `<div class="sec"><h3>⏰ Overdue Follow-ups <span class="n">${overdue.length}</span></h3>
+                    <table><tr><th>Was due</th><th>Name</th><th>Type</th><th>Assigned to</th><th>Planned action</th></tr>
+                    ${overdue.map(p => `<tr><td><span class="tag red">${-days(p.nextContactDate)}d late</span> ${fd(p.nextContactDate)}</td><td>${esc(p.name)}</td><td>${typeTag(p)}</td><td>${org(p)}</td><td>${esc(p.nextAction||'Contact needed')}</td></tr>`).join('')}</table></div>` : ''}
+
+                <div class="sec"><h3>📈 Progress Pipeline</h3>
+                <div class="two">
+                    <div><div style="font-weight:800;font-size:11px;color:#7a6326;margin-bottom:4px;">NON-MEMBERS</div>${funnel(invFunnel)}</div>
+                    <div><div style="font-weight:800;font-size:11px;color:#2f7d4f;margin-bottom:4px;">RETURNING MEMBERS</div>${funnel(retFunnel)}</div>
+                </div></div>
+
+                <div class="sec"><h3>✅ Activities by Indicator</h3>
+                <table><tr><th rowspan="2">Indicator</th><th class="c" colspan="2">Non-members</th><th class="c" colspan="2">Returning</th></tr>
+                    <tr><th class="c">${mKey}</th><th class="c">YTD</th><th class="c">${mKey}</th><th class="c">YTD</th></tr>
+                    ${kRows.filter(r => r.iy || r.ry).map(r => `<tr><td>${r.ind.emoji} <b>${r.ind.code}</b> — ${esc(r.ind.name)}</td>${kCell(r.im)}${kCell(r.iy)}${kCell(r.rm)}${kCell(r.ry)}</tr>`).join('') || `<tr><td colspan="5" class="empty">No activities logged yet this year.</td></tr>`}
+                    <tr style="font-weight:800;background:#fcfaf4"><td>Total · ${invitesM} invitations this month</td><td class="c">${invTotalM}</td><td class="c">${invTotalY}</td><td class="c">${retTotalM}</td><td class="c">${retTotalY}</td></tr>
+                </table></div>
+
+                <div class="sec"><h3>👥 Organization Accountability</h3>
+                ${orgRows ? `<table><tr><th>Organization</th><th class="c">Assigned</th><th class="c">Contacted (30d)</th><th class="c">Overdue</th><th class="c">Activities (${mKey})</th></tr>${orgRows}</table>` : `<div class="empty">No one tracked yet.</div>`}</div>
+
+                ${stale.length ? `<div class="sec"><h3>🔴 Needs Attention — no activity or no contact in 30+ days <span class="n">${stale.length}</span></h3>
+                    <div>${stale.map(p => `<span class="tag ${p._type==='Non-member'?'gold':'green'}">${esc(p.name)}${p.assignedTo?' · '+esc(p.assignedTo):' · unassigned'}</span>`).join(' ')}</div></div>` : ''}
+
+                <div class="two">
+                    <div class="sec"><h3>💪 Where We're Strong</h3>${strong.length ? strong.map(([i,v]) => `<div>${i.emoji} <b>${i.code}</b> ${esc(i.name)} — ${v}× YTD</div>`).join('') : '<div class="empty">No data yet.</div>'}</div>
+                    <div class="sec"><h3>⚠️ Gaps to Focus On</h3>${weak.length ? weak.map(([i]) => `<div>${i.emoji} <b>${i.code}</b> ${esc(i.name)} — none yet</div>`).join('') : '<div class="empty">Nothing flagged 🎉</div>'}</div>
+                </div>
+
+                ${cp.length ? `<div class="sec"><h3>✨ Covenant Path <span class="n">${cp.length}</span></h3>
+                    <table><tr><th>Name</th><th>Baptized</th><th class="c">Ordinances</th><th class="c">Self-reliance</th></tr>
+                    ${cp.map(p => { const ords=[p.ordinances?.aaronicPriesthood,p.ordinances?.templeBaptisms,p.ordinances?.patriarchalBlessing,p.ordinances?.melchizedekPriesthood,p.ordinances?.endowment,p.femaleOrdinances?.templeBaptisms,p.femaleOrdinances?.patriarchalBlessing,p.femaleOrdinances?.endowment].filter(Boolean).length;
+                        const sr=Object.values(p.selfRelianceCompleted||{}).filter(Boolean).length;
+                        return `<tr><td>${esc(p.name||'')}</td><td>${p.baptismDate?fd(p.baptismDate):'—'}</td><td class="c">${ords}</td><td class="c">${sr}</td></tr>`; }).join('')}</table></div>` : ''}
+
+                ${events.length ? `<div class="sec"><h3>🎉 Ward Calendar — next 14 days <span class="n">${events.length}</span></h3>
+                    <table><tr><th>Date</th><th>Event</th><th>Type</th><th>Where / when</th></tr>
+                    ${events.map(e => `<tr><td>${fd(e.date)}</td><td><b>${esc(e.name||'')}</b>${e.inviteReady?' <span class="tag gold">✨ invite-ready</span>':''}</td><td>${esc(e.type||'')}</td><td>${esc([e.time, e.location].filter(Boolean).join(' · '))}</td></tr>`).join('')}</table></div>` : ''}
+
+                <div class="sec"><h3>📝 Council Assignments & Notes</h3>
+                    <table><tr><th style="width:34%">Person / item</th><th style="width:26%">Who</th><th style="width:18%">By when</th><th>Notes</th></tr>
+                    ${Array(5).fill('<tr><td style="height:26px"></td><td></td><td></td><td></td></tr>').join('')}</table></div>
+
+                <div class="foot">Riverton 24th Tongan Ward · Focus Five Tracker · Confidential — for ward council use</div>
+            </div>`;
+        }
+
         window.showWardCouncilReport = () => {
-            const inv = state.investigators;
-            const ret = state.returning;
-            const cp = state.covenantPath;
-            const today = new Date();
-            const month = today.toLocaleString('en-US', { month: 'long' });
-            const currentMonthKey = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][today.getMonth()];
-            const invActs = inv.reduce((s,p)=>(p.progress?.[currentMonthKey]?.length||0)+s,0);
-            const retActs = ret.reduce((s,p)=>(p.progress?.[currentMonthKey]?.length||0)+s,0);
-            const upcomingEvents = state.events.filter(e=>parseLocalDate(e.date)>=today).slice(0,3);
-            const invWithActivity = inv.filter(p=>(p.progress?.[currentMonthKey]?.length||0)>0);
-            const retWithActivity = ret.filter(p=>(p.progress?.[currentMonthKey]?.length||0)>0);
-            const thirtyDaysAgo = Date.now() - 30*24*60*60*1000;
-            const needsAttentionInv = inv.filter(p=>p.name&&Object.values(p.progress||{}).flat().length===0);
-            const needsAttentionRet = ret.filter(p=>p.name&&Object.values(p.progress||{}).flat().length===0);
-
-            // KPI strengths / weaknesses — year-to-date, across Non Member + Returning
-            const allTracked = [...inv, ...ret];
-            const wcIndCounts = {};
-            INDICATORS.forEach(ind => { wcIndCounts[ind.code] = 0; });
-            allTracked.forEach(p => Object.values(p.progress||{}).flat().forEach(code => { if(wcIndCounts[code] !== undefined) wcIndCounts[code]++; }));
-            const wcRanked = Object.entries(wcIndCounts).sort((a,b)=>b[1]-a[1]);
-            const wcStrong = wcRanked.filter(([,v])=>v>0).slice(0,3);
-            const wcWeak = wcRanked.filter(([,v])=>v===0).slice(0,5);
-            const wcEngaged = allTracked.filter(p=>p.name && Object.values(p.progress||{}).flat().length>0).length;
-            const wcNamedTotal = allTracked.filter(p=>p.name).length;
-            const wcEngagementRate = wcNamedTotal>0 ? Math.round((wcEngaged/wcNamedTotal)*100) : 0;
-            const wcInvAll = INVITATION_CODES.reduce((s,c)=>s+(wcIndCounts[c]||0),0);
-            const wcTodayD = new Date(); wcTodayD.setHours(0,0,0,0);
-            const wcOverdueAll = allTracked.filter(p=>p.name && p.nextContactDate && parseLocalDate(p.nextContactDate)<wcTodayD).length;
-
-
+            document.getElementById('wcrModal')?.remove();
             const modal = document.createElement('div');
-            modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4';
-            modal.onclick = (e) => { if(e.target===modal) modal.remove(); };
-            modal.innerHTML = `
-                <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-                    <div class="bg-gradient-to-r from-amber-600 to-orange-600 p-6 rounded-t-3xl">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h2 class="text-2xl font-black text-white">📋 ${t('Ward Council Report')}</h2>
-                                <p class="text-amber-100 font-semibold text-sm mt-1">${t('Riverton 24th Tongan Ward')} · ${month} ${today.getFullYear()}</p>
-                            </div>
-                            <button onclick="printReport()" class="bg-white text-amber-700 px-4 py-2 rounded-xl font-black text-sm hover:shadow-lg transition-all">🖨️ ${t('Print')}</button>
+            modal.id = 'wcrModal';
+            modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-sm flex items-start md:items-center justify-center z-50 p-2 md:p-4 no-print';
+            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+            modal.innerHTML = `<style>${WCR_CSS}</style>
+                <div style="background:#fff;border-radius:18px;max-width:900px;width:100%;max-height:94vh;overflow-y:auto;box-shadow:0 30px 80px rgba(0,0,0,.5);">
+                    <div style="position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 16px;background:#1b2233;color:#fff;border-radius:18px 18px 0 0;">
+                        <div style="font-weight:800;">📋 ${t('Ward Council Report')}</div>
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="printReport()" style="background:linear-gradient(135deg,#edc878,#f6dfa6);color:#1a1206;border:0;border-radius:10px;padding:8px 14px;font-weight:800;cursor:pointer;">🖨️ ${t('Print')} / PDF</button>
+                            <button onclick="document.getElementById('wcrModal').remove()" style="background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:10px;padding:8px 12px;font-weight:800;cursor:pointer;">✕</button>
                         </div>
                     </div>
-                    <div class="p-6 space-y-5" id="reportBody">
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            <div class="bg-amber-50 rounded-xl p-4 text-center border-2 border-amber-200">
-                                <div class="text-3xl font-black text-amber-700">${inv.filter(p=>p.name).length}</div>
-                                <div class="text-xs font-bold text-amber-600 mt-1">${t('Investigators')}</div>
-                            </div>
-                            <div class="bg-green-50 rounded-xl p-4 text-center border-2 border-green-200">
-                                <div class="text-3xl font-black text-green-700">${ret.filter(p=>p.name).length}</div>
-                                <div class="text-xs font-bold text-green-600 mt-1">${t('Returning Members')}</div>
-                            </div>
-                            <div class="bg-purple-50 rounded-xl p-4 text-center border-2 border-purple-200">
-                                <div class="text-3xl font-black text-purple-700">${cp.length}</div>
-                                <div class="text-xs font-bold text-purple-600 mt-1">${t('Covenant Path')}</div>
-                            </div>
-                            <div class="bg-blue-50 rounded-xl p-4 text-center border-2 border-blue-200">
-                                <div class="text-3xl font-black text-blue-700">${invActs + retActs}</div>
-                                <div class="text-xs font-bold text-blue-600 mt-1">${t('Activities This Month')}</div>
-                            </div>
-                        </div>
-                        ${invWithActivity.length > 0 ? `
-                        <div>
-                            <h3 class="font-black text-lg text-amber-800 mb-2">⛪ ${t('Investigators')} — ${month} ${t('Activity')}</h3>
-                            <div class="space-y-1">
-                                ${invWithActivity.map(p=>`<div class="flex items-center justify-between bg-amber-50 rounded-lg px-3 py-2">
-                                    <span class="font-bold text-sm">${p.emoji||'👤'} ${p.name}</span>
-                                    <div class="flex gap-1 flex-wrap justify-end">${(p.progress?.[currentMonthKey]||[]).map(code=>{const ind=INDICATORS.find(i=>i.code===code);return`<span class="text-xs bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded font-bold">${code}</span>`;}).join('')}</div>
-                                </div>`).join('')}
-                            </div>
-                        </div>` : `<div class="bg-gray-50 rounded-xl p-4 text-center text-gray-500 font-semibold text-sm">${t('No investigator activity logged this month')}</div>`}
-                        ${retWithActivity.length > 0 ? `
-                        <div>
-                            <h3 class="font-black text-lg text-green-800 mb-2">💙 ${t('Returning Members')} — ${month} ${t('Activity')}</h3>
-                            <div class="space-y-1">
-                                ${retWithActivity.map(p=>`<div class="flex items-center justify-between bg-green-50 rounded-lg px-3 py-2">
-                                    <span class="font-bold text-sm">${p.emoji||'💙'} ${p.name}</span>
-                                    <div class="flex gap-1 flex-wrap justify-end">${(p.progress?.[currentMonthKey]||[]).map(code=>{const ind=INDICATORS.find(i=>i.code===code);return`<span class="text-xs bg-green-200 text-green-800 px-1.5 py-0.5 rounded font-bold">${code}</span>`;}).join('')}</div>
-                                </div>`).join('')}
-                            </div>
-                        </div>` : ''}
-                        ${cp.length > 0 ? `
-                        <div>
-                            <h3 class="font-black text-lg text-purple-800 mb-2">📖 ${t('Covenant Path Members')}</h3>
-                            <div class="space-y-1">
-                                ${cp.map(p=>{
-                                    const ords=[p.ordinances?.aaronicPriesthood,p.ordinances?.templeBaptisms,p.ordinances?.patriarchalBlessing,p.ordinances?.melchizedekPriesthood,p.ordinances?.endowment,p.femaleOrdinances?.templeBaptisms,p.femaleOrdinances?.patriarchalBlessing,p.femaleOrdinances?.endowment].filter(Boolean).length;
-                                    const sr=Object.values(p.selfRelianceCompleted||{}).filter(Boolean).length;
-                                    return`<div class="flex items-center justify-between bg-purple-50 rounded-lg px-3 py-2">
-                                        <span class="font-bold text-sm">✨ ${p.name}</span>
-                                        <div class="flex gap-1 text-xs">
-                                            <span class="bg-purple-200 text-purple-800 px-2 py-0.5 rounded font-bold">🏛️ ${ords} ords</span>
-                                            <span class="bg-blue-200 text-blue-800 px-2 py-0.5 rounded font-bold">💼 ${sr} SR</span>
-                                        </div>
-                                    </div>`;
-                                }).join('')}
-                            </div>
-                        </div>` : ''}
-                        ${(needsAttentionInv.length > 0 || needsAttentionRet.length > 0) ? `
-                        <div>
-                            <h3 class="font-black text-lg text-red-700 mb-2">🔴 ${t('Needs Attention (No activity logged)')}</h3>
-                            <div class="flex flex-wrap gap-2">
-                                ${[...needsAttentionInv,...needsAttentionRet].map(p=>`<span class="bg-red-100 text-red-700 px-3 py-1 rounded-full text-sm font-bold">${p.name}</span>`).join('')}
-                            </div>
-                        </div>` : ''}
-                        ${(() => {
-                            const allP = [...inv,...ret].filter(p=>p.name);
-                            const todayD = new Date(); todayD.setHours(0,0,0,0);
-                            const overdueContacts = allP.filter(p => p.nextContactDate && parseLocalDate(p.nextContactDate) < todayD);
-                            const unassigned = allP.filter(p => !p.assignedTo);
-                            if (!overdueContacts.length && !unassigned.length) return '';
-                            return `<div>
-                                <h3 class="font-black text-lg text-orange-700 mb-2">📋 Action Planner Status</h3>
-                                ${overdueContacts.length > 0 ? `
-                                <div class="mb-2">
-                                    <div class="text-xs font-black text-red-600 uppercase tracking-wide mb-1">🔴 Overdue Contacts (${overdueContacts.length})</div>
-                                    <div class="space-y-1">
-                                        ${overdueContacts.map(p=>`<div class="flex items-center justify-between bg-red-50 rounded-lg px-3 py-2">
-                                            <span class="font-bold text-sm">${p.emoji||'👤'} ${p.name}</span>
-                                            <div class="flex gap-2 text-xs flex-wrap">
-                                                ${p.assignedTo?`<span class="bg-white border border-gray-200 px-2 py-0.5 rounded font-bold">${p.assignedTo}</span>`:'<span class="bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold">Unassigned</span>'}
-                                                <span class="bg-red-200 text-red-800 px-2 py-0.5 rounded font-bold">Due ${p.nextContactDate}</span>
-                                                ${p.nextAction?`<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-semibold">${p.nextAction}</span>`:''}
-                                            </div>
-                                        </div>`).join('')}
-                                    </div>
-                                </div>` : ''}
-                                ${unassigned.length > 0 ? `
-                                <div>
-                                    <div class="text-xs font-black text-orange-600 uppercase tracking-wide mb-1">⚠️ Not Assigned to Anyone (${unassigned.length})</div>
-                                    <div class="flex flex-wrap gap-2">
-                                        ${unassigned.map(p=>`<span class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-sm font-bold">${p.name}</span>`).join('')}
-                                    </div>
-                                </div>` : ''}
-                            </div>`;
-                        })()}
-                        ${state.prayerList.length > 0 ? `
-                        <div>
-                            <h3 class="font-black text-lg text-indigo-800 mb-2">🙏 ${t('Prayer List')}</h3>
-                            <div class="flex flex-wrap gap-2">
-                                ${state.prayerList.map(p=>`<span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-bold">${p.name}</span>`).join('')}
-                            </div>
-                        </div>` : ''}
-                        <div>
-                            <h3 class="font-black text-lg text-slate-800 mb-2">📈 ${t2('Mālohi mo e Tāpekia ʻo e KPI','KPI Strengths & Gaps')}</h3>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                                <div class="bg-emerald-50 rounded-xl p-3 text-center border-2 border-emerald-200">
-                                    <div class="text-2xl font-black text-emerald-700">${wcEngagementRate}%</div>
-                                    <div class="text-xs font-bold text-emerald-600 mt-1">${t2('Tuʻunga Ngāue','Engagement Rate')}</div>
-                                </div>
-                                <div class="bg-blue-50 rounded-xl p-3 text-center border-2 border-blue-200">
-                                    <div class="text-2xl font-black text-blue-700">${wcInvAll}</div>
-                                    <div class="text-xs font-bold text-blue-600 mt-1">${t2('Fakaʻaʻaa Kotoa','Total Invitations')}</div>
-                                </div>
-                                <div class="bg-red-50 rounded-xl p-3 text-center border-2 border-red-200">
-                                    <div class="text-2xl font-black text-red-700">${wcOverdueAll}</div>
-                                    <div class="text-xs font-bold text-red-600 mt-1">${t2('Tuʻutāmaki','Overdue Contacts')}</div>
-                                </div>
-                                <div class="bg-purple-50 rounded-xl p-3 text-center border-2 border-purple-200">
-                                    <div class="text-2xl font-black text-purple-700">${wcNamedTotal}</div>
-                                    <div class="text-xs font-bold text-purple-600 mt-1">${t2('Kau Kotoa','Total Tracked')}</div>
-                                </div>
-                            </div>
-                            <div class="grid md:grid-cols-2 gap-3">
-                                <div>
-                                    <div class="text-xs font-black text-emerald-700 uppercase tracking-wide mb-1">✅ ${t2('Mālohi Ai','Where We\'re Strong')}</div>
-                                    <div class="space-y-1">
-                                        ${wcStrong.length ? wcStrong.map(([code,v])=>{const ind=INDICATORS.find(i=>i.code===code);return `<div class="flex items-center justify-between bg-emerald-50 rounded-lg px-3 py-1.5"><span class="text-xs font-bold">${ind?.emoji||''} ${code}</span><span class="text-xs font-black text-emerald-700">${v}×</span></div>`;}).join('') : `<div class="text-xs text-gray-400">${t2('ʻIkai ha fakamatala','No data yet')}</div>`}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="text-xs font-black text-red-700 uppercase tracking-wide mb-1">⚠️ ${t2('Vaivai / Fie Fakalakalaka','Weak / Needs Improvement')}</div>
-                                    <div class="space-y-1">
-                                        ${wcWeak.length ? wcWeak.map(([code])=>{const ind=INDICATORS.find(i=>i.code===code);return `<div class="flex items-center justify-between bg-red-50 rounded-lg px-3 py-1.5"><span class="text-xs font-bold">${ind?.emoji||''} ${code}</span><span class="text-xs font-black text-red-700">0×</span></div>`;}).join('') : `<div class="text-xs text-gray-400">${t2('Lelei ʻaupito','Nothing flagged 🎉')}</div>`}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        ${upcomingEvents.length > 0 ? `
-                        <div>
-                            <h3 class="font-black text-lg text-teal-800 mb-2">📅 ${t('Upcoming Events')}</h3>
-                            <div class="space-y-1">
-                                ${upcomingEvents.map(e=>`<div class="bg-teal-50 rounded-lg px-3 py-2 flex items-center gap-2">
-                                    <span class="text-xl">${e.type.split(' ')[0]}</span>
-                                    <div class="flex-1"><span class="font-bold text-sm">${e.name}</span><span class="text-xs text-gray-500 ml-2">${parseLocalDate(e.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span></div>
-                                    ${e.inviteReady?`<span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-bold">✨ ${t('Invite-ready')}</span>`:''}
-                                </div>`).join('')}
-                            </div>
-                        </div>` : ''}
-                        <div class="text-center text-xs text-gray-400 font-semibold pt-2 border-t border-gray-100">
-                            Generated ${today.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})} · Riverton 24th Tongan Ward Focus Five Tracker
-                        </div>
-                    </div>
+                    <div style="padding:18px 20px 22px;">${buildWardReportHTML()}</div>
                 </div>`;
             document.body.appendChild(modal);
         };
         window.printReport = () => {
-            const body = document.getElementById('reportBody');
-            if (!body) return;
             let printDiv = document.getElementById('printReport');
-            if (!printDiv) { printDiv = document.createElement('div'); printDiv.id = 'printReport'; printDiv.style.display='none'; document.body.appendChild(printDiv); }
-            printDiv.innerHTML = `<style>body{font-family:sans-serif;padding:20px}h2,h3{margin:12px 0 6px}div{margin-bottom:4px}.grid{display:flex;gap:10px;flex-wrap:wrap}.grid>div{border:1px solid #ccc;padding:8px 12px;border-radius:8px;text-align:center;min-width:80px}</style>` + body.innerHTML;
+            if (!printDiv) { printDiv = document.createElement('div'); printDiv.id = 'printReport'; printDiv.style.display = 'none'; document.body.appendChild(printDiv); }
+            printDiv.innerHTML = `<style>${WCR_CSS} @page{ size:letter; margin:0.5in; } body{ background:#fff!important; }</style>` + buildWardReportHTML();
+            const cleanup = () => { printDiv.innerHTML = ''; window.removeEventListener('afterprint', cleanup); };
+            window.addEventListener('afterprint', cleanup);
             window.print();
-            printDiv.innerHTML = '';
         };
 
         // ── Feature #6: Emoji/Avatar picker ─────────────────
@@ -1803,9 +1828,7 @@
                         <div><label class="block text-sm font-bold mb-2 text-gray-700">${t('Time')}</label><input id="eventTime" type="time" class="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:border-purple-500 focus:outline-none" /></div>
                         <div><label class="block text-sm font-bold mb-2 text-gray-700">${t('Location')}</label><input id="eventLocation" type="text" placeholder="${t('Church building, Park, etc.')}" class="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:border-purple-500 focus:outline-none" /></div>
                         <div><label class="block text-sm font-bold mb-2 text-gray-700">${t('Event Type')}</label>
-                        <select id="eventType" class="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:border-purple-500 focus:outline-none">
-                            <option>${t('🏛️ Church Activity')}</option><option>${t('🎉 Social Event')}</option><option>${t('⚾ Sports/Recreation')}</option><option>${t('🤝 Service Project')}</option><option>${t('👨‍👩‍👧 Family Activity')}</option><option>${t('📖 Scripture Study')}</option><option>${t('🙏 Spiritual')}</option><option>${t('🏃 Youth Activity')}</option>
-                        </select></div>
+                        <select id="eventType" class="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:border-purple-500 focus:outline-none">${eventTypeOptions('🏛️ Church Activity')}</select></div>
                         <div><label class="block text-sm font-bold mb-2 text-gray-700">${t('Description')}</label><textarea id="eventDescription" rows="3" placeholder="${t('Event details...')}" class="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:border-purple-500 focus:outline-none"></textarea></div>
                         <div class="bg-indigo-50 rounded-xl p-4"><label class="flex items-center gap-3 cursor-pointer"><input id="eventInviteReady" type="checkbox" class="w-5 h-5 text-indigo-600 rounded"><span class="text-sm font-semibold">✨ ${t('Great for inviting investigators')}</span></label></div>
                     </div>
@@ -1816,7 +1839,10 @@
                 </div>`;
             document.body.appendChild(modal);
             if (dateStr) { document.getElementById('eventDate').value = dateStr; }
-            else { document.getElementById('eventDate').valueAsDate = new Date(); }
+            else { document.getElementById('eventDate').value = todayISO(); }
+            const _ed = document.getElementById('eventDate'), _et = document.getElementById('eventType');
+            const _sun = () => { if (_ed.value && parseLocalDate(_ed.value).getDay() === 0) _et.value = '⛪ Sunday Worship'; };
+            _sun(); _ed.addEventListener('change', _sun);
         };
 
         window.saveNewEvent = () => {
@@ -1842,7 +1868,7 @@
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4';
             modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
-            const types = ['🏛️ Church Activity','🎉 Social Event','⚾ Sports/Recreation','🤝 Service Project','👨‍👩‍👧 Family Activity','📖 Scripture Study','🙏 Spiritual','🏃 Youth Activity'];
+            const types = EVENT_TYPES;
             modal.innerHTML = `
                 <div class="bg-white rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
                     <div class="flex items-center gap-3 mb-6"><div class="text-5xl">✏️</div><h3 class="font-black text-3xl text-purple-900">${t('Edit Event')}</h3></div>
@@ -3054,6 +3080,7 @@
 
             // Type color map
             const typeColors = {
+                '⛪ Sunday Worship': 'bg-amber-600',
                 '🏛️ Church Activity': 'bg-blue-500',
                 '🎉 Social Event': 'bg-pink-500',
                 '⚾ Sports/Recreation': 'bg-orange-500',
@@ -4167,8 +4194,6 @@
                     <td style="text-align:center">${box(d.am)}</td><td style="text-align:center">${box(d.pm)}</td><td style="text-align:center">${box(d.read)}</td></tr>`;
             }).join('');
             const commits = COMMITMENTS.map((c,i)=>`<div>${box(p21['c'+i])} ${esc(t2(c.to,c.en))}</div>`).join('');
-            const ftm = [0,1].map(i=>{const nm=p21['ftm'+i+'n']||'';const ph=p21['ftm'+i+'p']||'';return (nm||ph)?`<div>${esc(nm)} ${ph?'· '+esc(ph):''}</div>`:'';}).join('');
-            const wml = [0,1].map(i=>{const nm=p21['wml'+i+'n']||'';const ph=p21['wml'+i+'p']||'';return (nm||ph)?`<div>${esc(nm)} ${ph?'· '+esc(ph):''}</div>`:'';}).join('');
             const names = (arr,label)=>arr.length?`<div style="flex:1"><b>${label}</b>${arr.map(n=>`<div>• ${esc(n)}</div>`).join('')}</div>`:`<div style="flex:1"><b>${label}</b><div style="color:#888">—</div></div>`;
 
             let box2 = document.getElementById('printReport');
@@ -4190,8 +4215,7 @@
             <h3>${t2('ʻAho ʻe 21','The 21 Days')}</h3>
             <table><tr><th>#</th><th>${t('Book of Mormon')}</th><th>${t('AM')}</th><th>${t('PM')}</th><th>${t('Read')}</th></tr>${days}</table>
             <h3>${t2('Ngaahi Tukupaa','Commitments')}</h3><div class="commits">${commits}</div>
-            ${(ftm.trim())?`<h3>${t2('Ongo Faifekau Taimi Kakató','Full-Time Missionaries')}</h3>${ftm}`:''}
-            ${(wml.trim())?`<h3>${t2('Taki Faifekau Fakauōtí','Ward Mission Leaders')}</h3>${wml}`:''}`;
+            <h3>${t2('Ongo Faifekau Taimi Kakató','Full-Time Missionaries')}</h3><div style="font-size:16px;font-family:Arial,sans-serif;">📞 ${MISSIONARY_PHONE}</div>`;
             window.print();
             setTimeout(()=>{ box2.innerHTML=''; }, 500);
         };
@@ -4255,8 +4279,6 @@
             const commits = COMMITMENTS.map((c,i)=>
                 `<label class="commit"><input type="checkbox" data-free onchange="p21Commit(${i},this.checked)" ${p21['c'+i]?'checked':''}><span class="txt">${esc(t2(c.to,c.en))}<span class="en">${esc(t2(c.en,c.to))}</span></span></label>`
             ).join('');
-            const ftm = [0,1].map(i=>`<div class="contact"><input class="ss-input" data-free oninput="p21Text('ftm${i}n',this.value)" value="${esc(p21['ftm'+i+'n']||'')}" placeholder="${t('Full-time missionary')}"><input class="ss-input" data-free oninput="p21Text('ftm${i}p',this.value)" value="${esc(p21['ftm'+i+'p']||'')}" placeholder="${t('Phone')}"></div>`).join('');
-            const wml = [0,1].map(i=>`<div class="contact"><input class="ss-input" data-free oninput="p21Text('wml${i}n',this.value)" value="${esc(p21['wml'+i+'n']||'')}" placeholder="${t('Ward mission leader')}"><input class="ss-input" data-free oninput="p21Text('wml${i}p',this.value)" value="${esc(p21['wml'+i+'p']||'')}" placeholder="${t('Phone')}"></div>`).join('');
             const total = SCRIPTURES.length, complete = p21Complete(), pct = Math.round(complete/total*100);
 
             return `<div class="ss-panel">
@@ -4277,15 +4299,24 @@
                     ${(state.promisePeople||[]).length === 0 ? `<div style="text-align:center;padding:18px;color:var(--ss-muted);font-size:13px;">${t2('Heʻeki ai ha taha ʻoku kau','No one is tracked yet — tap Add Person.')}</div>` : `
                     <div style="display:flex;flex-direction:column;gap:8px;">
                         ${state.promisePeople.map(p => `
-                        <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:8px;align-items:center;background:var(--ss-surface-2);border:1px solid var(--ss-line-2);border-radius:11px;padding:8px 10px;">
+                        <div class="p21-row">
                             <input class="ss-input" value="${esc(p.name||'')}" oninput="promiseUpdatePerson('${p.id}','name',this.value)" placeholder="${t2('Hingoa','Name')}">
                             <div>
-                                <div style="font-size:10px;font-weight:700;color:var(--ss-muted);text-transform:uppercase;margin-bottom:2px;">${t2('Kamata','Started')}</div>
-                                <input class="ss-input" type="date" value="${p.startDate||''}" onchange="promiseUpdatePerson('${p.id}','startDate',this.value)">
+                                <div style="font-size:10px;font-weight:700;color:var(--ss-muted);text-transform:uppercase;margin-bottom:4px;">${t2('Kamata','Started')}</div>
+                                ${calBtnHTML({ kind:'promise', id:p.id, tab:'startDate', value:p.startDate||'', placeholder:t2('Fili ʻaho','Pick date') })}
+                                <div class="date-chips" style="justify-content:flex-start;margin-top:5px;">
+                                    <button type="button" class="date-chip ${p.startDate===todayISO()?'on':''}" onclick="promiseUpdatePerson('${p.id}','startDate','${todayISO()}')">${t2('ʻAho ni','Today')}</button>
+                                    <button type="button" class="date-chip ${p.startDate===addDaysISO(-1)?'on':''}" onclick="promiseUpdatePerson('${p.id}','startDate','${addDaysISO(-1)}')">${t2('ʻAneafi','Yesterday')}</button>
+                                </div>
                             </div>
                             <div>
-                                <div style="font-size:10px;font-weight:700;color:var(--ss-muted);text-transform:uppercase;margin-bottom:2px;">${t2('Kakato','Completed')}</div>
-                                <input class="ss-input" type="date" value="${p.completeDate||''}" onchange="promiseUpdatePerson('${p.id}','completeDate',this.value)">
+                                <div style="font-size:10px;font-weight:700;color:var(--ss-muted);text-transform:uppercase;margin-bottom:4px;">${t2('Kakato','Completed')}</div>
+                                ${calBtnHTML({ kind:'promise', id:p.id, tab:'completeDate', value:p.completeDate||'', placeholder:t2('Fili ʻaho','Pick date') })}
+                                <div class="date-chips" style="justify-content:flex-start;margin-top:5px;">
+                                    <button type="button" class="date-chip ${p.completeDate===todayISO()?'on':''}" onclick="promiseUpdatePerson('${p.id}','completeDate','${todayISO()}')">${t2('ʻAho ni','Today')}</button>
+                                    ${p.startDate ? (() => { const d = parseLocalDate(p.startDate); d.setDate(d.getDate()+20); const iso = ymd(d); return `<button type="button" class="date-chip ${p.completeDate===iso?'on':''}" onclick="promiseUpdatePerson('${p.id}','completeDate','${iso}')">${t2('ʻAho 21','Day 21')}</button>`; })() : ''}
+                                </div>
+                                ${p.startDate && !p.completeDate ? (() => { const n = Math.floor((parseLocalDate(todayISO()) - parseLocalDate(p.startDate)) / 86400000) + 1; return n >= 1 ? `<div style="font-size:11px;font-weight:700;color:var(--ss-gold);margin-top:4px;">${t2('ʻAho','Day')} ${Math.min(n,21)}/21${n>21?' · '+t2('kuo ʻosi','past due'):''}</div>` : ''; })() : ''}
                             </div>
                             <button onclick="promiseRemovePerson('${p.id}')" style="background:none;border:0;color:var(--ss-muted);cursor:pointer;font-size:16px;">🗑️</button>
                         </div>`).join('')}
@@ -4302,10 +4333,16 @@
                 <p style="font-size:14px;color:var(--ss-ink-soft);margin:0 0 12px;max-width:66ch;line-height:1.55;">${esc(t2(COMMIT_INTRO.to,COMMIT_INTRO.en))}</p>
                 <div>${commits}</div>
 
-                <div class="ss-blockhead"><h3>${t2('Hoʻo Ongo Faifekau Taimi Kakató','Your Full-Time Missionaries')}</h3></div>
-                <div class="contacts">${ftm}</div>
-                <div class="ss-blockhead"><h3>${t2('Hoʻo Taki Faifekau Fakauōtí','Your Ward Mission Leaders')}</h3></div>
-                <div class="contacts">${wml}</div>
+                <div class="ss-blockhead"><h3>${t2('Ongo Faifekau Taimi Kakató','Full-Time Missionaries')}</h3></div>
+                <div class="fm-card">
+                    <span style="font-size:28px;">📞</span>
+                    <div style="flex:1;min-width:160px;">
+                        <div class="num">${MISSIONARY_PHONE}</div>
+                        <div style="font-size:12px;color:var(--ss-muted);">${t2('Ui pe fetuʻutaki ki he ongo faifekau','Call or text the missionaries anytime')}</div>
+                    </div>
+                    <a class="ss-btn primary" href="tel:${MISSIONARY_PHONE.replace(/-/g,'')}" style="text-decoration:none;">📞 ${t2('Ui','Call')}</a>
+                    <a class="ss-btn ghost" href="sms:${MISSIONARY_PHONE.replace(/-/g,'')}" style="text-decoration:none;">💬 ${t2('Text','Text')}</a>
+                </div>
 
                 <div class="flex flex-wrap gap-3 mt-6">
                     <button class="ss-btn primary" onclick="printPromise()">🖨️ ${t2('Pulusi / PDF','Print / Save as PDF')}</button>
