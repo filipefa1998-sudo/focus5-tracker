@@ -289,6 +289,30 @@
             background:rgba(255,255,255,.06); border:1px solid var(--ss-line-2); color:var(--ss-ink-soft); transition:.12s; }
         .date-chip:hover{ border-color:var(--ss-gold); color:var(--ss-ink); }
         .date-chip.on{ background:var(--ss-gold-wash); border-color:var(--ss-gold); color:var(--ss-gold); }
+        /* Calendar pop-up (replaces typing dates) */
+        .cal-btn{ display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:6px 12px; border-radius:9px; cursor:pointer;
+            background:rgba(255,255,255,.06); border:1px solid var(--ss-line-2); color:var(--ss-ink); font-weight:700; font-size:13.5px;
+            font-family:'Manrope',sans-serif; white-space:nowrap; transition:.12s; }
+        .cal-btn:hover{ border-color:var(--ss-gold); }
+        .cal-btn.empty{ color:var(--ss-muted); border-style:dashed; }
+        #ssCalBackdrop{ position:fixed; inset:0; z-index:70; background:rgba(0,0,0,.35); display:none; }
+        #ssCal{ position:fixed; z-index:71; width:300px; display:none; background:var(--ss-surface); color:var(--ss-ink);
+            border:1px solid var(--ss-gold); border-radius:16px; box-shadow:0 20px 50px rgba(0,0,0,.45); padding:12px; font-family:'Manrope',sans-serif; }
+        #ssCal .cal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+        #ssCal .cal-title{ font-family:'Fraunces',Georgia,serif; font-size:17px; font-weight:700; }
+        #ssCal .cal-nav{ width:34px; height:34px; border-radius:9px; border:1px solid var(--ss-line-2); background:var(--ss-surface-2); color:var(--ss-ink); cursor:pointer; font-size:16px; font-weight:800; }
+        #ssCal .cal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+        #ssCal .cal-dow{ text-align:center; font-size:10.5px; font-weight:800; color:var(--ss-muted); text-transform:uppercase; padding:4px 0; }
+        #ssCal .cal-day{ height:36px; border-radius:9px; border:1px solid transparent; background:transparent; color:var(--ss-ink); cursor:pointer; font-weight:700; font-size:13.5px; }
+        #ssCal .cal-day:hover{ background:var(--ss-gold-wash); }
+        #ssCal .cal-day.out{ color:var(--ss-muted); opacity:.45; }
+        #ssCal .cal-day.today{ border-color:var(--ss-gold); }
+        #ssCal .cal-day.sel{ background:linear-gradient(135deg,var(--ss-gold),var(--ss-gold-deep)); color:#1a1206; }
+        #ssCal .cal-foot{ display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
+        #ssCal .cal-foot button{ flex:1; font-size:12px; font-weight:800; padding:8px 6px; border-radius:9px; cursor:pointer; border:1px solid var(--ss-line-2); background:var(--ss-surface-2); color:var(--ss-ink-soft); }
+        #ssCal .cal-foot button:hover{ border-color:var(--ss-gold); color:var(--ss-ink); }
+        @media(max-width:640px){ #ssCal{ left:0!important; right:0!important; bottom:0!important; top:auto!important; width:auto; border-radius:18px 18px 0 0; padding:16px 16px 22px; }
+            #ssCal .cal-day{ height:44px; font-size:15px; } }
         /* Toast (replaces full-page re-render for status messages) */
         #ssToast{ position:fixed; left:50%; bottom:22px; transform:translate(-50%,20px); opacity:0; pointer-events:none; z-index:60;
             max-width:calc(100vw - 32px); display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:14px;
@@ -378,6 +402,8 @@
 <body>
     <div id="app"></div>
     <div id="ssToast" role="status" aria-live="polite"></div>
+    <div id="ssCalBackdrop"></div>
+    <div id="ssCal" role="dialog" aria-label="Pick a date"></div>
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
@@ -1185,6 +1211,72 @@
             render();
         };
 
+        // ── Calendar pop-up ──────────────────────────────────────
+        // calBtnHTML renders a button; tapping it opens a month grid. Lives outside #app, so re-renders never close it.
+        //   kind 'next'  → next contact date for a person (id/tab)
+        //   kind 'bd'    → baptism date for a person (id/tab)
+        //   kind 'field' → writes into a hidden <input id=target> (forms)
+        function calBtnHTML(o) {
+            const v = o.value || '';
+            const label = v ? parseLocalDate(v).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }) : (o.placeholder || t2('Fili ʻaho','Pick a date'));
+            return `<button type="button" class="cal-btn ${v?'':'empty'} ${o.cls||''}" data-kind="${o.kind}" data-id="${o.id||''}" data-tab="${o.tab||''}" data-target="${o.target||''}" data-value="${v}" onclick="openCal(this)">📅 <span>${label}</span></button>`;
+        }
+        const _cal = { btn:null, kind:'', id:'', tab:'', target:'', value:'', y:0, m:0 };
+        window.openCal = (btn) => {
+            Object.assign(_cal, { btn, kind:btn.dataset.kind, id:btn.dataset.id, tab:btn.dataset.tab, target:btn.dataset.target, value:btn.dataset.value||'' });
+            const base = _cal.value ? parseLocalDate(_cal.value) : new Date();
+            _cal.y = base.getFullYear(); _cal.m = base.getMonth();
+            drawCal();
+            const el = document.getElementById('ssCal'), bd = document.getElementById('ssCalBackdrop');
+            el.style.display = 'block'; bd.style.display = 'block';
+            if (window.innerWidth > 640) {
+                const r = btn.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+                let left = Math.min(Math.max(8, r.right - w), window.innerWidth - w - 8);
+                let top = r.bottom + 6; if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
+                el.style.left = left + 'px'; el.style.top = top + 'px';
+            }
+        };
+        function closeCal() { document.getElementById('ssCal').style.display = 'none'; document.getElementById('ssCalBackdrop').style.display = 'none'; _cal.btn = null; }
+        window.closeCal = closeCal;
+        window.calNav = (d) => { _cal.m += d; if (_cal.m < 0) { _cal.m = 11; _cal.y--; } if (_cal.m > 11) { _cal.m = 0; _cal.y++; } drawCal(); };
+        function drawCal() {
+            const first = new Date(_cal.y, _cal.m, 1), start = new Date(first); start.setDate(1 - first.getDay());
+            const tISO = todayISO(), dows = currentLang==='to' ? ['S','M','T','P','T','F','T'] : ['Su','Mo','Tu','We','Th','Fr','Sa'];
+            let cells = '';
+            for (let i = 0; i < 42; i++) {
+                const d = new Date(start); d.setDate(start.getDate() + i);
+                const iso = ymd(d);
+                cells += `<button type="button" class="cal-day ${d.getMonth()!==_cal.m?'out':''} ${iso===tISO?'today':''} ${iso===_cal.value?'sel':''}" onclick="pickCal('${iso}')">${d.getDate()}</button>`;
+            }
+            const title = first.toLocaleDateString('en-US', { month:'long', year:'numeric' });
+            document.getElementById('ssCal').innerHTML = `
+                <div class="cal-head">
+                    <button type="button" class="cal-nav" onclick="calNav(-1)" aria-label="Previous month">‹</button>
+                    <div class="cal-title">${title}</div>
+                    <button type="button" class="cal-nav" onclick="calNav(1)" aria-label="Next month">›</button>
+                </div>
+                <div class="cal-grid">${dows.map(x=>`<div class="cal-dow">${x}</div>`).join('')}${cells}</div>
+                <div class="cal-foot">
+                    <button type="button" onclick="pickCal('${tISO}')">${t2('ʻAho ni','Today')}</button>
+                    <button type="button" onclick="pickCal('${addDaysISO(7)}')">+1 ${t2('uike','wk')}</button>
+                    <button type="button" onclick="pickCal('')">${t2('Tamateʻi','Clear')}</button>
+                    <button type="button" onclick="closeCal()">✕</button>
+                </div>`;
+        }
+        window.pickCal = (iso) => {
+            const { kind, id, tab, target, btn } = _cal;
+            closeCal();
+            if (kind === 'next') quickSetDate(id, tab, iso, true);
+            else if (kind === 'bd') setBaptismDate(id, tab, iso);
+            else if (kind === 'field') {
+                const inp = document.getElementById(target); if (inp) inp.value = iso;
+                if (btn) { btn.dataset.value = iso; btn.classList.toggle('empty', !iso);
+                    btn.querySelector('span').textContent = iso ? parseLocalDate(iso).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }) : t2('Fili ʻaho','Pick a date'); }
+            }
+        };
+        document.addEventListener('click', (e) => { if (e.target && e.target.id === 'ssCalBackdrop') closeCal(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && _cal.btn) closeCal(); });
+
         // BD checked in the Monthly Tracker → person shows up in the Action Board's Baptismal Dates section
         function announceBaptismalDate(person) {
             const nm = person.name || (currentLang==='to' ? 'Kakai' : 'This person');
@@ -1567,8 +1659,10 @@
         window.setBoardFilter = (f) => { state.boardFilter = f; render(); };
         window.quickSetAction = (id, tab, val) => {
             const idNum = parseInt(id);
-            if (tab === 'investigators') state.investigators = state.investigators.map(p => p.id === idNum ? { ...p, nextAction: val } : p);
-            else state.returning = state.returning.map(p => p.id === idNum ? { ...p, nextAction: val } : p);
+            // A new/changed task is a fresh to-do — never leave it marked complete
+            const apply = p => p.id === idNum ? { ...p, nextAction: val, ...(val && val !== p.nextAction ? { taskDone: false, taskDoneDate: '' } : {}) } : p;
+            if (tab === 'investigators') state.investigators = state.investigators.map(apply);
+            else state.returning = state.returning.map(apply);
             saveToFirebase();
             softRender();   // Action Board card edits show up without losing focus
         };
@@ -1585,7 +1679,7 @@
             if (!validISO(val)) return;
             updatePerson(id, tab, { baptismDate: val });
             saveToFirebase();
-            softRender();   // don't close the picker mid-selection
+            render();
             if (val) showSaveMessage('📅 ' + (currentLang==='to'?'ʻAho papitaiso: ':'Baptism date: ') + fmtNice(val));
         };
         window.boardAddPerson = () => {
@@ -1621,12 +1715,13 @@
             const date = document.getElementById('twAddDate')?.value || '';
             const [tab, idStr] = sel.split(':');
             const idNum = parseInt(idStr);
-            const apply = p => p.id === idNum ? { ...p, nextAction: action, nextContactDate: date || p.nextContactDate } : p;
+            const apply = p => p.id === idNum ? { ...p, nextAction: action, nextContactDate: date || p.nextContactDate, taskDone: false, taskDoneDate: '' } : p;
             if (tab === 'investigators') state.investigators = state.investigators.map(apply);
             else state.returning = state.returning.map(apply);
             state.showAddContact = false;
             saveToFirebase();
             render();
+            showSaveMessage('✓ ' + t2('Kuo tānaki ʻa e ngāue','Task added') + (date ? ' · 📅 ' + fmtNice(date) : ''));
         };
         window.setEventsView = (v) => { state.eventsView = v; render(); };
         // Quarter helpers: 0=Q1(Jan-Mar), 1=Q2(Apr-Jun), 2=Q3(Jul-Sep), 3=Q4(Oct-Dec)
@@ -2502,7 +2597,7 @@
                             <option value="">${t('Choose a contact...')}</option>
                             ${[...state.investigators.map(p=>({...p,_tab:'investigators'})), ...state.returning.map(p=>({...p,_tab:'returning'}))].filter(p=>p.name).map(p=>`<option value="${p._tab}:${p.id}">${p._tab==='investigators'?'👤':'💙'} ${p.name}${p.assignedTo?' · '+p.assignedTo:''}</option>`).join('')}
                         </select>
-                        <input id="twAddDate" type="date" class="tw-field rounded-lg px-3 py-2 text-sm focus:outline-none" style="background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink);" title="${t('Due date')}" />
+                        <div class="flex items-center gap-2"><input id="twAddDate" type="hidden" value="" />${calBtnHTML({ kind:'field', target:'twAddDate', placeholder:t2('Fili ʻaho (fili pē)','Pick a due date (optional)') })}</div>
                         <input id="twAddAction" type="text" placeholder="📝 ${t('Add a task / next action...')}" class="tw-field rounded-lg px-3 py-2 text-sm focus:outline-none md:col-span-2" style="background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink);" />
                     </div>
                     <button onclick="thisWeekAddTask()" class="mt-3 px-5 py-2.5 rounded-xl font-black text-sm transition-all hover-lift" style="background:linear-gradient(90deg,#16a34a,#15803d);color:#fff;">✓ ${t('Add Task')}</button>
@@ -2609,13 +2704,13 @@
                     const iso = addDaysISO(d);
                     return `<button type="button" class="date-chip ${cur===iso?'on':''}" onclick="quickSetDate('${p.id}','${p._tab}','${iso}',true)">${lab}</button>`;
                 }).join('')}</div>
-                <input type="date" value="${cur}" onchange="quickSetDate('${p.id}','${p._tab}',this.value)" onkeydown="if(event.key==='Enter')this.blur()" class="tw-field tw-date rounded-lg focus:outline-none" style="background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink)" title="${t2('Tohi ʻaho fetuʻutaki hoko','Set next contact date')}" />
+                ${calBtnHTML({ kind:'next', id:p.id, tab:p._tab, value:cur })}
             </div>`;
         }
         window.quickSetDate = (id, tab, dateVal, fromChip) => {
             if (!validISO(dateVal)) return;          // half-typed dates (e.g. year 0002) are ignored
             const idNum = parseInt(id);
-            const apply = p => p.id === idNum ? { ...p, nextContactDate: dateVal } : p;
+            const apply = p => p.id === idNum ? { ...p, nextContactDate: dateVal, ...(dateVal ? { taskDone: false, taskDoneDate: '' } : {}) } : p;
             if (tab === 'investigators') state.investigators = state.investigators.map(apply);
             else state.returning = state.returning.map(apply);
             saveToFirebase();
@@ -2765,7 +2860,7 @@
                         </div>
                     </div>
                     <label class="text-[11px] font-black uppercase tracking-wide" style="color:var(--ss-muted);">📅 ${t2('ʻAho Papitaiso','Baptism date')}</label>
-                    <input type="date" value="${p.baptismDate||''}" onchange="setBaptismDate('${p.id}','${p._tab}',this.value)" onkeydown="if(event.key==='Enter')this.blur()" class="tw-field tw-date rounded-lg focus:outline-none w-full" style="${fieldCss}" />
+                    ${calBtnHTML({ kind:'bd', id:p.id, tab:p._tab, value:p.baptismDate||'', placeholder:t2('Fili ʻaho papitaiso','Pick baptism date'), cls:'w-full justify-center' })}
                     <div class="flex items-center justify-between gap-2 flex-wrap">
                         <span class="text-xs font-bold" style="color:${d===null?'var(--ss-red)':d<0?'#f6b87a':'var(--ss-sage)'};">${nice ? nice+' · ' : ''}${when}</span>
                         ${!p.assignedTo ? orgSelect(p) : ''}
@@ -2876,7 +2971,7 @@
                             <option value="">👤 ${t2('Vahe ki he...','Assign to...')}</option>
                             ${ORGS.map(([v,l]) => `<option value="${v}">${l}</option>`).join('')}
                         </select>
-                        <input id="abDate" type="date" class="tw-field tw-date rounded-lg text-sm focus:outline-none" style="${fieldCss}" title="${t2('ʻAho fetuʻutaki hoko','Next contact date')}" />
+                        <div class="flex items-center gap-2"><input id="abDate" type="hidden" value="" />${calBtnHTML({ kind:'field', target:'abDate', placeholder:t2('ʻAho fetuʻutaki hoko','Next contact date') })}</div>
                         <input id="abAction" type="text" placeholder="📝 ${t('Add a task / next action...')}" onkeydown="if(event.key==='Enter')boardAddPerson()" class="tw-field rounded-lg px-3 py-2 text-sm focus:outline-none md:col-span-2" style="${fieldCss}" />
                         <label class="flex items-center gap-2 text-sm font-bold md:col-span-2 cursor-pointer" style="color:var(--ss-ink-soft);">
                             <input id="abBD" type="checkbox" class="w-4 h-4" style="accent-color:var(--ss-gold);" onchange="document.getElementById('abBDWrap').style.display=this.checked?'flex':'none'" />
@@ -2884,7 +2979,7 @@
                         </label>
                         <div id="abBDWrap" class="items-center gap-2 md:col-span-2" style="display:none;">
                             <span class="text-xs font-black uppercase" style="color:var(--ss-muted);">${t2('ʻAho Papitaiso','Baptism date')}</span>
-                            <input id="abBDDate" type="date" class="tw-field tw-date rounded-lg text-sm focus:outline-none" style="${fieldCss}" />
+                            <input id="abBDDate" type="hidden" value="" />${calBtnHTML({ kind:'field', target:'abBDDate', placeholder:t2('Fili ʻaho','Pick baptism date') })}
                         </div>
                     </div>
                     <button onclick="boardAddPerson()" class="mt-3 px-5 py-2.5 rounded-xl font-black text-sm hover-lift" style="background:linear-gradient(90deg,#16a34a,#15803d);color:#fff;">✓ ${t2('Tānaki','Add')}</button>
