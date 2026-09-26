@@ -279,7 +279,34 @@
         .tw-field::placeholder{ color:var(--ss-muted); opacity:.85; }
         .tw-field{ color:var(--ss-ink); }
         .tw-field option{ background:var(--ss-surface); color:var(--ss-ink); }
-        .tw-field::-webkit-calendar-picker-indicator{ filter:invert(.85); }
+        .tw-field::-webkit-calendar-picker-indicator{ filter:invert(.85); cursor:pointer; padding:2px; }
+        html[data-theme="light"] .tw-field::-webkit-calendar-picker-indicator{ filter:none; }
+        html:not([data-theme="light"]) .tw-field{ color-scheme:dark; }
+        /* Date picker: bigger tap target + quick chips (fixes fiddly/glitchy date selection) */
+        .tw-date{ min-height:36px; min-width:150px; font-size:14px!important; padding:6px 10px!important; cursor:pointer; }
+        .date-chips{ display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
+        .date-chip{ font-size:11.5px; font-weight:800; padding:6px 9px; border-radius:8px; cursor:pointer; line-height:1;
+            background:rgba(255,255,255,.06); border:1px solid var(--ss-line-2); color:var(--ss-ink-soft); transition:.12s; }
+        .date-chip:hover{ border-color:var(--ss-gold); color:var(--ss-ink); }
+        .date-chip.on{ background:var(--ss-gold-wash); border-color:var(--ss-gold); color:var(--ss-gold); }
+        /* Toast (replaces full-page re-render for status messages) */
+        #ssToast{ position:fixed; left:50%; bottom:22px; transform:translate(-50%,20px); opacity:0; pointer-events:none; z-index:60;
+            max-width:calc(100vw - 32px); display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:14px;
+            background:var(--ss-surface); color:var(--ss-ink); border:1px solid var(--ss-gold); box-shadow:0 14px 40px rgba(0,0,0,.35);
+            font-weight:700; font-size:14px; transition:opacity .2s, transform .2s; font-family:'Manrope',sans-serif; }
+        #ssToast.show{ opacity:1; transform:translate(-50%,0); pointer-events:auto; }
+        #ssToast button{ background:linear-gradient(135deg,var(--ss-gold),var(--ss-gold-deep)); color:#1a1206; border:0; border-radius:9px;
+            padding:6px 10px; font-weight:800; font-size:12.5px; cursor:pointer; white-space:nowrap; }
+        /* Action Board: baptismal dates + quick add/edit */
+        .bd-panel{ background:var(--ss-surface); border:1px solid var(--ss-line); border-radius:18px; overflow:hidden; box-shadow:0 14px 40px rgba(0,0,0,.18); }
+        .bd-head{ background:rgba(217,106,122,.16); border-bottom:1px solid var(--ss-line); padding:14px 18px; }
+        .bd-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; padding:14px; }
+        .bd-card{ border:1px solid var(--ss-line-2); border-radius:14px; background:var(--ss-surface-2); padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+        .bd-card.nodate{ border-color:var(--ss-red); border-style:dashed; }
+        .bd-count{ font-family:'Fraunces',Georgia,serif; font-size:22px; line-height:1; color:var(--ss-gold); font-variant-numeric:tabular-nums; }
+        .ab-edit{ margin-top:8px; padding-top:8px; border-top:1px dashed var(--ss-line-2); display:grid; gap:6px; }
+        .ab-mini{ font-size:11px; font-weight:800; padding:4px 8px; border-radius:7px; cursor:pointer; border:1px solid var(--ss-line-2); background:rgba(255,255,255,.05); color:var(--ss-ink-soft); }
+        .ab-mini:hover{ border-color:var(--ss-gold); color:var(--ss-ink); }
         [class~="text-purple-600"],[class~="text-purple-700"],[class~="text-purple-800"],[class~="text-purple-300"],[class~="text-indigo-600"],[class~="text-indigo-700"],[class~="text-indigo-800"]{ color:var(--ss-violet)!important; }
         [class~="bg-purple-50"],[class~="bg-purple-100"],[class~="bg-indigo-50"],[class~="bg-indigo-100"]{ background-color:var(--ss-violet-wash)!important; }
 
@@ -350,6 +377,7 @@
 </head>
 <body>
     <div id="app"></div>
+    <div id="ssToast" role="status" aria-live="polite"></div>
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
@@ -900,11 +928,40 @@
         const dataRef = ref(database, 'trackerDataV2');
         const eventsRef = ref(database, 'events');
         
+        // ── Efficiency: skip our own write echoes, and never re-render while someone is typing / picking a date ──
+        let _lastWriteStamp = 0;      // lastSaved value of our most recent write
+        let _saveTimer = null;        // pending coalesced save
+        let _pendingRender = false;   // a render was deferred because a field had focus
+        function editingField() {
+            const ae = document.activeElement, app = document.getElementById('app');
+            return !!(ae && app && app.contains(ae) && ae.matches('input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=button]),textarea'));
+        }
+        // Use for background refreshes (Firebase) and date edits: waits until the field loses focus.
+        function softRender() {
+            if (editingField()) { _pendingRender = true; return; }
+            render();
+        }
+        document.addEventListener('focusout', () => {
+            if (!_pendingRender) return;
+            setTimeout(() => { if (_pendingRender && !editingField()) render(); }, 60);
+        });
+        // Local-date helpers (toISOString() is UTC, which flips to "tomorrow" in the evening in Utah)
+        function todayISO() { return ymd(new Date()); }
+        function validISO(v) {
+            if (v === '') return true;   // clearing is allowed
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(v || '')) return false;
+            const y = +v.slice(0, 4); return y >= 2000 && y <= 2100;   // ignore half-typed years like 0002
+        }
+
         onValue(dataRef, (snapshot) => {
             const data = snapshot.val();
+            // Our own write bouncing back — state already has it, so don't rebuild the page.
+            if (data && data.lastSaved && data.lastSaved === _lastWriteStamp) return;
+            // A local edit is queued to save — don't let an older copy clobber it.
+            if (_saveTimer) return;
             if (data) {
                 // Merge new action-planner fields into existing records that predate them
-                const mergeFields = p => ({ assignedTo: '', nextContactDate: '', nextAction: '', lastContactDate: '', lastContactType: '', taskDone: false, taskDoneDate: '', ...p });
+                const mergeFields = p => ({ assignedTo: '', nextContactDate: '', nextAction: '', lastContactDate: '', lastContactType: '', taskDone: false, taskDoneDate: '', baptismDate: '', ...p });
                 state.investigators = (data.investigators || state.investigators).map(mergeFields);
                 state.returning = (data.returning || state.returning).map(mergeFields);
                 state.covenantPath = data.covenantPath || [];
@@ -917,7 +974,7 @@
                 state.checkins = data.checkins || {};
                 state.bomFinishDate = data.bomFinishDate || '';
             }
-            render();
+            softRender();
         });
 
         onValue(eventsRef, (snapshot) => {
@@ -925,7 +982,7 @@
             if (data) {
                 state.events = Object.keys(data).map(key => ({ id: key, ...data[key] }));
             }
-            render();
+            softRender();
         });
 
         // ── Photo-edit lock (enter the code to add/replace/remove images) ──
@@ -941,8 +998,22 @@
             render();
         };
 
+        // Coalesce bursts of edits into one write (each write sends the whole tracker).
         function saveToFirebase() {
             state.syncing = true;
+            const el = document.getElementById('syncIndicator');
+            if (el) el.outerHTML = syncIndicatorHTML();
+            clearTimeout(_saveTimer);
+            _saveTimer = setTimeout(saveNow, 350);
+        }
+        function flushSave() { if (_saveTimer) saveNow(); }
+        window.addEventListener('pagehide', flushSave);
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushSave(); });
+
+        function saveNow() {
+            clearTimeout(_saveTimer); _saveTimer = null;
+            state.syncing = true;
+            _lastWriteStamp = Date.now();
             set(dataRef, {
                 investigators: state.investigators,
                 returning: state.returning,
@@ -955,7 +1026,7 @@
                 darkMode: state.darkMode,
                 checkins: state.checkins,
                 bomFinishDate: state.bomFinishDate,
-                lastSaved: Date.now()
+                lastSaved: _lastWriteStamp
             }).then(() => {
                 state.lastSynced = Date.now();
                 state.syncing = false;
@@ -979,10 +1050,16 @@
             return `<span id="syncIndicator" class="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg" style="background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink-soft);" title="Data sync status"><span style="width:8px;height:8px;border-radius:50%;background:${dot};display:inline-block;"></span>${txt}</span>`;
         }
 
-        function showSaveMessage(msg) {
-            state.saveMessage = msg;
-            render();
-            setTimeout(() => { state.saveMessage = ''; render(); }, 3000);
+        // Toast instead of two full-page re-renders per message. Optional action button.
+        let _toastTimer = null;
+        function showSaveMessage(msg, actionLabel, actionFn) {
+            const el = document.getElementById('ssToast');
+            if (!el) return;
+            el.innerHTML = `<span>${msg}</span>` + (actionLabel ? `<button type="button">${actionLabel}</button>` : '');
+            if (actionLabel && actionFn) el.querySelector('button').onclick = () => { el.classList.remove('show'); actionFn(); };
+            el.classList.add('show');
+            clearTimeout(_toastTimer);
+            _toastTimer = setTimeout(() => el.classList.remove('show'), actionLabel ? 6000 : 3000);
         }
 
         function getCurrentList() {
@@ -1043,17 +1120,18 @@
             debounce('action_'+id, () => saveToFirebase());
         };
         window.markContacted = (id) => {
-            const today = new Date().toISOString().split('T')[0];
+            const today = todayISO();
             const nextDate = addDaysISO(7); // nudge follow-up forward a week, matching the This Week button
             const l = getCurrentList();
             setCurrentList(l.map(p => p.id === id ? { ...p, lastContactDate: today, nextContactDate: nextDate } : p));
             saveToFirebase();
+            render();
             showSaveMessage(currentLang==='to'?'✓ Fetuʻutaki ʻosi · fai hoko +7 ʻaho':'✓ Contacted · next follow-up in 7 days');
         };
 
         // ── Contact outcome logging (built on markContacted) ──
         window.logContact = (id, type) => {
-            const today = new Date().toISOString().split('T')[0];
+            const today = todayISO();
             const nextDate = addDaysISO(7);
             const l = getCurrentList();
             setCurrentList(l.map(p => p.id === id ? { ...p, lastContactDate: today, nextContactDate: nextDate, lastContactType: type } : p));
@@ -1079,7 +1157,7 @@
         window.memberCheckIn = () => {
             let name=''; try { name = localStorage.getItem('f5_checkin_name') || ''; } catch(e){}
             if (!name) return;
-            const today = new Date().toISOString().split('T')[0];
+            const today = todayISO();
             state.checkins = state.checkins || {};
             const arr = state.checkins[name] || [];
             if (!arr.includes(today)) { arr.push(today); state.checkins[name] = arr; saveToFirebase(); }
@@ -1097,6 +1175,7 @@
                     const hasIndicator = monthData.includes(indicator);
                     const newMonthData = hasIndicator ? monthData.filter(i => i !== indicator) : [...monthData, indicator];
                     if (indicator === 'B' && !hasIndicator) { moveToCovenantPath(person); return null; }
+                    if (indicator === 'BD' && !hasIndicator) setTimeout(() => announceBaptismalDate(person), 0);
                     return { ...person, progress: { ...person.progress, [month]: newMonthData } };
                 }
                 return person;
@@ -1106,6 +1185,16 @@
             render();
         };
 
+        // BD checked in the Monthly Tracker → person shows up in the Action Board's Baptismal Dates section
+        function announceBaptismalDate(person) {
+            const nm = person.name || (currentLang==='to' ? 'Kakai' : 'This person');
+            showSaveMessage(
+                currentLang==='to' ? `📅 ${nm} — kuo tānaki ki he Palanga Ngāué` : `📅 ${nm} added to Action Board — set the baptism date`,
+                currentLang==='to' ? 'Tohi ʻaho →' : 'Set date →',
+                () => { document.querySelector('.fixed')?.remove(); setViewMode('actionboard'); setTimeout(() => document.getElementById('bdSection')?.scrollIntoView({ behavior:'smooth', block:'start' }), 50); }
+            );
+        }
+
         function moveToCovenantPath(person) {
             state.covenantPath.push({
                 id: Date.now(), name: person.name, assignment: person.assignment, type: '',
@@ -1113,7 +1202,7 @@
                 femaleOrdinances: { templeBaptisms: false, patriarchalBlessing: false, endowment: false },
                 selfRelianceCompleted: { emotionalResilience: false, personalFinances: false, startGrowBusiness: false, educationBetterWork: false, findBetterJob: false },
                 notes: person.notes || '',
-                baptismDate: new Date().toISOString().split('T')[0],
+                baptismDate: (person.baptismDate && person.baptismDate <= todayISO()) ? person.baptismDate : todayISO(),
                 progress: person.progress || {}   // ✅ preserve full activity history
             });
         }
@@ -1445,7 +1534,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `focus5-data-${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `focus5-data-${todayISO()}.json`;
             a.click();
         };
 
@@ -1460,6 +1549,7 @@
                         if (data.returning) state.returning = data.returning;
                         if (data.covenantPath) state.covenantPath = data.covenantPath;
                         saveToFirebase();
+                        render();
                         showSaveMessage(currentLang==='to'?'✓ Tohi mai kakato!':'✓ Data imported successfully!');
                     } catch (error) { showSaveMessage(currentLang==='to'?'Hala ʻi he tohi mai':'Error importing data'); }
                 };
@@ -1480,6 +1570,47 @@
             if (tab === 'investigators') state.investigators = state.investigators.map(p => p.id === idNum ? { ...p, nextAction: val } : p);
             else state.returning = state.returning.map(p => p.id === idNum ? { ...p, nextAction: val } : p);
             saveToFirebase();
+            softRender();   // Action Board card edits show up without losing focus
+        };
+        window.toggleBoardAdd = () => { state.showBoardAdd = !state.showBoardAdd; render(); if (state.showBoardAdd) setTimeout(() => document.getElementById('abName')?.focus(), 30); };
+        window.toggleBoardEdit = (key) => { state.boardEdit = state.boardEdit === key ? null : key; render(); };
+        function updatePerson(id, tab, patch) {
+            const idNum = parseInt(id);
+            const apply = p => p.id === idNum ? { ...p, ...patch } : p;
+            if (tab === 'investigators') state.investigators = state.investigators.map(apply);
+            else state.returning = state.returning.map(apply);
+        }
+        window.quickSetOrg = (id, tab, org) => { updatePerson(id, tab, { assignedTo: org, assignment: org }); saveToFirebase(); render(); };
+        window.setBaptismDate = (id, tab, val) => {
+            if (!validISO(val)) return;
+            updatePerson(id, tab, { baptismDate: val });
+            saveToFirebase();
+            softRender();   // don't close the picker mid-selection
+            if (val) showSaveMessage('📅 ' + (currentLang==='to'?'ʻAho papitaiso: ':'Baptism date: ') + fmtNice(val));
+        };
+        window.boardAddPerson = () => {
+            const name = (document.getElementById('abName')?.value || '').trim();
+            if (!name) { showSaveMessage(currentLang==='to' ? 'Fakahū ha hingoa' : 'Please enter a name'); document.getElementById('abName')?.focus(); return; }
+            const tab = document.getElementById('abTab')?.value || 'investigators';
+            const org = document.getElementById('abOrg')?.value || '';
+            const date = document.getElementById('abDate')?.value || '';
+            const action = (document.getElementById('abAction')?.value || '').trim();
+            const hasBD = !!document.getElementById('abBD')?.checked;
+            const bdDate = document.getElementById('abBDDate')?.value || '';
+            const list = tab === 'investigators' ? state.investigators : state.returning;
+            const newId = Math.max(...list.map(p => p.id), tab === 'returning' ? 99 : 0) + 1;
+            const monthKey = MONTHS[new Date().getMonth()];
+            const person = { id: newId, name, notes: '', progress: hasBD ? { [monthKey]: ['BD'] } : {}, assignment: org, goal: '',
+                emoji: tab === 'investigators' ? '👤' : '💙', assignedTo: org, nextContactDate: validISO(date) ? date : '', nextAction: action,
+                lastContactDate: '', lastContactType: '', taskDone: false, taskDoneDate: '', baptismDate: hasBD && validISO(bdDate) ? bdDate : '' };
+            // Reuse an empty placeholder row (the tracker starts with blank slots) before appending a new one
+            const blank = list.findIndex(p => !p.name && !Object.values(p.progress||{}).flat().length);
+            if (blank >= 0) { person.id = list[blank].id; list[blank] = person; } else list.push(person);
+            if (tab === 'investigators') state.investigators = [...list]; else state.returning = [...list];
+            state.showBoardAdd = false;
+            saveToFirebase();
+            render();
+            showSaveMessage('✓ ' + name + (currentLang==='to' ? ' kuo tānaki' : ' added to the board'));
         };
         window.toggleAddContact = () => { state.showAddContact = !state.showAddContact; render(); };
         window.thisWeekAddTask = () => {
@@ -1704,14 +1835,12 @@
                     let newMonthData = isChecked
                         ? (monthData.includes(indicatorCode) ? monthData : [...monthData, indicatorCode])
                         : monthData.filter(code => code !== indicatorCode);
-                    if (indicatorCode === 'B' && isChecked && !monthData.includes('B')) {
-                        setTimeout(() => { document.querySelector('.fixed')?.remove(); moveToCovenantPath(person); }, 500);
+                    if ((indicatorCode === 'B' || indicatorCode === 'ACTIVE') && isChecked && !monthData.includes(indicatorCode)) {
+                        // Save + re-render AFTER the move so the Covenant Path entry isn't lost on reload
+                        setTimeout(() => { document.querySelector('.fixed')?.remove(); moveToCovenantPath(person); saveToFirebase(); render(); }, 500);
                         return null;
                     }
-                    if (indicatorCode === 'ACTIVE' && isChecked && !monthData.includes('ACTIVE')) {
-                        setTimeout(() => { document.querySelector('.fixed')?.remove(); moveToCovenantPath(person); }, 500);
-                        return null;
-                    }
+                    if (indicatorCode === 'BD' && isChecked && !monthData.includes('BD')) setTimeout(() => announceBaptismalDate(person), 0);
                     return { ...person, progress: { ...person.progress, [month]: newMonthData } };
                 }
                 return person;
@@ -1850,7 +1979,7 @@
             }
             const dates = (state.checkins && state.checkins[name]) || [];
             const streak = checkinStreak(dates);
-            const today = new Date().toISOString().split('T')[0];
+            const today = todayISO();
             const doneToday = dates.includes(today);
             return `<div style="max-width:440px;margin:0 auto;">
                 ${challengeLink('join-read','🐢','Hū ki he ʻAppi “The Challenge”','Open in The Challenge app','Kau ki he lova fonu — Lau Tohi','Join the Reading turtle race')}
@@ -1870,6 +1999,7 @@
         }
 
         function render() {
+            _pendingRender = false;
             const currentList = getCurrentList();
             const scopeRelevant = ['tracker','thisweek','actionboard','charts'].includes(state.viewMode);
             const app = document.getElementById('app');
@@ -1904,7 +2034,7 @@
                                     ${syncIndicatorHTML()}
                                     <button onclick="toggleEditMode()" class="iconbtn ${editMode ? 'gold' : ''}" title="${editMode ? (currentLang==='to'?'Tāpuni ʻa e liliu fotó':'Lock photo editing') : (currentLang==='to'?'Fakaava ʻa e liliu fotó':'Unlock photo editing')}">${editMode ? '🔓' : '🔒'} <span class="hidden sm:inline">${currentLang==='to'?'Foto':'Photos'}</span></button>
                                     <button onclick="toggleLanguage()" class="iconbtn" title="${currentLang === 'to' ? 'Switch to English' : 'Liliu ki he Lea Faka Tonga'}">🇹🇴 ${currentLang === 'to' ? 'English' : 'Lea Faka Tonga'}</button>
-                                    <button onclick="saveToFirebase()" class="iconbtn gold" title="${t('Save')}">💾 <span class="hidden sm:inline">${t('Save')}</span></button>
+                                    <button onclick="saveNowClick()" class="iconbtn gold" title="${t('Save')}">💾 <span class="hidden sm:inline">${t('Save')}</span></button>
                                     <button onclick="showWardCouncilReport()" class="iconbtn" title="${t('Ward Council Report')}">📋</button>
                                     <button onclick="toggleTheme()" class="iconbtn" title="${t('Toggle theme')}">${currentThemeIsLight() ? '🌙' : '☀️'}</button>
                                     <button onclick="exportData()" class="iconbtn" title="${t('Export')}">📥</button>
@@ -2270,8 +2400,8 @@
                                 ? `<button onclick="toggleTaskDone('${p.id}','${p._tab}')" class="text-xs font-black px-3 py-1.5 rounded-lg transition-all" style="background:rgba(255,255,255,.08);border:1px solid var(--ss-line-2);color:var(--ss-ink-soft);">↩️ ${t('Reopen')}</button>`
                                 : `<button onclick="markContacted_tab('${p.id}','${p._tab}')" class="text-xs font-black px-3 py-1.5 rounded-lg transition-all" style="background:var(--ss-red-wash);border:1px solid var(--ss-red);color:var(--ss-red);">✅ Mark Contacted</button>
                                    <button onclick="toggleTaskDone('${p.id}','${p._tab}')" class="text-xs font-black px-3 py-1.5 rounded-lg transition-all" style="background:var(--ss-sage-wash);border:1px solid var(--ss-sage);color:var(--ss-sage);">✓ ${t('Mark Done')}</button>
-                                   <input type="date" value="${p.nextContactDate||''}" onchange="quickSetDate('${p.id}','${p._tab}',this.value)" class="tw-field text-xs rounded-lg px-2 py-1 focus:outline-none" style="${fieldStyle}" title="Set next contact date" />
-                                   <select onchange="logContactActivity('${p.id}','${p._tab}',this.value); this.value='';" class="tw-field text-xs rounded-lg px-2 py-1 focus:outline-none" style="${fieldStyle}" title="Log an activity (also marks contacted)">
+                                   ${dateChipsHTML(p)}
+                                   <select onchange="const v=this.value; this.value=''; this.blur(); logContactActivity('${p.id}','${p._tab}',v);" class="tw-field text-xs rounded-lg px-2 py-1 focus:outline-none" style="${fieldStyle}" title="Log an activity (also marks contacted)">
                                        <option value="">＋ ${t('Log activity')}</option>
                                        ${INDICATORS.map(i=>`<option value="${i.code}">${i.emoji} ${i.code} — ${currentLang==='to'?i.toName:i.name}</option>`).join('')}
                                    </select>`}
@@ -2434,10 +2564,10 @@
 
         function addDaysISO(days) {
             const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() + days);
-            return d.toISOString().split('T')[0];
+            return ymd(d);
         }
         window.markContacted_tab = (id, tab) => {
-            const today = new Date().toISOString().split('T')[0];
+            const today = todayISO();
             const nextDate = addDaysISO(7);
             const apply = p => p.id === parseInt(id) ? { ...p, lastContactDate: today, nextContactDate: nextDate } : p;
             if (tab === 'investigators') state.investigators = state.investigators.map(apply);
@@ -2450,7 +2580,7 @@
             if (!code) return;
             const today = new Date();
             const monthKey = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][today.getMonth()];
-            const todayISO = today.toISOString().split('T')[0];
+            const todayStr = ymd(today);
             const nextDate = addDaysISO(7);
             const idNum = parseInt(id);
             const apply = p => {
@@ -2458,27 +2588,45 @@
                 const prog = { ...(p.progress||{}) };
                 const month = prog[monthKey] || [];
                 if (!month.includes(code)) prog[monthKey] = [...month, code];
-                return { ...p, progress: prog, lastContactDate: todayISO, nextContactDate: nextDate };
+                return { ...p, progress: prog, lastContactDate: todayStr, nextContactDate: nextDate };
             };
             if (tab === 'investigators') state.investigators = state.investigators.map(apply);
             else state.returning = state.returning.map(apply);
             saveToFirebase();
             render();
             const ind = INDICATORS.find(i => i.code === code);
+            const person = (tab === 'investigators' ? state.investigators : state.returning).find(p => p.id === idNum);
+            if (code === 'BD' && person) { announceBaptismalDate(person); return; }
             showSaveMessage('✓ ' + (ind ? ind.emoji+' '+code : code) + ' · ' + (currentLang==='to'?'fetuʻutaki ʻosi':'logged & contacted'));
         };
 
-        window.quickSetDate = (id, tab, dateVal) => {
+        // Shared "next contact date" control: quick chips + a native picker that is never torn down mid-pick.
+        function dateChipsHTML(p) {
+            const cur = p.nextContactDate || '';
+            const chips = [[0, t2('ʻAho ni','Today')], [1, t2('ʻApongipongi','Tmrw')], [3, '+3d'], [7, '+1wk'], [14, '+2wk']];
+            return `<div class="flex flex-col items-end gap-1.5">
+                <div class="date-chips">${chips.map(([d, lab]) => {
+                    const iso = addDaysISO(d);
+                    return `<button type="button" class="date-chip ${cur===iso?'on':''}" onclick="quickSetDate('${p.id}','${p._tab}','${iso}',true)">${lab}</button>`;
+                }).join('')}</div>
+                <input type="date" value="${cur}" onchange="quickSetDate('${p.id}','${p._tab}',this.value)" onkeydown="if(event.key==='Enter')this.blur()" class="tw-field tw-date rounded-lg focus:outline-none" style="background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink)" title="${t2('Tohi ʻaho fetuʻutaki hoko','Set next contact date')}" />
+            </div>`;
+        }
+        window.quickSetDate = (id, tab, dateVal, fromChip) => {
+            if (!validISO(dateVal)) return;          // half-typed dates (e.g. year 0002) are ignored
             const idNum = parseInt(id);
-            if (tab === 'investigators') state.investigators = state.investigators.map(p => p.id === idNum ? { ...p, nextContactDate: dateVal } : p);
-            else state.returning = state.returning.map(p => p.id === idNum ? { ...p, nextContactDate: dateVal } : p);
+            const apply = p => p.id === idNum ? { ...p, nextContactDate: dateVal } : p;
+            if (tab === 'investigators') state.investigators = state.investigators.map(apply);
+            else state.returning = state.returning.map(apply);
             saveToFirebase();
-            render();
+            // Chips re-render right away; the picker waits until it closes/blur so it doesn't jump or close on you.
+            if (fromChip) render(); else softRender();
+            if (fromChip && dateVal) showSaveMessage('📅 ' + fmtNice(dateVal));
         };
 
         window.toggleTaskDone = (id, tab) => {
             const idNum = parseInt(id);
-            const today = new Date().toISOString().split('T')[0];
+            const today = todayISO();
             const flip = p => p.id === idNum ? { ...p, taskDone: !p.taskDone, taskDoneDate: !p.taskDone ? today : '' } : p;
             if (tab === 'investigators') state.investigators = state.investigators.map(flip);
             else state.returning = state.returning.map(flip);
@@ -2528,7 +2676,13 @@
                     lines.push(`  • ${e.name} — ${when}${e.time?' · '+e.time:''}${e.location?' · 📍'+e.location:''}`);
                 });
             }
-            if (!overdue.length && !dueThisWeek.length && !weekEvents.length) lines.push('✅ No urgent contacts or events this week!');
+            const baptisms = allPeople.filter(p => p.baptismDate && getDaysUntil(p.baptismDate) >= 0 && getDaysUntil(p.baptismDate) <= 30 && !Object.values(p.progress||{}).flat().includes('B'))
+                .sort((a,b) => a.baptismDate.localeCompare(b.baptismDate));
+            if (baptisms.length) {
+                lines.push('\n📅 UPCOMING BAPTISMS:');
+                baptisms.forEach(p => lines.push(`  • ${p.name} — ${parseLocalDate(p.baptismDate).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}${p.assignedTo?' ('+p.assignedTo+')':''}`));
+            }
+            if (!overdue.length && !dueThisWeek.length && !weekEvents.length && !baptisms.length) lines.push('✅ No urgent contacts or events this week!');
             const text = lines.join('\n');
             if (navigator.share) {
                 navigator.share({ title: 'This Week\'s Focus', text });
@@ -2577,6 +2731,48 @@
                 return Math.ceil((today - parseLocalDate(p.lastContactDate)) / (1000*60*60*24));
             }
 
+            // ── Baptismal Dates: everyone marked BD in the Monthly Tracker who isn't baptized yet ──
+            const bdPeople = allPeople.filter(p => {
+                const acts = Object.values(p.progress||{}).flat();
+                return acts.includes('BD') && !acts.includes('B');
+            }).sort((a,b) => (a.baptismDate||'9999').localeCompare(b.baptismDate||'9999'));
+            const bdNoDate = bdPeople.filter(p => !p.baptismDate).length;
+            const fieldCss = 'background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink)';
+            const ORGS = [['Elders Quorum','⚡ EQ'],['Relief Society','🌸 RS'],['Young Men','🎯 YM'],['Young Women','⭐ YW'],['Sunday School/Primary','📚 SS'],['Young Single Adults','💫 YSA']];
+            const orgSelect = (p, extra='') => `<select onchange="quickSetOrg('${p.id}','${p._tab}',this.value); this.blur();" class="tw-field text-xs rounded-lg px-2 py-1.5 focus:outline-none ${extra}" style="${fieldCss}">
+                    <option value="">👤 ${t2('Vahe ki he...','Assign to...')}</option>
+                    ${ORGS.map(([v,l]) => `<option value="${v}" ${p.assignedTo===v?'selected':''}>${l}</option>`).join('')}
+                </select>`;
+
+            function renderBdCard(p) {
+                const d = p.baptismDate ? Math.round((parseLocalDate(p.baptismDate) - today) / 86400000) : null;
+                const when = d === null ? t2('ʻIkai ha ʻaho','No date yet')
+                    : d === 0 ? t2('ʻAho ni! 🎉','Today! 🎉')
+                    : d > 0 ? t2(`ʻi he ʻaho ʻe ${d}`, `in ${d} day${d===1?'':'s'}`)
+                    : t2(`kuo ʻosi ʻaho ʻe ${-d}`, `${-d} day${d===-1?'':'s'} ago`);
+                const nice = p.baptismDate ? parseLocalDate(p.baptismDate).toLocaleDateString(currentLang==='to'?'en-NZ':'en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' }) : '';
+                return `<div class="bd-card ${p.baptismDate?'':'nodate'}">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="flex items-start gap-2 min-w-0">
+                            <span class="text-xl">${p.emoji || (p._tab==='investigators'?'👤':'💙')}</span>
+                            <div class="min-w-0">
+                                <div class="font-black text-sm leading-tight" style="color:var(--ss-ink);">${esc(p.name)}</div>
+                                <div class="text-xs font-bold mt-0.5" style="color:${p.assignedTo?'var(--ss-gold)':'var(--ss-red)'};">${p.assignedTo ? esc(p.assignedTo) : t2('⚠️ ʻIkai vahe','⚠️ Unassigned')}</div>
+                            </div>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            ${d !== null && d >= 0 ? `<div class="bd-count">${d}</div><div class="text-[10px] font-bold uppercase tracking-wide" style="color:var(--ss-muted);">${t2('ʻaho','days')}</div>` : ''}
+                        </div>
+                    </div>
+                    <label class="text-[11px] font-black uppercase tracking-wide" style="color:var(--ss-muted);">📅 ${t2('ʻAho Papitaiso','Baptism date')}</label>
+                    <input type="date" value="${p.baptismDate||''}" onchange="setBaptismDate('${p.id}','${p._tab}',this.value)" onkeydown="if(event.key==='Enter')this.blur()" class="tw-field tw-date rounded-lg focus:outline-none w-full" style="${fieldCss}" />
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <span class="text-xs font-bold" style="color:${d===null?'var(--ss-red)':d<0?'#f6b87a':'var(--ss-sage)'};">${nice ? nice+' · ' : ''}${when}</span>
+                        ${!p.assignedTo ? orgSelect(p) : ''}
+                    </div>
+                </div>`;
+            }
+
             const columns = {
                 new: { label: '🌱 New', subtitle: 'No engagement yet', color: 'from-slate-500 to-slate-600', head: '#3a7d5e', bg: 'bg-slate-50', border: 'border-slate-200', people: [] },
                 inprogress: { label: '🔄 In Progress', subtitle: 'Actively engaged', color: 'from-blue-500 to-blue-600', head: '#34618f', bg: 'bg-blue-50', border: 'border-blue-200', people: [] },
@@ -2590,6 +2786,8 @@
             });
 
             function renderCard(p) {
+                const key = p._tab + ':' + p.id;
+                const editing = state.boardEdit === key;
                 const allActs = Object.values(p.progress||{}).flat();
                 const thisMonthActs = p.progress?.[currentMonthKey]?.length || 0;
                 const daysSince = getDaysSinceContact(p);
@@ -2618,9 +2816,18 @@
                                 ${topInd ? `<span class="text-xs bg-white border border-gray-200 px-1.5 py-0.5 rounded font-bold">${topInd.emoji} ${topInd.code}</span>` : ''}
                                 ${thisMonthActs > 0 ? `<span class="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">✓ ${thisMonthActs} this mo.</span>` : ''}
                                 ${daysSince !== null ? `<span class="text-xs text-gray-400 font-semibold">${daysSince===0?'Today':daysSince+'d ago'}</span>` : ''}
+                                ${p.baptismDate ? `<span class="text-xs px-1.5 py-0.5 rounded font-black" style="background:var(--ss-red-wash);color:var(--ss-red);">📅 ${fmtNice(p.baptismDate)}</span>` : ''}
+                                ${p.nextContactDate ? `<span class="text-xs font-semibold" style="color:var(--ss-muted);">⏭ ${fmtNice(p.nextContactDate)}</span>` : ''}
                             </div>
                         </div>
+                        <button type="button" onclick="toggleBoardEdit('${key}')" class="ab-mini flex-shrink-0" title="${t2('Liliu','Edit')}">${editing ? '✕' : '✏️'}</button>
                     </div>
+                    ${editing ? `<div class="ab-edit">
+                        <input type="text" value="${esc(p.nextAction||'')}" onchange="quickSetAction('${p.id}','${p._tab}',this.value)" onkeydown="if(event.key==='Enter')this.blur()" placeholder="📝 ${t('Add a task / next action...')}" class="tw-field w-full text-xs font-semibold rounded-lg px-2 py-1.5 focus:outline-none" style="${fieldCss}" />
+                        ${orgSelect(p, 'w-full')}
+                        ${dateChipsHTML(p)}
+                        <button type="button" onclick="markContacted_tab('${p.id}','${p._tab}')" class="ab-mini" style="border-color:var(--ss-sage);color:var(--ss-sage);">✅ ${t2('Fetuʻutaki ʻosi','Mark Contacted')} (+7)</button>
+                    </div>` : ''}
                 </div>`;
             }
 
@@ -2637,7 +2844,8 @@
                                 <p class="text-violet-200 text-sm font-semibold">Sunday war-room view — who's where right now</p>
                             </div>
                         </div>
-                        <div class="flex gap-2 flex-wrap">
+                        <div class="flex gap-2 flex-wrap items-center">
+                            <button onclick="toggleBoardAdd()" class="px-4 py-2.5 rounded-xl font-black text-sm shadow-lg hover-lift" style="background:linear-gradient(135deg,#edc878,#f6dfa6);color:#1a1206;">${state.showBoardAdd ? '✕' : '➕'} ${t2('Tānaki','Add')}</button>
                             ${Object.entries(columns).map(([k,c])=>`
                             <div class="bg-white/20 rounded-xl px-3 py-2 text-center">
                                 <div class="text-xl font-black">${c.people.length}</div>
@@ -2650,6 +2858,52 @@
                             <button onclick="setBoardFilter('${val}')" class="px-3 py-1.5 rounded-lg text-xs font-black transition-all ${boardFilter===val?'bg-white text-purple-700 shadow':'bg-white/15 text-white hover:bg-white/25'}">${lab}</button>`).join('')}
                     </div>
                 </div>
+
+                ${state.showBoardAdd ? `
+                <div class="rounded-2xl p-5 shadow-xl" style="background:var(--ss-surface);border:1px solid var(--ss-line);">
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="font-black text-lg" style="color:var(--ss-gold-deep);">➕ ${t2('Tānaki ki he Palanga Ngāué','Add to Action Board')}</h3>
+                        <button onclick="toggleBoardAdd()" class="text-sm font-bold" style="color:var(--ss-muted);">✕</button>
+                    </div>
+                    <p class="text-xs mb-3" style="color:var(--ss-muted);">${t2('Tānaki ha tokotaha foʻou — ʻe toe hā ia ʻi he Monthly Tracker.','Add someone new — they’ll also appear in the Monthly Tracker.')}</p>
+                    <div class="grid md:grid-cols-2 gap-3">
+                        <input id="abName" type="text" placeholder="${t2('Hingoa','Name')} *" onkeydown="if(event.key==='Enter')boardAddPerson()" class="tw-field rounded-lg px-3 py-2 text-sm focus:outline-none" style="${fieldCss}" />
+                        <select id="abTab" class="tw-field rounded-lg px-3 py-2 text-sm focus:outline-none" style="${fieldCss}">
+                            <option value="investigators">👤 ${t('Investigators') || 'Investigator'}</option>
+                            <option value="returning">💙 ${t2('Foki Mai','Returning Member')}</option>
+                        </select>
+                        <select id="abOrg" class="tw-field rounded-lg px-3 py-2 text-sm focus:outline-none" style="${fieldCss}">
+                            <option value="">👤 ${t2('Vahe ki he...','Assign to...')}</option>
+                            ${ORGS.map(([v,l]) => `<option value="${v}">${l}</option>`).join('')}
+                        </select>
+                        <input id="abDate" type="date" class="tw-field tw-date rounded-lg text-sm focus:outline-none" style="${fieldCss}" title="${t2('ʻAho fetuʻutaki hoko','Next contact date')}" />
+                        <input id="abAction" type="text" placeholder="📝 ${t('Add a task / next action...')}" onkeydown="if(event.key==='Enter')boardAddPerson()" class="tw-field rounded-lg px-3 py-2 text-sm focus:outline-none md:col-span-2" style="${fieldCss}" />
+                        <label class="flex items-center gap-2 text-sm font-bold md:col-span-2 cursor-pointer" style="color:var(--ss-ink-soft);">
+                            <input id="abBD" type="checkbox" class="w-4 h-4" style="accent-color:var(--ss-gold);" onchange="document.getElementById('abBDWrap').style.display=this.checked?'flex':'none'" />
+                            📅 ${t2('Kuo tohi ʻa e ʻaho papitaiso (BD)','Baptismal date set (BD)')}
+                        </label>
+                        <div id="abBDWrap" class="items-center gap-2 md:col-span-2" style="display:none;">
+                            <span class="text-xs font-black uppercase" style="color:var(--ss-muted);">${t2('ʻAho Papitaiso','Baptism date')}</span>
+                            <input id="abBDDate" type="date" class="tw-field tw-date rounded-lg text-sm focus:outline-none" style="${fieldCss}" />
+                        </div>
+                    </div>
+                    <button onclick="boardAddPerson()" class="mt-3 px-5 py-2.5 rounded-xl font-black text-sm hover-lift" style="background:linear-gradient(90deg,#16a34a,#15803d);color:#fff;">✓ ${t2('Tānaki','Add')}</button>
+                </div>` : ''}
+
+                <!-- Baptismal Dates (auto-populated from BD in the Monthly Tracker) -->
+                <div id="bdSection" class="bd-panel">
+                    <div class="bd-head flex items-center justify-between gap-3 flex-wrap">
+                        <div>
+                            <h3 class="font-black text-lg" style="color:var(--ss-ink);">📅 ${t2('Ngaahi ʻAho Papitaiso','Baptismal Dates')} <span class="text-sm px-2 py-0.5 rounded-full ml-1" style="background:var(--ss-red-wash);color:var(--ss-red);">${bdPeople.length}</span></h3>
+                            <p class="text-xs font-semibold mt-0.5" style="color:var(--ss-muted);">${t2('Kuo fili ʻa e BD ʻi he Monthly Tracker — tohi ʻa e ʻaho ʻi heni.','Anyone marked BD in the Monthly Tracker shows up here — set their date.')}</p>
+                        </div>
+                        ${bdNoDate ? `<span class="text-xs font-black px-3 py-1.5 rounded-full" style="background:var(--ss-red);color:#fff;">⚠️ ${bdNoDate} ${t2('ʻikai ha ʻaho','need a date')}</span>` : ''}
+                    </div>
+                    ${bdPeople.length
+                        ? `<div class="bd-grid">${bdPeople.map(renderBdCard).join('')}</div>`
+                        : `<div class="text-center py-6 px-4 text-sm font-semibold" style="color:var(--ss-muted);">${t2('ʻIkai ha taha ʻoku ʻi ai hano ʻaho papitaiso. Fili ʻa e 📅 BD ʻi he Monthly Tracker.','No one has a baptismal date yet. Check 📅 BD for someone in the Monthly Tracker and they’ll appear here.')}</div>`}
+                </div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                     ${Object.entries(columns).map(([k,col])=>`
                     <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border-2 ${col.border}">
@@ -4203,6 +4457,7 @@
         };
 
         window.saveToFirebase = saveToFirebase;
+        window.saveNowClick = () => { saveNow(); showSaveMessage(currentLang==='to'?'✓ Kuo tauhi':'✓ Saved'); };
 
         // Deep-link routing: a shared link like …/#promise opens that tab.
         const HASH_VIEWS = { tracker:'tracker', thisweek:'thisweek', actionboard:'actionboard', charts:'charts', kpi:'charts', events:'events', calendar:'events', promise:'promise', '21day':'promise', bom:'bomchallenge', bomchallenge:'bomchallenge', covenant:'covenant', covenantpath:'covenant', checkin:'checkin', readingcheckin:'checkin' };
