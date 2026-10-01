@@ -934,6 +934,7 @@
             { code: 'AC',   lane:'progress', name: 'Attended church',                        toName: 'Ō ki he Lotu', emoji: '⛪' },
             { code: 'RBOM', lane:'progress', name: 'Reading the Book of Mormon',             toName: 'Lau Tohi ʻa Molomona', emoji: '📚' },
             { code: 'ACA',  lane:'progress', name: 'Attended a church activity',             toName: 'Ō ki Ngāue Lotu', emoji: '🎊' },
+            { code: 'APR',  lane:'progress', name: 'Attended Primary or a youth class',      toName: 'Ō ki he Palaimeli pe kalasi toʻutupu', emoji: '🧒' },
             { code: 'AFHE', lane:'progress', name: 'Came to home evening / dinner',          toName: 'Haʻu ki he efiafi fakafāmili / kai', emoji: '👨‍👩‍👧' },
             { code: 'TML',  lane:'progress', name: 'Taking missionary lessons',              toName: 'ʻOku Ako Lēsoni ʻo e Kau Faifekau', emoji: '📝' },
             { code: 'MPL',  lane:'progress', name: 'Member present at a lesson',             toName: 'Naʻe ʻi ai ha kāingalotu ʻi he lēsoni', emoji: '🧑‍🤝‍🧑' },
@@ -951,7 +952,7 @@
         // Invitations actually extended (a declined invitation is logged as DEC in addition to the invite itself)
         const INVITATION_CODES = ['IAC','IRB','IACA','IFHE','ITM','ITB','IFH','ISP'];
         // Logging any of these means the person chose to act — they leave the "keep loving" lane automatically
-        const RESPONSE_CODES = ['AC','RBOM','ACA','AFHE','TML','MPL','BD','B','C','FHS','ASP','ACTIVE'];
+        const RESPONSE_CODES = ['AC','RBOM','ACA','APR','AFHE','TML','MPL','BD','B','C','FHS','ASP','ACTIVE'];
         // Count a person's activity by lane, optionally for specific months
         function laneCounts(people, months) {
             const out = { love:0, share:0, invite:0, progress:0 };
@@ -1545,7 +1546,8 @@
 
         function moveToCovenantPath(person) {
             state.covenantPath.push({
-                id: Date.now(), name: person.name, assignment: person.assignment, type: '',
+                id: Date.now(), name: person.name, assignment: person.assignment, type: person.category === 'OAY' ? 'OAY' : '',
+                oay: { gender: '', birthYear: '', steps: { attendingPrimary: false } },
                 ordinances: { aaronicPriesthood: false, templeBaptisms: false, patriarchalBlessing: false, melchizedekPriesthood: false, endowment: false },
                 femaleOrdinances: { templeBaptisms: false, patriarchalBlessing: false, endowment: false },
                 selfRelianceCompleted: Object.fromEntries(CHURCH_RESOURCES.map(r => [r.key, false])),
@@ -4233,16 +4235,132 @@
             `;
         }
 
+        // ═════════ OAY — children & youth baptized at 9+ join their AGE GROUP ═════════
+        // They are not put on a separate "new adult convert" track. (General Handbook 38; youth progression by age)
+        //  • 9–11: stay in Primary with their class · Dec before turning 12: Temple & Priesthood Preparation meeting
+        //  • Jan of the year they turn 12: Aaronic Priesthood quorum / Young Women class, limited-use temple recommend
+        //  • Boys: bishop interview soon after confirmation (if 12 by year-end) + parent/guardian permission → deacon; teacher (14), priest (16)
+        //  • Later: activities, youth conference, FSY, patriarchal blessing, Melchizedek Priesthood, mission, endowment
+        // Ordinance steps are stored in the same fields adults use, so dashboards and reports count them automatically.
+        const OAY_STORE = { templeBaptisms:['femaleOrdinances','templeBaptisms'], patriarchalBlessing:['femaleOrdinances','patriarchalBlessing'], endowment:['femaleOrdinances','endowment'], deacon:['ordinances','aaronicPriesthood'], melchizedek:['ordinances','melchizedekPriesthood'] };
+        const OAY_STAGES = [
+            { k:'primary', e:'🧒', en:'Right after baptism · with their Primary class (ages 9–11)', to:'Hili ʻa e papitaisó · mo ʻenau kalasi Palaimelí (taʻu 9–11)' },
+            { k:'youth',   e:'🎯', en:'Joining the youth (January of the year they turn 12)', to:'Kau ki he toʻutupú (Sānuali ʻo e taʻu te nau taʻu 12 ai)' },
+            { k:'later',   e:'🌄', en:'Later steps', to:'Ngaahi laka kimui ange' }
+        ];
+        const OAY_STEPS = [
+            { st:'primary', key:'attendingPrimary', e:'🧒', who:'all', pOnly:true, en:'Attending Primary with their age group', to:'ʻAlu ki he Palaimeli mo ʻenau kalasi',
+              hint: i => !i.known ? '' : i.inPrimary ? `Primary until January ${i.t12}` : 'Now in the youth program' },
+            { st:'primary', key:'sacrament', e:'🍞', who:'all', en:'Taking the sacrament each week', to:'Maʻu ʻa e sākalamēnití he uike kotoa' },
+            { st:'primary', key:'habits', e:'🙏', who:'all', en:'Building habits: prayer, scripture study, repentance', to:'Lotu, ako folofola mo e fakatomala' },
+            { st:'primary', key:'primaryFriend', e:'🤝', who:'all', pOnly:true, en:'A Primary teacher or class friend watching over them', to:'Ha faiako pe kaungāmeʻa ʻi he kalasí' },
+            { st:'primary', key:'tppMeeting', e:'🏛️', who:'all', pOnly:true, en:'Temple & Priesthood Preparation meeting', to:'Fakataha Teuteu ki he Temipalé mo e Lakanga Fakataulaʻeikí',
+              hint: i => i.known ? `December ${i.t12 - 1}` : 'December before they turn 12' },
+            { st:'youth', key:'youthClass', e:'🎯', who:'all', en: g => g === 'F' ? 'Joined a Young Women class' : g === 'M' ? 'Joined the deacons quorum' : 'Joined their youth class / quorum', to:'Kau ki he kalasi pe kōlomu toʻutupú',
+              hint: i => i.known ? (i.inPrimary ? `January ${i.t12}` : 'Now') : 'January of the year they turn 12' },
+            { st:'youth', key:'bishopInterview', e:'🗣️', who:'M', en:'Bishop interview after confirmation', to:'Fakaafe ʻa e pīsope hili ʻa e fakapapau',
+              hint: i => !i.known ? 'Usually within a week of confirmation, if 12 by year-end' : i.eligible12 ? 'Eligible now — normally within a week of confirmation' : `From January ${i.t12}` },
+            { st:'youth', key:'parentPermission', e:'👪', who:'M', en:'Parent or guardian permission for ordination', to:'Ngofua ʻa e mātuʻá ki he fakanofó', hint: () => 'Verbal permission to the bishop' },
+            { st:'youth', key:'deacon', e:'✋', who:'M', en:'Ordained a deacon', to:'Fakanofo ko ha tīkoni', hint: i => i.known ? (i.eligible12 ? 'Eligible now' : `January ${i.t12}`) : 'Age 12' },
+            { st:'youth', key:'limitedRecommend', e:'🎫', who:'all', en:'Limited-use temple recommend', to:'Lekomeni temipale fakangatangata', hint: i => i.known ? (i.eligible12 ? 'Eligible now' : `From January ${i.t12}`) : 'From January of the year they turn 12' },
+            { st:'youth', key:'templeBaptisms', e:'💧', who:'all', en:'Proxy baptisms & confirmations in the temple', to:'Papitaiso ʻi he temipalé' },
+            { st:'youth', key:'teacher', e:'📖', who:'M', en:'Ordained a teacher', to:'Fakanofo ko ha faiako', hint: i => i.known ? `January ${i.t14}` : 'Year they turn 14' },
+            { st:'youth', key:'priest', e:'🍞', who:'M', en:'Ordained a priest', to:'Fakanofo ko ha taulaʻeiki', hint: i => i.known ? `January ${i.t16}` : 'Year they turn 16' },
+            { st:'youth', key:'youthActivities', e:'🏕️', who:'all', en:'Youth activities & youth conference', to:'Ngaahi ʻekitivitī mo e konifelenisi toʻutupu' },
+            { st:'youth', key:'fsy', e:'🔥', who:'all', en:'FSY conference', to:'Konifelenisi FSY' },
+            { st:'later', key:'patriarchalBlessing', e:'📜', who:'all', en:'Patriarchal blessing', to:'Tāpuaki Pēteliake', hint: () => 'When they and the bishop feel ready' },
+            { st:'later', key:'melchizedek', e:'👔', who:'M', en:'Melchizedek Priesthood', to:'Lakanga Fakataulaʻeiki ʻo Melekisēteki', hint: () => 'Around age 18' },
+            { st:'later', key:'mission', e:'🌍', who:'all', en:'Mission — teaching or service', to:'Ngāue fakafaifekau', hint: () => 'From age 18' },
+            { st:'later', key:'endowment', e:'⭐', who:'all', en:'Temple endowment', to:'ʻEnitaumeni ʻi he temipalé' }
+        ];
+        function oayInfo(p) {
+            const by = parseInt(p.oay?.birthYear, 10), y = new Date().getFullYear();
+            if (!by || by < 1990 || by > y) return { known:false, inPrimary: true, eligible12: false };
+            return { known:true, by, age: y - by, t12: by + 12, t14: by + 14, t16: by + 16, inPrimary: y < by + 12, eligible12: y >= by + 12 };
+        }
+        function oayGet(p, key) { const m = OAY_STORE[key]; return m ? !!p[m[0]]?.[m[1]] : !!p.oay?.steps?.[key]; }
+        function oaySteps(p) { const g = p.oay?.gender || ''; return OAY_STEPS.filter(s => s.who === 'all' || s.who === g || (!g && s.who === 'M' && false)); }
+        function oayLabel(s, g) { return typeof s.en === 'function' ? s.en(g) : s.en; }
+        // The next step that is due now (skips Primary steps once they've moved up)
+        function oayNext(p) {
+            const i = oayInfo(p), g = p.oay?.gender || '';
+            const due = oaySteps(p).filter(s => !oayGet(p, s.key) && !(s.pOnly && !i.inPrimary) && !(s.st === 'youth' && i.inPrimary && s.key !== 'youthClass' && s.key !== 'tppMeeting'));
+            const s = due[0];
+            return s ? oayLabel(s, g) : '';
+        }
+        window.updateOAY = (personId, field, value) => {
+            state.covenantPath = state.covenantPath.map(p => {
+                if (p.id !== personId) return p;
+                const q = { ...p, oay: { gender:'', birthYear:'', steps:{}, ...(p.oay||{}) } };
+                q.oay.steps = { ...(q.oay.steps||{}) };
+                if (field === 'gender' || field === 'birthYear') q.oay[field] = value;
+                else if (OAY_STORE[field]) { const [grp, k] = OAY_STORE[field]; q[grp] = { ...(q[grp]||{}), [k]: value }; }
+                else q.oay.steps[field] = value;
+                return q;
+            });
+            saveToFirebase(); render();
+        };
+        function oaySectionHTML(person) {
+            const i = oayInfo(person), g = person.oay?.gender || '';
+            const steps = oaySteps(person);
+            const done = steps.filter(s => oayGet(person, s.key)).length;
+            const next = oayNext(person);
+            const grp = g === 'F' ? t2('Kalasi Kau Finemui','Young Women class') : g === 'M' ? t2('Kōlomu Tīkoni','deacons quorum') : t2('kalasi toʻutupu','youth class');
+            const stage = !i.known ? t2('Tohi ʻa e taʻu naʻe fanauʻi ai ke ʻiloʻi ʻa e ngaahi ʻaho','Add the birth year to see their dates')
+                : i.inPrimary ? `🧒 ${t2('Palaimeli','Primary')} · ${t2('taʻu','turns')} ${i.age} ${t2('ʻi he taʻu ni','this year')} · ${t2('ʻalu ki he','joins the')} ${grp} ${t2('ʻi Sānuali','in January')} ${i.t12}`
+                : `🎯 ${t2('Toʻutupu','Youth')} · ${t2('taʻu','turns')} ${i.age} ${t2('ʻi he taʻu ni','this year')} · ${grp}`;
+            const row = s => {
+                const on = oayGet(person, s.key);
+                const past = s.pOnly && i.known && !i.inPrimary && !on;
+                const hint = s.hint ? s.hint(i) : '';
+                return `<label class="flex items-center gap-2 p-2 rounded-lg cursor-pointer border transition-colors bg-gray-50 border-gray-100" style="${on ? 'background:rgba(143,164,221,.18);border-color:#8FA4DD;' : ''}${past ? 'opacity:.55;' : ''}">
+                    <input type="checkbox" ${on?'checked':''} onchange="updateOAY(${person.id},'${s.key}',this.checked)" class="w-4 h-4 rounded flex-shrink-0" style="accent-color:#8FA4DD;" />
+                    <span class="text-base">${s.e}</span>
+                    <span class="text-xs font-semibold flex-1 leading-tight" style="color:var(--ss-ink);">${currentLang==='to' && s.to ? s.to : esc(oayLabel(s, g))}</span>
+                    ${hint ? `<span class="text-[10.5px] font-bold text-right leading-tight" style="color:var(--ss-muted);max-width:42%;">${esc(hint)}</span>` : ''}
+                </label>`;
+            };
+            return `<div class="space-y-3">
+                <div class="rounded-xl p-3" style="background:rgba(143,164,221,.12);border:1px solid #8FA4DD;">
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <div class="text-xs font-black uppercase tracking-wide" style="color:#8FA4DD;">🎓 ${t2('Hala ʻo e Fuakava ki he Fānau mo e Toʻutupu','Covenant path for children & youth')}</div>
+                        <span class="text-xs font-bold" style="color:var(--ss-muted);">${done}/${steps.length}</span>
+                    </div>
+                    <p class="text-xs mt-1" style="color:var(--ss-ink-soft);">${t2('ʻOku nau kau ki honau kalasi ʻo e taʻu tatau — ʻikai ko ha hala makehe ki he kau papitaiso lalahi.','They join their age group — not a separate “new adult convert” track.')}</p>
+                    <div class="flex items-center gap-2 flex-wrap mt-2">
+                        <div class="seg" style="display:inline-flex;">
+                            <button onclick="updateOAY(${person.id},'gender','M')" aria-pressed="${g==='M'}">👦 ${t2('Tamasiʻi','Boy')}</button>
+                            <button onclick="updateOAY(${person.id},'gender','F')" aria-pressed="${g==='F'}">👧 ${t2('Taʻahine','Girl')}</button>
+                        </div>
+                        <label class="text-xs font-bold flex items-center gap-1.5" style="color:var(--ss-ink-soft);">${t2('Taʻu fanauʻi','Birth year')}
+                            <input type="number" min="1995" max="${new Date().getFullYear()}" value="${esc(person.oay?.birthYear||'')}" onchange="updateOAY(${person.id},'birthYear',this.value)" placeholder="2016" class="ss-input" style="width:90px;padding:5px 8px;font-size:13px;" />
+                        </label>
+                    </div>
+                    <div class="text-sm font-bold mt-2" style="color:var(--ss-ink);">${stage}</div>
+                    ${next ? `<div class="text-xs font-black mt-1" style="color:var(--ss-gold-deep);">➡️ ${t2('Laka hoko','Next step')}: ${esc(next)}</div>` : ''}
+                    ${!g ? `<div class="text-xs mt-1" style="color:var(--ss-muted);">${t2('Fili tamasiʻi pe taʻahine — ʻoku kehe ʻa e hala fakataulaʻeikí.','Choose boy or girl — priesthood steps differ.')}</div>` : ''}
+                </div>
+                ${OAY_STAGES.map(stg => {
+                    const list = steps.filter(s => s.st === stg.k);
+                    if (!list.length) return '';
+                    return `<div>
+                        <div class="text-xs font-black text-gray-500 uppercase tracking-wide mb-2">${stg.e} ${t2(stg.to, stg.en)}</div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">${list.map(row).join('')}</div>
+                    </div>`;
+                }).join('')}
+            </div>`;
+        }
+
         function renderCovenantPath() {
             // Split: active (no endowment yet) vs complete (endowment done)
             const active = state.covenantPath.filter(p => {
-                if (p.type === 'OAY') return !p.femaleOrdinances?.templeBaptisms;
+                if (p.type === 'OAY') return !p.femaleOrdinances?.endowment;
                 if (p.type === 'Female') return !p.femaleOrdinances?.endowment;
                 if (p.type === 'Male') return !p.ordinances?.endowment;
                 return true; // no type yet = still active
             });
             const completed = state.covenantPath.filter(p => {
-                if (p.type === 'OAY') return !!p.femaleOrdinances?.templeBaptisms;
+                if (p.type === 'OAY') return !!p.femaleOrdinances?.endowment;
                 if (p.type === 'Female') return !!p.femaleOrdinances?.endowment;
                 if (p.type === 'Male') return !!p.ordinances?.endowment;
                 return false;
@@ -4268,9 +4386,7 @@
                     { key: 'patriarchalBlessing', label: t('Patriarchal Blessing'), emoji: '📜', src: 'femaleOrdinances' },
                     { key: 'endowment',         label: t('Temple Endowment'),    emoji: '⭐', src: 'femaleOrdinances' },
                 ];
-                else if (isOAY) ordinanceItems = [
-                    { key: 'templeBaptisms',    label: t('Temple Baptisms'),     emoji: '🏛️', src: 'femaleOrdinances' },
-                ];
+                // OAY uses the age-group path below instead of the adult ordinance list
 
                 const srItems = CHURCH_RESOURCES.map(r => ({ key: r.key, label: t(r.en), emoji: r.e }));
                 const lcn = person.lcn || {};
@@ -4293,10 +4409,10 @@
                         <div class="text-2xl">${isComplete ? '🏆' : '✨'}</div>
                         <div class="flex-1 min-w-0">
                             <div class="font-black text-white text-base leading-tight">${person.name}</div>
-                            <div class="text-xs text-white/80 font-semibold">${person.assignment || ''} ${person.type ? '· '+person.type : ''}</div>
+                            <div class="text-xs text-white/80 font-semibold">${person.assignment || ''} ${person.type ? '· '+(isOAY ? t2('Fānau / Toʻutupu (OAY)','Child / youth (OAY)') : person.type) : ''}</div>
                         </div>
                         <div class="flex items-center gap-2">
-                            ${isComplete ? `<span class="text-xs bg-white/20 text-white px-2 py-1 rounded-lg font-black">✅ ${t('Complete')}</span>` : `<span class="text-xs bg-white/20 text-white px-2 py-1 rounded-lg font-black">${ordDone}/${ordinanceItems.length} ords</span>`}
+                            ${isComplete ? `<span class="text-xs bg-white/20 text-white px-2 py-1 rounded-lg font-black">✅ ${t('Complete')}</span>` : isOAY ? `<span class="text-xs bg-white/20 text-white px-2 py-1 rounded-lg font-black">${oaySteps(person).filter(s => oayGet(person, s.key)).length}/${oaySteps(person).length} ${t2('laka','steps')}</span>` : `<span class="text-xs bg-white/20 text-white px-2 py-1 rounded-lg font-black">${ordDone}/${ordinanceItems.length} ords</span>`}
                             <span class="text-xs bg-white/20 text-white px-2 py-1 rounded-lg font-black" title="Loved · Connected · Needed">💛 ${lcnDone}/4</span>
                             <button onclick="removeFromCovenantPath(${person.id})" class="text-white/60 hover:text-white text-lg px-1">🗑️</button>
                         </div>
@@ -4318,9 +4434,11 @@
                             <div class="flex gap-2">
                                 <button onclick="updateCovenantField(${person.id},'type','Male')" class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-xs font-black border border-blue-200">👨 ${t('Male')}</button>
                                 <button onclick="updateCovenantField(${person.id},'type','Female')" class="px-3 py-1.5 bg-pink-100 text-pink-700 rounded-lg text-xs font-black border border-pink-200">👩 ${t('Female')}</button>
-                                <button onclick="updateCovenantField(${person.id},'type','OAY')" class="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-xs font-black border border-purple-200">🎓 ${t('OAY')}</button>
+                                <button onclick="updateCovenantField(${person.id},'type','OAY')" class="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-lg text-xs font-black border border-purple-200">🎓 ${t2('Fānau / Toʻutupu (taʻu 9–17)','Child / youth (OAY, 9–17)')}</button>
                             </div>` : ''}
                         </div>
+
+                        ${isOAY ? oaySectionHTML(person) : ''}
 
                         ${ordinanceItems.length > 0 ? `
                         <!-- Ordinances -->
@@ -4346,10 +4464,10 @@
                         <div>
                             <div class="text-xs font-black uppercase tracking-wide mb-2" style="color:#b0507a;">💛 ${t2('ʻOfaʻi · Fekauʻaki · Fiemaʻu','Loved · Connected · Needed')} <span class="text-gray-400">${lcnDone}/${lcnItems.length}</span></div>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                                ${lcnItems.map(x => `<label class="flex items-center gap-2 p-2 rounded-lg cursor-pointer border transition-colors ${lcn[x.key] ? 'bg-pink-50 border-pink-200' : 'bg-gray-50 border-gray-100 hover:bg-pink-50'}">
+                                ${lcnItems.map(x => `<label class="flex items-center gap-2 p-2 rounded-lg cursor-pointer border transition-colors bg-gray-50 border-gray-100" style="${lcn[x.key] ? 'background:rgba(224,143,176,.18);border-color:#E08FB0;' : ''}">
                                     <input type="checkbox" ${lcn[x.key]?'checked':''} onchange="updateCovenantField(${person.id},'lcn_${x.key}',this.checked)" class="w-4 h-4 rounded" style="accent-color:#E08FB0;" />
                                     <span class="text-base">${x.e}</span>
-                                    <span class="text-xs font-semibold text-gray-700 flex-1 leading-tight">${t2(x.to,x.en)}</span>
+                                    <span class="text-xs font-semibold flex-1 leading-tight" style="color:var(--ss-ink);">${t2(x.to,x.en)}</span>
                                 </label>`).join('')}
                             </div>
                         </div>
@@ -5107,14 +5225,15 @@
             { k:'returning', e:'💙', en:'Returning members & part-member families',   to:'Kāingalotu foki mai mo e fāmili konga kāinga' },
             { k:'finding',   e:'🔍', en:'Finding people to teach',                    to:'Kumi kakai ke akoʻi' }
         ];
-        const NEXT_ORDS = ['Baptism & confirmation','Aaronic Priesthood','Temple baptisms','Patriarchal blessing','Melchizedek Priesthood','Temple endowment','Temple sealing','Return to church / sacrament','Temple recommend'];
+        const NEXT_ORDS = ['Baptism & confirmation','Aaronic Priesthood','Temple baptisms','Patriarchal blessing','Melchizedek Priesthood','Temple endowment','Temple sealing','Return to church / sacrament','Temple recommend',
+            'Attending Primary with their age group','Temple & Priesthood Preparation meeting','Joined the deacons quorum','Joined a Young Women class','Ordained a deacon','Limited-use temple recommend','Ordained a teacher','Ordained a priest'];
         function nextOrdFor(cp) {
             if (cp.type === 'Male') {
                 const o = cp.ordinances || {};
                 return !o.aaronicPriesthood ? 'Aaronic Priesthood' : !o.templeBaptisms ? 'Temple baptisms' : !o.patriarchalBlessing ? 'Patriarchal blessing' : !o.melchizedekPriesthood ? 'Melchizedek Priesthood' : !o.endowment ? 'Temple endowment' : 'Temple sealing';
             }
             const f = cp.femaleOrdinances || {};
-            if (cp.type === 'OAY') return !f.templeBaptisms ? 'Temple baptisms' : 'Patriarchal blessing';
+            if (cp.type === 'OAY') return oayNext(cp) || 'Temple endowment';
             return !f.templeBaptisms ? 'Temple baptisms' : !f.patriarchalBlessing ? 'Patriarchal blessing' : !f.endowment ? 'Temple endowment' : 'Temple sealing';
         }
         // Live lists from the rest of the app, sorted into the four coordination groups
@@ -5128,7 +5247,7 @@
             (state.returning||[]).filter(p => p.name && p.name.trim()).forEach(p => {
                 out.push({ pid: p.id, tab: 'returning', name: p.name.trim(), type: 'Returning', cat: 'returning', nextOrd: 'Return to church / sacrament', org: p.assignedTo || '', helper: '', followUp: p.assignedTo || '', plan: p.nextAction || '', date: p.nextContactDate || '' });
             });
-            (state.covenantPath||[]).filter(p => p.name && !(p.ordinances?.endowment || p.femaleOrdinances?.endowment || (p.type==='OAY' && p.femaleOrdinances?.templeBaptisms))).forEach(p => {
+            (state.covenantPath||[]).filter(p => p.name && !(p.ordinances?.endowment || p.femaleOrdinances?.endowment || false)).forEach(p => {
                 out.push({ pid: p.id, tab: 'covenant', name: p.name.trim(), type: 'New member', cat: 'baptized', nextOrd: nextOrdFor(p), org: p.assignment || '', helper: '', followUp: p.assignment || '', plan: '', date: '' });
             });
             return out;
@@ -5396,7 +5515,7 @@
 
             const auxOpts = sel => `<option value="">${t2('Kulupu…','Auxiliary…')}</option>` + HUD_AUX.map(a => `<option value="${a}" ${a===sel?'selected':''}>${a}</option>`).join('');
             const orgOpts = sel => orgOptionsHTML(sel, t2('Kōlomu…','Organization…'));
-            const ordOpts = sel => `<option value="">${t2('Ouau hoko…','Next ordinance…')}</option>` + NEXT_ORDS.map(o => `<option value="${o}" ${o===sel?'selected':''}>${o}</option>`).join('');
+            const ordOpts = sel => `<option value="">${t2('Ouau hoko…','Next ordinance…')}</option>` + [...NEXT_ORDS, ...(sel && !NEXT_ORDS.includes(sel) ? [sel] : [])].map(o => `<option value="${esc(o)}" ${o===sel?'selected':''}>${esc(o)}</option>`).join('');
             return `<div class="ss-panel">${head}
                 <div class="hud-bar">
                     <div>
