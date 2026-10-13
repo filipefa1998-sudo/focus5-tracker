@@ -1104,6 +1104,10 @@
             huddles: [],
             experiences: [],        // "Share an experience" log (ward-wide)
             wardPageUrl: '',        // public ward Activity Sharing page
+            wardMissionaries: [],   // Leadership → Ward Missionaries (delegation)
+            wmTasks: [],            // follow-up tasks delegated to ward missionaries
+            wmlName: '',            // ward mission leader's name (signs reminders)
+            leaderView: 'huddles',  // Leadership: 'huddles' | 'missionaries'
             weekView: 'list',       // This Week tab: 'list' | 'board'
             challengeView: 'promise', // Challenges tab: 'promise' | 'bom' | 'checkin'
             schemaVersion: 2
@@ -1226,6 +1230,9 @@
                 state.huddles = (data.huddles || []).map(h => ({ ...h }));
                 state.experiences = Object.values(data.experiences || []).filter(Boolean);
                 state.wardPageUrl = data.wardPageUrl || '';
+                state.wardMissionaries = Object.values(data.wardMissionaries || []).filter(Boolean).map(m => ({ ...m, auxes: Object.values(m.auxes || []) }));
+                state.wmTasks = Object.values(data.wmTasks || []).filter(Boolean);
+                state.wmlName = data.wmlName || '';
                 if (changed) {
                     backupBeforeMigration(raw);
                     saveNow();
@@ -1287,6 +1294,9 @@
                 huddles: state.huddles || [],
                 experiences: state.experiences || [],
                 wardPageUrl: state.wardPageUrl || '',
+                wardMissionaries: state.wardMissionaries || [],
+                wmTasks: state.wmTasks || [],
+                wmlName: state.wmlName || '',
                 schemaVersion: 2,
                 lastSaved: _lastWriteStamp
             }).then(() => {
@@ -5398,6 +5408,13 @@
                     ${enc.map(x => `<tr><td><b>${x.e} ${x.en}</b></td><td>${esc(x.d)}</td><td>${esc(h.encourage[x.id]?.owner||'') || blank}</td></tr>`).join('')}</table>`
                     : '<div class="lines"><div></div><div></div></div>'}</div>
 
+                ${(state.wardMissionaries||[]).length ? `<div class="sec"><h3>🙋 Ward Missionary Assignments <span class="n">${state.wardMissionaries.length}</span></h3>
+                    <table><tr><th style="width:24%">Ward missionary</th><th style="width:30%">Follows up with</th><th>Open follow-ups</th></tr>
+                    ${state.wardMissionaries.map(m => { const open = wmOpenTasks(m.id); return `<tr><td><b>${esc(m.name)}</b>${m.phone ? '<br><span style="color:#888;font-size:11px;">' + esc(m.phone) + '</span>' : ''}</td>
+                        <td>${(m.auxes||[]).map(a => `<span class="tag gold">${esc(a)}</span>`).join(' ') || '<span class="tag red">None yet</span>'}</td>
+                        <td>${open.length ? open.map(x => `<div>• ${x.aux ? '<b>' + esc(auxShort(x.aux).split(' ').pop()) + '</b> · ' : ''}${esc(x.text)}${x.due ? ' <span style="color:#888;">(' + fs(x.due) + ')</span>' : ''}</div>`).join('') : '<span style="color:#aaa">—</span>'}</td></tr>`; }).join('')}</table>
+                    ${(() => { const un = WM_AUX.filter(a => !(state.wardMissionaries||[]).some(m => (m.auxes||[]).includes(a.v))); return un.length ? `<div style="margin-top:6px;font-size:11.5px;color:#a13431;">⚠️ No ward missionary assigned: ${un.map(a => esc(a.v)).join(', ')}</div>` : ''; })()}</div>` : ''}
+
                 <div class="sec"><h3>📝 Plan of Action — Upcoming Week</h3>
                 ${h.weekPlan ? `<div style="border:1px solid #e3d6b3;border-radius:10px;padding:10px 12px;background:#fcfaf4;">${nl(h.weekPlan)}</div>` : '<div class="lines"><div></div><div></div><div></div></div>'}</div>
 
@@ -5471,6 +5488,225 @@
             showSaveMessage('⬇️ ' + name);
         };
 
+        // ══════════ Leadership · Ward Missionaries — delegate auxiliary follow-ups ══════════
+        // The ward mission leader adds ward missionaries, assigns each one to auxiliaries, and sends
+        // each missionary a ready-made reminder of what to follow up on with their auxiliaries this week.
+        const WM_AUX = [{ v:'Bishopric', e:'🏛️', s:'BISH' }, ...ORG_LIST];
+        const auxShort = v => { const o = WM_AUX.find(x => x.v === v); return o ? `${o.e} ${o.s}` : v; };
+        const auxEmoji = v => (WM_AUX.find(x => x.v === v) || {}).e || '•';
+        const wmById = id => (state.wardMissionaries || []).find(m => m.id === id);
+        const firstName = n => (n || '').trim().split(/\s+/)[0] || '';
+        window.setLeaderView = (v) => { state.leaderView = v; state.hudEdit = null; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+        window.wmAdd = () => {
+            const name = (document.getElementById('wmNewName')?.value || '').trim();
+            if (!name) { showSaveMessage(t2('Fakahū ha hingoa','Enter the ward missionary’s name')); document.getElementById('wmNewName')?.focus(); return; }
+            const phone = (document.getElementById('wmNewPhone')?.value || '').trim();
+            const auxes = [...document.querySelectorAll('.wmNewAux:checked')].map(x => x.value);
+            state.wardMissionaries = [...(state.wardMissionaries || []), { id: 'wm_' + Date.now(), name, phone, auxes, notes: '', createdAt: Date.now() }];
+            saveToFirebase(); render();
+            showSaveMessage('✓ ' + name + t2(' kuo tānaki',' added as a ward missionary'));
+        };
+        window.wmSet = (id, field, val) => {
+            state.wardMissionaries = (state.wardMissionaries || []).map(m => m.id === id ? { ...m, [field]: val } : m);
+            saveToFirebase();
+            if (field !== 'notes' && field !== 'phone' && field !== 'name') render();
+        };
+        window.wmToggleAux = (id, aux) => {
+            state.wardMissionaries = (state.wardMissionaries || []).map(m => {
+                if (m.id !== id) return m;
+                const a = m.auxes || [];
+                return { ...m, auxes: a.includes(aux) ? a.filter(x => x !== aux) : [...a, aux] };
+            });
+            saveToFirebase(); render();
+        };
+        window.wmRemove = (id) => {
+            const m = wmById(id); if (!m) return;
+            if (!confirm(t2('Toʻo ʻa ' + m.name + '?','Remove ' + m.name + ' and their follow-up tasks?'))) return;
+            state.wardMissionaries = state.wardMissionaries.filter(x => x.id !== id);
+            state.wmTasks = (state.wmTasks || []).filter(x => x.wmId !== id);
+            saveToFirebase(); render();
+        };
+        window.wmTaskAdd = (wmId) => {
+            const txt = (document.getElementById('wmTask_' + wmId)?.value || '').trim();
+            if (!txt) { document.getElementById('wmTask_' + wmId)?.focus(); return; }
+            const aux = document.getElementById('wmTaskAux_' + wmId)?.value || '';
+            const due = document.getElementById('wmTaskDue_' + wmId)?.value || '';
+            state.wmTasks = [...(state.wmTasks || []), { id: 'wmt_' + Date.now(), wmId, aux, text: txt, due: validISO(due) ? due : '', done: false, doneDate: '', createdAt: Date.now() }];
+            saveToFirebase(); render();
+            setTimeout(() => document.getElementById('wmTask_' + wmId)?.focus(), 30);
+        };
+        window.wmTaskToggle = (tid) => {
+            state.wmTasks = (state.wmTasks || []).map(x => x.id === tid ? { ...x, done: !x.done, doneDate: !x.done ? todayISO() : '' } : x);
+            saveToFirebase(); render();
+        };
+        window.wmTaskDel = (tid) => { state.wmTasks = (state.wmTasks || []).filter(x => x.id !== tid); saveToFirebase(); render(); };
+        window.setWmlName = (v) => { state.wmlName = (v || '').trim(); saveToFirebase(); };
+
+        // What each auxiliary needs this week, pulled live from the tracker
+        function auxFollowUps(aux) {
+            const t0 = new Date(); t0.setHours(0,0,0,0);
+            const days = iso => Math.round((parseLocalDate(iso) - t0) / 86400000);
+            const ppl = [...(state.friends||[]).map(p => ({ ...p, _t:'Friend' })), ...(state.returning||[]).map(p => ({ ...p, _t:'Returning' }))]
+                .filter(p => p.name && (p.assignedTo || p.assignment) === aux);
+            const items = [];
+            ppl.forEach(p => {
+                if (p.taskDone) return;
+                if (p.nextContactDate && days(p.nextContactDate) < 0) items.push({ kind:'overdue', p, txt: `${p.name} — ${-days(p.nextContactDate)}d overdue${p.nextAction ? ': ' + p.nextAction : ''}` });
+                else if (p.nextContactDate && days(p.nextContactDate) <= 7) items.push({ kind:'week', p, txt: `${p.name} — due ${fmtNice(p.nextContactDate)}${p.nextAction ? ': ' + p.nextAction : ''}` });
+                else if (!p.nextAction || !p.nextContactDate) items.push({ kind:'nostep', p, txt: `${p.name} — needs a next step and a date` });
+                if (p.keepLoving) items.push({ kind:'love', p, txt: `${p.name} — keep loving 💛 (said “not now”)` });
+            });
+            (state.covenantPath||[]).filter(c => c.name && c.assignment === aux && !(c.lcn?.ministeringFriend && c.lcn?.classCompanion && c.lcn?.calling))
+                .forEach(c => items.push({ kind:'newmember', txt: `${c.name} (new member) — ${[!c.lcn?.ministeringFriend && 'ministering friend', !c.lcn?.classCompanion && 'class friend', !c.lcn?.calling && 'calling'].filter(Boolean).join(', ')} still needed` }));
+            // Huddle encouragement ideas this auxiliary owns (latest huddle)
+            const lastHud = [...(state.huddles||[])].sort((a,b) => (b.date||'').localeCompare(a.date||''))[0];
+            if (lastHud) {
+                const o = ORG_LIST.find(x => x.v === aux);
+                ENCOURAGE_IDEAS.forEach(e => { const en = lastHud.encourage?.[e.id]; if (en?.on && en.owner && (en.owner.toLowerCase().includes(aux.toLowerCase()) || (o && new RegExp('\\b' + o.s + '\\b', 'i').test(en.owner)))) items.push({ kind:'idea', txt: `This week's idea: ${e.en}` }); });
+            }
+            return { ppl, items };
+        }
+        function upcomingInviteEvents() {
+            const t0 = new Date(); t0.setHours(0,0,0,0);
+            return (state.events||[]).filter(e => e.inviteReady && e.date && (parseLocalDate(e.date) - t0) / 86400000 >= 0 && (parseLocalDate(e.date) - t0) / 86400000 <= 14)
+                .sort((a,b) => a.date.localeCompare(b.date));
+        }
+        function wmOpenTasks(wmId) { return (state.wmTasks||[]).filter(x => x.wmId === wmId && !x.done).sort((a,b) => (a.due||'9999').localeCompare(b.due||'9999')); }
+        function wmReminderText(m) {
+            const lines = [`Hi ${firstName(m.name)}! 🙏 Your ward mission follow-ups this week:`];
+            (m.auxes || []).forEach(aux => {
+                const { items } = auxFollowUps(aux);
+                const tasks = wmOpenTasks(m.id).filter(x => x.aux === aux);
+                lines.push('', `${auxEmoji(aux)} ${aux.toUpperCase()}`);
+                tasks.forEach(x => lines.push(`  • ${x.text}${x.due ? ' (by ' + fmtNice(x.due) + ')' : ''}`));
+                items.forEach(x => lines.push(`  • ${x.txt}`));
+                if (!tasks.length && !items.length) lines.push('  • Check in with the presidency — anyone new to love, share with, or invite?');
+            });
+            const general = wmOpenTasks(m.id).filter(x => !x.aux || !(m.auxes||[]).includes(x.aux));
+            if (general.length) { lines.push('', '📝 OTHER'); general.forEach(x => lines.push(`  • ${x.text}${x.due ? ' (by ' + fmtNice(x.due) + ')' : ''}`)); }
+            const ev = upcomingInviteEvents();
+            if (ev.length) { lines.push('', '🎉 REMIND THEM TO INVITE FRIENDS TO:'); ev.forEach(e => lines.push(`  • ${e.name} — ${parseLocalDate(e.date).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}`)); }
+            lines.push('', 'Thank you for helping our ward love, share, and invite! 💛', '— ' + (state.wmlName || 'Ward Mission Leader'));
+            return lines.join('\n');
+        }
+        const phoneDigits = ph => { const d = (ph||'').replace(/\D/g,''); return d.length === 10 ? '1' + d : d; };
+        window.wmSend = (id, ch) => {
+            const m = wmById(id); if (!m) return;
+            const text = wmReminderText(m), enc = encodeURIComponent(text), d = phoneDigits(m.phone);
+            if (ch === 'whatsapp') { window.open('https://wa.me/' + d + '?text=' + enc, '_blank', 'noopener'); }
+            else if (ch === 'sms') { location.href = 'sms:' + (d ? '+' + d : '') + '?&body=' + enc; }
+            else { navigator.clipboard.writeText(text).then(() => showSaveMessage(t2('✓ Kuo hiki','✓ Reminder copied — paste it anywhere'))); }
+            state.wardMissionaries = state.wardMissionaries.map(x => x.id === id ? { ...x, lastReminded: todayISO() } : x);
+            saveToFirebase();
+        };
+
+        function renderWardMissionaries() {
+            const f = 'background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink)';
+            const wms = state.wardMissionaries || [];
+            // Coverage: which auxiliaries have someone following up
+            const coverage = WM_AUX.map(a => ({ ...a, who: wms.filter(m => (m.auxes||[]).includes(a.v)), need: auxFollowUps(a.v).items.length }));
+            const uncovered = coverage.filter(c => !c.who.length);
+            const covHTML = `<div style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">${coverage.map(c => `
+                <div class="hud-focus" style="padding:10px 12px;${c.who.length ? '' : 'border-color:var(--ss-red);background:var(--ss-red-wash);'}">
+                    <div style="font-weight:800;color:var(--ss-ink);font-size:13.5px;">${c.e} ${esc(t(c.v))}</div>
+                    <div style="font-size:12px;font-weight:700;color:${c.who.length ? 'var(--ss-sage)' : 'var(--ss-red)'};">${c.who.length ? '🙋 ' + c.who.map(m => esc(firstName(m.name))).join(', ') : '⚠️ ' + t2('ʻIkai ha taha','No one assigned')}</div>
+                    <div style="font-size:11px;color:var(--ss-muted);margin-top:2px;">${c.need} ${t2('meʻa ke muimui','to follow up')}</div>
+                </div>`).join('')}</div>`;
+
+            const card = m => {
+                const tasks = (state.wmTasks||[]).filter(x => x.wmId === m.id).sort((a,b) => (a.done - b.done) || (a.due||'9999').localeCompare(b.due||'9999'));
+                const open = tasks.filter(x => !x.done).length;
+                const d = phoneDigits(m.phone);
+                const t0 = todayISO();
+                return `<div class="hud-focus" style="gap:12px;">
+                    <div class="flex items-start justify-between gap-2 flex-wrap">
+                        <div class="flex items-center gap-3">
+                            <span style="font-size:26px;">🙋</span>
+                            <div>
+                                <input class="ss-input" style="font-weight:800;font-size:15px;padding:6px 10px;" value="${esc(m.name)}" onchange="wmSet('${m.id}','name',this.value)">
+                                <div style="font-size:11.5px;color:var(--ss-muted);margin-top:3px;">${open} ${t2('ngāue ʻoku teʻeki ʻosi', open === 1 ? 'open follow-up' : 'open follow-ups')}${m.lastReminded ? ' · ' + t2('fakamanatu fakamuimui','last reminded') + ' ' + fmtNice(m.lastReminded) : ''}</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 flex-wrap items-center">
+                            <input class="ss-input" style="width:150px;padding:6px 10px;font-size:13px;" value="${esc(m.phone||'')}" placeholder="📞 ${t2('Fika telefoni','Phone')}" onchange="wmSet('${m.id}','phone',this.value);render()">
+                            ${d ? `<a class="ab-mini" href="tel:+${d}" style="text-decoration:none;">📞</a>` : ''}
+                            <button class="ab-mini" onclick="wmRemove('${m.id}')" title="Remove">🗑️</button>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="hud-lbl" style="margin-bottom:6px;">${t2('Ngaahi kulupu ʻoku ne muimuiʻi','Auxiliaries they follow up with')}</div>
+                        <div class="flex gap-1.5 flex-wrap">${WM_AUX.map(a => `<button type="button" class="date-chip ${(m.auxes||[]).includes(a.v) ? 'on' : ''}" onclick="wmToggleAux('${m.id}','${a.v}')">${a.e} ${a.s}</button>`).join('')}</div>
+                    </div>
+                    ${(m.auxes||[]).length ? `<div style="display:grid;gap:8px;">${(m.auxes||[]).map(aux => {
+                        const { items } = auxFollowUps(aux);
+                        return `<div style="background:var(--ss-surface-2);border:1px solid var(--ss-line);border-radius:12px;padding:10px 12px;">
+                            <div style="font-weight:800;color:var(--ss-gold-deep);font-size:13px;margin-bottom:4px;">${auxEmoji(aux)} ${esc(t(aux))} <span style="color:var(--ss-muted);font-weight:700;">· ${items.length} ${t2('mei he tracker','from the tracker')}</span></div>
+                            ${items.length ? items.slice(0, 8).map(x => `<div style="font-size:12.5px;color:var(--ss-ink-soft);padding:2px 0;">${x.kind==='overdue'?'🔴':x.kind==='week'?'🟡':x.kind==='love'?'💛':x.kind==='newmember'?'✨':x.kind==='idea'?'🤝':'⚪'} ${esc(x.txt)}</div>`).join('') + (items.length > 8 ? `<div style="font-size:11.5px;color:var(--ss-muted);">+${items.length - 8} ${t2('lahi ange','more')}</div>` : '')
+                                : `<div style="font-size:12.5px;color:var(--ss-muted);">✅ ${t2('ʻIkai ha meʻa ʻoku tōmui','Nothing overdue — check in with the presidency')}</div>`}
+                        </div>`; }).join('')}</div>` : `<div class="praynote" style="text-align:left;">${t2('Fili ha kulupu ʻi ʻolunga','Tap an auxiliary above to assign it.')}</div>`}
+                    <div>
+                        <div class="hud-lbl" style="margin-bottom:6px;">📝 ${t2('Ngaahi ngāue kuo vahe','Assigned follow-ups')}</div>
+                        ${tasks.length ? `<div style="display:grid;gap:6px;margin-bottom:8px;">${tasks.map(x => `<div class="flex items-center gap-2" style="font-size:13px;${x.done ? 'opacity:.55;' : ''}">
+                            <input type="checkbox" data-free ${x.done ? 'checked' : ''} onchange="wmTaskToggle('${x.id}')" style="accent-color:var(--ss-gold);width:16px;height:16px;">
+                            <span style="flex:1;color:var(--ss-ink);${x.done ? 'text-decoration:line-through;' : ''}">${x.aux ? `<b style="color:var(--ss-gold-deep);">${auxShort(x.aux)}</b> · ` : ''}${esc(x.text)}</span>
+                            ${x.due ? `<span style="font-size:11.5px;font-weight:800;color:${!x.done && x.due < t0 ? 'var(--ss-red)' : 'var(--ss-muted)'};">${fmtNice(x.due)}</span>` : ''}
+                            <button onclick="wmTaskDel('${x.id}')" style="background:none;border:0;color:var(--ss-muted);cursor:pointer;">✕</button>
+                        </div>`).join('')}</div>` : ''}
+                        <div class="flex gap-2 flex-wrap">
+                            <input id="wmTask_${m.id}" class="ss-input" style="flex:1 1 220px;min-width:0;padding:7px 10px;font-size:13px;" placeholder="${t2('hā: Fakamanatu ki he RS ʻa e pō vaʻinga','e.g. Remind RS presidency to invite to game night')}" onkeydown="if(event.key==='Enter'){event.preventDefault();wmTaskAdd('${m.id}');}">
+                            <select id="wmTaskAux_${m.id}" class="ss-input tw-field" style="flex:0 1 130px;padding:7px 8px;font-size:12.5px;"><option value="">${t2('Kulupu…','Auxiliary…')}</option>${(m.auxes||[]).map(a => `<option value="${a}">${auxShort(a)}</option>`).join('')}</select>
+                            <input id="wmTaskDue_${m.id}" type="date" class="ss-input" style="flex:0 1 150px;padding:6px 8px;font-size:12.5px;">
+                            <button class="ab-mini" onclick="wmTaskAdd('${m.id}')">＋</button>
+                        </div>
+                    </div>
+                    <textarea class="ss-input" rows="1" style="font-size:12.5px;" oninput="wmSet('${m.id}','notes',this.value)" placeholder="🗒️ ${t2('Fakamatala','Notes')}">${esc(m.notes||'')}</textarea>
+                    <div class="flex gap-2 flex-wrap items-center" style="border-top:1px dashed var(--ss-line-2);padding-top:10px;">
+                        <span style="font-size:12.5px;font-weight:800;color:var(--ss-ink-soft);">${t2('Fekau fakamanatu','Send reminder')}:</span>
+                        <button class="ab-mini" style="border-color:#25d366;color:#25d366;" onclick="wmSend('${m.id}','whatsapp')">🟢 WhatsApp</button>
+                        <button class="ab-mini" onclick="wmSend('${m.id}','sms')">💬 Text</button>
+                        <button class="ab-mini" onclick="wmSend('${m.id}','copy')">📋 ${t2('Hiki','Copy')}</button>
+                        <button class="ab-mini" onclick="const el=document.getElementById('wmPrev_${m.id}');el.style.display=el.style.display==='none'?'block':'none'">👁️ ${t2('Vakai','Preview')}</button>
+                    </div>
+                    <pre id="wmPrev_${m.id}" style="display:none;white-space:pre-wrap;font-family:inherit;font-size:12.5px;color:var(--ss-ink-soft);background:var(--ss-surface-2);border:1px solid var(--ss-line);border-radius:10px;padding:10px 12px;margin:0;">${esc(wmReminderText(m))}</pre>
+                </div>`;
+            };
+
+            return `
+                <div class="ss-blockhead"><h3>🧭 ${t2('Ko Hai ʻoku Muimuiʻi ʻa e Kulupu Takitaha','Who Follows Up With Each Auxiliary')}</h3><span class="en">${uncovered.length ? '⚠️ ' + uncovered.length + ' ' + t2('ʻikai ha taha','unassigned') : '✅ ' + t2('Kuo vahe kotoa','All covered')}</span></div>
+                ${covHTML}
+
+                <div class="ss-blockhead"><h3>🙋 ${t2('Kau Faifekau ʻo e Uōtí','Ward Missionaries')}</h3><span class="en">${wms.length}</span></div>
+                <div class="flex items-center gap-2 flex-wrap mb-3">
+                    <label class="hud-lbl" style="margin:0;">✍️ ${t2('Fakamoʻoni ʻi he fakamanatu','Sign reminders as')}</label>
+                    <input class="ss-input" style="max-width:260px;padding:7px 10px;font-size:13px;" value="${esc(state.wmlName||'')}" onchange="setWmlName(this.value)" placeholder="${t2('Taki Faifekau Fakauōti','Ward Mission Leader')}">
+                </div>
+                ${wms.length ? `<div style="display:grid;gap:12px;">${wms.map(card).join('')}</div>` : `<div class="praynote" style="text-align:center;">${t2('ʻIkai ha faifekau ʻuōti. Tānaki ʻi lalo.','No ward missionaries yet — add the first one below.')}</div>`}
+
+                <div class="hud-focus" style="margin-top:14px;border-style:dashed;">
+                    <div style="font-weight:800;color:var(--ss-gold-deep);">＋ ${t2('Tānaki ha Faifekau ʻUōti','Add a Ward Missionary')}</div>
+                    <div class="grid gap-2" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));">
+                        <input id="wmNewName" class="ss-input" placeholder="${t2('Hingoa','Name')} *" onkeydown="if(event.key==='Enter'){event.preventDefault();wmAdd();}">
+                        <input id="wmNewPhone" class="ss-input" type="tel" placeholder="📞 ${t2('Fika telefoni (ki he WhatsApp/text)','Phone (for WhatsApp / text)')}">
+                    </div>
+                    <div class="hud-lbl" style="margin:4px 0 0;">${t2('Ngaahi kulupu ke muimuiʻi','Auxiliaries to follow up with')}</div>
+                    <div class="flex gap-2 flex-wrap">${WM_AUX.map(a => `<label class="date-chip" style="cursor:pointer;display:inline-flex;align-items:center;gap:5px;"><input type="checkbox" data-free class="wmNewAux" value="${a.v}" style="accent-color:var(--ss-gold);"> ${a.e} ${a.s}</label>`).join('')}</div>
+                    <button class="ss-btn primary" onclick="wmAdd()" style="justify-content:center;">✓ ${t2('Tānaki','Add ward missionary')}</button>
+                </div>`;
+        }
+        // Names for the Huddle "who helps / who follows up" boxes
+        function wmDatalistHTML() {
+            const names = [...new Set([...(state.wardMissionaries||[]).map(m => m.name), ...WM_AUX.map(a => a.v), 'Full-Time Missionaries'].filter(Boolean))];
+            return `<datalist id="wmNames">${names.map(n => `<option value="${esc(n)}"></option>`).join('')}</datalist>`;
+        }
+        window.hudAttAddWM = () => {
+            const h = curHud(); if (!h) return;
+            const have = new Set(h.attendees.map(a => (a.name||'').toLowerCase()));
+            const add = (state.wardMissionaries||[]).filter(m => !have.has(m.name.toLowerCase())).map(m => ({ name: m.name, aux: 'Ward Missionaries' }));
+            h.attendees = [...h.attendees.filter(a => a.name || a.aux), ...add];
+            hudTouch(h, true);
+            showSaveMessage(add.length ? `＋ ${add.length} ${t2('kuo tānaki','ward missionaries added')}` : t2('Kuo ʻosi kotoa','All ward missionaries are already listed'));
+        };
+
         function renderLeadership(){
             if (!leaderUnlocked()) {
                 return `<div class="ss-panel" style="text-align:center;padding:40px 20px;">
@@ -5482,17 +5718,20 @@
             }
             const f = 'background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink)';
             const h = curHud();
+            const lv = state.leaderView === 'missionaries' && !h ? 'missionaries' : 'huddles';
             const head = `<div class="flex items-center justify-between gap-3 flex-wrap mb-4">
-                    <div><div class="ss-eyebrow">${t2('Kau Taki','Leadership')}</div><h2 class="ss-h2">R24 Missionary Huddle</h2></div>
+                    <div><div class="ss-eyebrow">${t2('Kau Taki','Leadership')}</div><h2 class="ss-h2">${lv === 'missionaries' ? t2('Kau Faifekau ʻo e Uōtí','Ward Missionaries') : 'R24 Missionary Huddle'}</h2></div>
                     <div class="flex gap-2 flex-wrap">
                         <button class="ss-btn ghost" onclick="setViewMode('tracker')">← ${t2('Foki','Back')}</button>
                         <button class="ss-btn ghost" onclick="lockLeadership()" title="${t2('Loka ʻi he meʻangāue ni','Lock on this device')}">🔒</button>
                     </div>
                 </div>`;
 
+            const switcher = h ? '' : `<div class="mb-4">${subSeg([['huddles','📋 ' + t2('Ngaahi Huddle','Huddles')], ['missionaries','🙋 ' + t2('Kau Faifekau ʻUōti','Ward Missionaries') + ((state.wardMissionaries||[]).length ? ' · ' + state.wardMissionaries.length : '')]], lv, 'setLeaderView')}</div>`;
+            if (!h && lv === 'missionaries') return `<div class="ss-panel">${head}${switcher}${renderWardMissionaries()}</div>`;
             if (!h) {
                 const list = [...(state.huddles||[])].map(normHud).sort((a,b) => (b.date||'').localeCompare(a.date||'') || (b.createdAt||0)-(a.createdAt||0));
-                return `<div class="ss-panel">${head}
+                return `<div class="ss-panel">${head}${switcher}
                     <button class="ss-btn primary" onclick="hudNew()" style="width:100%;justify-content:center;font-size:15px;padding:14px;">＋ ${t2('Huddle Foʻou','New Huddle')}</button>
                     <p style="font-size:12.5px;color:var(--ss-muted);margin:8px 2px 16px;">${t2('ʻE fakafonu ʻe ia ʻa e lisi Focus Five mo e kau kau ki he pole mei he ʻappí.','Follows the Church’s weekly coordination agenda. Starts pre-filled with friends, returning members, new members, and everyone in a challenge.')}</p>
                     ${list.length ? `<div style="display:grid;gap:10px;">${list.map(x => {
@@ -5538,7 +5777,11 @@
                         <button type="button" class="ab-mini" onclick="hudAttDel(${i})" title="Remove">🗑️</button>
                     </div>`).join('')}
                 </div>
-                <button class="ab-mini" style="margin-top:8px;padding:8px 12px;" onclick="hudAttAdd()">＋ ${t2('Tānaki','Add attendee')}</button>
+                <div class="flex gap-2 flex-wrap" style="margin-top:8px;">
+                    <button class="ab-mini" style="padding:8px 12px;" onclick="hudAttAdd()">＋ ${t2('Tānaki','Add attendee')}</button>
+                    ${(state.wardMissionaries||[]).length ? `<button class="ab-mini" style="padding:8px 12px;" onclick="hudAttAddWM()">🙋 ${t2('Tānaki kau faifekau ʻuōti','Add ward missionaries')}</button>` : ''}
+                </div>
+                ${wmDatalistHTML()}
 
                 ${(() => { const ex = hudExperiences(h); return `<div class="ss-blockhead"><h3>✨ ${t2('Ngaahi Aʻusia','Experiences Shared')}</h3><span class="en">${t2('Talu mei he huddle kimuʻa','Since the last huddle')} · ${ex.length}</span></div>
                 ${ex.length ? `<div style="display:grid;gap:6px;">${ex.map(x => `<div class="praynote" style="text-align:left;">${LANE[x.lane]?.emoji || '✨'} ${esc(x.text)} <span style="opacity:.7;">— ${fmtNice(x.date)}${x.who ? ', ' + esc(x.who) : ''}</span></div>`).join('')}</div>`
@@ -5566,8 +5809,8 @@
                         </div>
                         <textarea class="ss-input" rows="2" oninput="hudFocus(${i},'plan',this.value)" placeholder="📝 ${t2('Ko e hā ha ngāue pe tukupā ʻe tokoni kiate ia ʻi he uike ni?','What activity, experience, or commitment can help them this week?')}">${esc(x.plan)}</textarea>
                         <div class="grid gap-2" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">
-                            <input class="ss-input" value="${esc(x.helper||'')}" oninput="hudFocus(${i},'helper',this.value)" placeholder="🤝 ${t2('Ko hai ʻe tokoni?','Who is assigned to help?')}">
-                            <input class="ss-input" value="${esc(x.followUp||'')}" oninput="hudFocus(${i},'followUp',this.value)" placeholder="📞 ${t2('Ko hai ʻe muimui?','Who will follow up?')}">
+                            <input class="ss-input" list="wmNames" value="${esc(x.helper||'')}" oninput="hudFocus(${i},'helper',this.value)" placeholder="🤝 ${t2('Ko hai ʻe tokoni?','Who is assigned to help?')}">
+                            <input class="ss-input" list="wmNames" value="${esc(x.followUp||'')}" oninput="hudFocus(${i},'followUp',this.value)" placeholder="📞 ${t2('Ko hai ʻe muimui?','Who will follow up?')}">
                             <select class="ss-input tw-field" onchange="hudFocus(${i},'org',this.value)">${orgOpts(x.org)}</select>
                         </div>
                     </div>`).join('') || `<div class="praynote" style="text-align:left;">${c.k==='finding' ? t2('Fakakaukau ki he fāmili konga kāinga, kau hiki mai foʻou, mo e ngaahi ngāue ʻe lava ke fakaafe ki ai ha kakai.','Think about part-member families, new move-ins, and upcoming activities people could be invited to.') : '—'}</div>`}</div>
