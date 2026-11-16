@@ -7,7 +7,7 @@
 
     <!-- PWA / home-screen app icon -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0d1730">
+    <meta name="theme-color" content="#F8F5EE">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -38,17 +38,23 @@
             --ss-bar:#1b2a52; --ss-bar-text:#f6dfa6;
         }
         /* ── LIGHT THEME (Sacred Stone) — dark is the default; this flips the palette ── */
+        /* ── TEMPLE (default) — white marble, warm ivory, soft gold and celestial blue ── */
         html[data-theme="light"] {
-            --ss-ink:#15213d; --ss-ink-soft:#3f4d6b;
-            --ss-bg:#f4f1ea; --ss-surface:#fffdf8; --ss-surface-2:#f7f2e8;
-            --ss-line:rgba(176,138,58,.30); --ss-line-2:rgba(13,23,48,.09);
-            --ss-muted:#6c768e;
-            --ss-gold:#b6892f; --ss-gold-deep:#936c1f; --ss-gold-wash:rgba(176,138,58,.14);
-            --ss-red:#c4566a; --ss-red-wash:rgba(196,86,106,.12);
-            --ss-sage:#3f9d6b; --ss-sage-wash:rgba(63,157,107,.12);
-            --ss-violet:#7a5bb0; --ss-violet-wash:rgba(122,91,176,.12);
-            --ss-bar:#1b2a52; --ss-bar-text:#f6dfa6; /* navy+gold accent bar kept in both modes */
+            --ss-ink:#2F2A22; --ss-ink-soft:#5B5345;
+            --ss-bg:#F8F5EE; --ss-surface:#FFFFFF; --ss-surface-2:#FAF6EE;
+            --ss-line:rgba(194,155,69,.34); --ss-line-2:rgba(60,48,25,.10);
+            --ss-muted:#8A8070;
+            --ss-gold:#B8913E; --ss-gold-deep:#8F6C22; --ss-gold-wash:rgba(214,180,100,.16);
+            --ss-red:#B24A57; --ss-red-wash:rgba(200,80,95,.10);
+            --ss-sage:#3E8A60; --ss-sage-wash:rgba(62,138,96,.11);
+            --ss-violet:#6A5BA6; --ss-violet-wash:rgba(106,91,166,.10);
+            --ss-bar:#5B83AE; --ss-bar-text:#FFFDF6; /* celestial blue accent bar */
         }
+        html[data-theme="light"] [class~="text-blue-900"], html[data-theme="light"] [class~="text-blue-600"], html[data-theme="light"] [class~="text-blue-700"], html[data-theme="light"] [class~="text-blue-800"]{ color:#3F6A96!important; }
+        html[data-theme="light"] [class~="text-orange-600"], html[data-theme="light"] [class~="text-orange-700"], html[data-theme="light"] [class~="text-orange-800"]{ color:#B0651F!important; }
+        html[data-theme="light"] [class~="from-violet-700"], html[data-theme="light"] [class~="from-purple-700"], html[data-theme="light"] [class~="from-purple-900"], html[data-theme="light"] [class~="from-indigo-700"], html[data-theme="light"] [class~="from-indigo-800"], html[data-theme="light"] [class~="from-indigo-900"]{ background-color:var(--ss-bar)!important; }
+        html[data-theme="light"] [class~="bg-gray-200"], html[data-theme="light"] [class~="bg-gray-300"]{ background-color:rgba(60,48,25,.07)!important; }
+        html[data-theme="light"] .tabchip[aria-selected="true"]{ border-bottom-width:3px; }
         body { background: var(--ss-bg) !important; color: var(--ss-ink); }
         h1,h2,h3 { font-family:'Fraunces', Georgia, serif !important; letter-spacing:-0.01em; color:var(--ss-ink); }
 
@@ -73,13 +79,15 @@
         /* Light-mode canvas — warm cream paper with a soft gold wash */
         html[data-theme="light"] .pn-canvas{
             background:
-              radial-gradient(1100px 620px at 82% -8%, rgba(176,138,58,.14), transparent 60%),
-              radial-gradient(900px 700px at 8% 108%, rgba(60,90,160,.10), transparent 60%),
-              linear-gradient(168deg, #efe9dc 0%, #f4f1ea 60%, #faf7f0 100%) !important;
+              radial-gradient(900px 520px at 50% -10%, rgba(255,236,190,.75), transparent 65%),
+              radial-gradient(1100px 700px at 50% 0%, rgba(214,180,100,.16), transparent 70%),
+              radial-gradient(900px 700px at 0% 100%, rgba(140,175,210,.16), transparent 60%),
+              radial-gradient(900px 700px at 100% 100%, rgba(140,175,210,.12), transparent 60%),
+              linear-gradient(180deg, #FDFBF6 0%, #F8F5EE 55%, #F3EFE5 100%) !important;
         }
         html[data-theme="light"] .pn-canvas::after{
-            opacity:.045;
-            background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><g fill='%2315213d'><polygon points='0,0 40,0 40,40'/><polygon points='80,0 80,40 40,40'/><polygon points='80,80 40,80 40,40'/><polygon points='0,80 0,40 40,40'/></g></svg>");
+            opacity:.035;
+            background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'><g fill='%23b8913e'><polygon points='0,0 40,0 40,40'/><polygon points='80,0 80,40 40,40'/><polygon points='80,80 40,80 40,40'/><polygon points='0,80 0,40 40,40'/></g></svg>");
         }
 
         /* ── Ngatu band: a woven tapa divider (matches the EQ lessons app) ── */
@@ -406,48 +414,92 @@
             .pn-canvas { display: none !important; }
         }
         /* ── Weekly Plan (Friends & Returning) ── */
-        .wk-legend{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:12px; color:var(--ss-muted); font-weight:700; }
-        .wk-legend .k{ display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; border:1px solid var(--ss-line-2); }
-        .wk-card{ background:var(--ss-surface); border:1px solid var(--ss-line-2); border-left:5px solid var(--ss-line-2); border-radius:16px; padding:14px; box-shadow:0 10px 30px rgba(0,0,0,.14); }
-        .wk-card.s-plan{ border-left-color:#5B8DEF; } .wk-card.s-done{ border-left-color:#22c55e; } .wk-card.s-miss{ border-left-color:#ef4444; }
-        .wk-head{ display:grid; grid-template-columns:minmax(0,1fr); gap:12px; }
-        @media(min-width:900px){ .wk-head{ grid-template-columns:minmax(0,1fr) minmax(0,1.25fr); } }
-        .wk-ord{ border-radius:12px; padding:10px 12px; background:var(--ss-violet-wash); border:1px solid var(--ss-line-2); border-top:3px solid var(--ss-violet); }
-        .wk-ord .lab{ font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ss-violet); }
-        .wk-ord select, .wk-ord textarea, .wk-foot input, .wk-foot select{ width:100%; box-sizing:border-box; background:var(--ss-surface-2); border:1px solid var(--ss-line-2); color:var(--ss-ink); border-radius:9px; padding:7px 9px; font-size:13px; font-family:'Manrope',sans-serif; }
-        .wk-ord textarea{ resize:vertical; min-height:38px; margin-top:6px; }
-        .wk-ord .cue{ font-size:12px; color:var(--ss-ink-soft); margin-top:6px; line-height:1.35; }
-        .wk-lanes{ display:grid; grid-template-columns:1fr; gap:10px; margin-top:12px; }
-        @media(min-width:640px){ .wk-lanes{ grid-template-columns:1fr 1fr; } }
-        @media(min-width:1200px){ .wk-lanes{ grid-template-columns:repeat(4,1fr); } }
-        .wk-lane{ border-radius:12px; padding:9px; border:1px solid var(--ss-line-2); }
-        .wk-lane .lh{ font-size:13px; font-weight:800; color:var(--ss-ink); margin-bottom:7px; display:flex; justify-content:space-between; align-items:center; }
-        .wk-lane .lh small{ font-size:10.5px; color:var(--ss-muted); font-weight:700; }
-        .wk-pills{ display:flex; flex-wrap:wrap; gap:5px; }
-        .wk-pill{ display:inline-flex; align-items:center; gap:4px; max-width:100%; font-size:11.5px; font-weight:700; line-height:1.15; padding:6px 9px; border-radius:999px; cursor:pointer;
-            border:1px solid var(--ss-line-2); background:transparent; color:var(--ss-muted); font-family:'Manrope',sans-serif; transition:.12s; -webkit-tap-highlight-color:transparent; }
-        .wk-pill:hover{ border-color:var(--ss-gold); color:var(--ss-ink); }
-        .wk-pill .st{ font-size:11px; }
-        .wk-pill.plan{ background:rgba(91,141,239,.18); border-color:#5B8DEF; color:var(--ss-ink); }
-        .wk-pill.done{ background:#22c55e; border-color:#22c55e; color:#06240f; }
-        .wk-pill.miss{ background:rgba(239,68,68,.16); border-color:#ef4444; color:var(--ss-ink); text-decoration:line-through; text-decoration-color:rgba(239,68,68,.7); }
-        .wk-empty{ font-size:11.5px; color:var(--ss-muted); font-style:italic; }
-        .wk-foot{ display:grid; grid-template-columns:1fr; gap:8px; margin-top:12px; padding-top:12px; border-top:1px dashed var(--ss-line-2); }
-        @media(min-width:760px){ .wk-foot{ grid-template-columns:auto minmax(0,1fr) minmax(0,1.4fr) auto; align-items:end; } }
-        .wk-foot .fl{ font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--ss-muted); margin-bottom:4px; }
-        .wk-stat{ display:inline-flex; gap:6px; flex-wrap:wrap; font-size:11px; font-weight:800; }
-        .wk-stat span{ padding:3px 8px; border-radius:999px; }
-        .wk-mini{ font-size:12px; font-weight:800; padding:7px 11px; border-radius:10px; cursor:pointer; border:1px solid var(--ss-line-2); background:var(--ss-surface-2); color:var(--ss-ink-soft); font-family:'Manrope',sans-serif; }
-        .wk-mini:hover{ border-color:var(--ss-gold); color:var(--ss-ink); }
-        .wk-mini.gold{ background:linear-gradient(135deg,var(--ss-gold),var(--ss-gold-deep)); color:#1a1206; border-color:transparent; }
+        .wk-hero{ background:var(--ss-surface); border:1px solid var(--ss-line); border-radius:18px; padding:18px; box-shadow:0 10px 30px rgba(120,95,40,.10); }
+        .wk-l{ font-size:11px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--ss-muted); }
+        .wk-kpi{ background:var(--ss-surface-2); border:1px solid var(--ss-line-2); border-top:3px solid; border-radius:12px; padding:10px; text-align:center; }
+        .wk-kpi .v{ font-size:24px; font-weight:800; } .wk-kpi .k{ font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--ss-muted); }
+        .wk-howto{ margin-top:12px; font-size:12.5px; color:var(--ss-ink-soft); line-height:1.6; }
+        .wk-howto .dot, .wk-prow .sd{ display:inline-block; width:10px; height:10px; border-radius:50%; margin:0 3px 0 6px; vertical-align:middle; }
+        .dot.plan, .wk-prow.plan .sd{ background:#4C7DD9; } .dot.done, .wk-prow.done .sd{ background:#2E9E5B; } .dot.miss, .wk-prow.miss .sd{ background:#C8505F; }
+        .wk-card{ background:var(--ss-surface); border:1px solid var(--ss-line-2); border-left:5px solid var(--ss-line); border-radius:18px; padding:16px; box-shadow:0 8px 26px rgba(120,95,40,.08); }
+        .wk-card.s-plan{ border-left-color:#4C7DD9; } .wk-card.s-done{ border-left-color:#2E9E5B; } .wk-card.s-miss{ border-left-color:#C8505F; }
+        .wk-top{ display:flex; gap:14px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; }
+        .wk-id{ flex:1 1 420px; min-width:0; max-width:640px; }
+        .wk-name{ width:100%; font-family:'Fraunces',Georgia,serif; font-size:22px; font-weight:600; color:var(--ss-ink); background:transparent; border:0; border-bottom:1.5px dashed var(--ss-line); padding:2px 0 4px; }
+        .wk-name:focus{ outline:none; border-bottom-color:var(--ss-gold); }
+        .wk-sel{ background:var(--ss-surface-2); border:1px solid var(--ss-line-2); color:var(--ss-ink); border-radius:10px; padding:8px 10px; font-size:13px; font-weight:700; font-family:'Manrope',sans-serif; max-width:100%; }
+        .wk-ord{ margin-top:12px; padding:12px; border-radius:14px; background:var(--ss-gold-wash); border:1px solid var(--ss-line); }
+        .wk-ordsel{ width:100%; margin-top:6px; font-size:15px; padding:10px 12px; background:var(--ss-surface); border-color:var(--ss-line); }
+        .wk-cue{ font-size:12.5px; color:var(--ss-ink-soft); margin-top:8px; line-height:1.4; }
+        .wk-focus, .wk-note{ width:100%; box-sizing:border-box; margin-top:8px; background:var(--ss-surface); border:1px solid var(--ss-line-2); color:var(--ss-ink); border-radius:10px; padding:8px 10px; font-size:13px; font-family:'Manrope',sans-serif; resize:vertical; }
+        .wk-sum{ display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+        .wk-sum .b{ font-size:12px; font-weight:800; padding:3px 10px; border-radius:999px; }
+        .b.plan{ background:rgba(76,125,217,.14); color:#3A66B8; } .b.done{ background:rgba(46,158,91,.14); color:#23794A; } .b.miss{ background:rgba(200,80,95,.12); color:#A63E4C; }
+        .wk-badges{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+        .wk-badges .b{ font-size:12px; font-weight:800; padding:3px 10px; border-radius:999px; }
+        .wk-sum .nx{ font-size:12px; color:var(--ss-ink-soft); }
+        .wk-week{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; margin-top:14px; }
+        .wk-day{ background:var(--ss-surface-2); border:1px solid var(--ss-line-2); border-radius:12px; padding:7px; display:flex; flex-direction:column; gap:5px; min-height:120px; }
+        .wk-day.today{ border-color:var(--ss-gold); box-shadow:0 0 0 2px var(--ss-gold-wash); background:var(--ss-surface); }
+        .wk-day.past{ opacity:.85; }
+        .wk-day .dh{ display:flex; justify-content:space-between; align-items:baseline; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--ss-muted); }
+        .wk-day .dh b{ font-family:'Fraunces',Georgia,serif; font-size:17px; color:var(--ss-ink); letter-spacing:0; }
+        .wk-day.today .dh span, .wk-day.today .dh b{ color:var(--ss-gold-deep); }
+        .wk-day .di{ display:flex; flex-direction:column; gap:4px; flex:1; }
+        .wk-item{ text-align:left; border-radius:9px; padding:5px 7px; cursor:pointer; border:1px solid; font-family:'Manrope',sans-serif; display:flex; flex-direction:column; gap:1px; }
+        .wk-item .t{ font-size:11.5px; font-weight:800; line-height:1.2; } .wk-item .w{ font-size:10.5px; font-weight:600; opacity:.85; line-height:1.2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .wk-item.plan{ background:#E8F0FD; border-color:#4C7DD9; color:#22437F; }
+        .wk-item.done{ background:#2E9E5B; border-color:#2E9E5B; color:#fff; }
+        .wk-item.miss{ background:#FBEAEC; border-color:#C8505F; color:#7E2733; }
+        .wk-add{ font-size:11.5px; font-weight:800; color:var(--ss-gold-deep); background:transparent; border:1px dashed var(--ss-line); border-radius:9px; padding:5px 4px; cursor:pointer; font-family:'Manrope',sans-serif; }
+        .wk-add:hover{ background:var(--ss-gold-wash); }
+        @media(max-width:760px){
+            .wk-week{ grid-template-columns:1fr; }
+            .wk-day{ min-height:0; flex-direction:row; align-items:center; flex-wrap:wrap; }
+            .wk-day .dh{ flex-direction:column; align-items:center; width:42px; }
+            .wk-day .di{ flex-direction:row; flex-wrap:wrap; }
+            .wk-add{ padding:6px 10px; }
+        }
+        .wk-out{ margin-top:12px; padding-top:12px; border-top:1px dashed var(--ss-line); }
+        .wk-out .wk-l{ margin-bottom:6px; }
+        .wk-pill{ display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; padding:6px 10px; border-radius:999px; cursor:pointer; border:1px solid var(--ss-line-2); background:var(--ss-surface); color:var(--ss-ink-soft); font-family:'Manrope',sans-serif; }
+        .wk-pill:hover{ border-color:var(--ss-gold); }
+        .wk-pill.plan{ background:#E8F0FD; border-color:#4C7DD9; color:#22437F; }
+        .wk-pill.done{ background:#2E9E5B; border-color:#2E9E5B; color:#fff; }
+        .wk-btn{ font-size:13px; font-weight:800; padding:9px 14px; border-radius:11px; cursor:pointer; border:1px solid var(--ss-line-2); background:var(--ss-surface-2); color:var(--ss-ink); font-family:'Manrope',sans-serif; }
+        .wk-btn:disabled{ opacity:.45; cursor:not-allowed; }
+        .wk-btn.sm{ padding:6px 10px; font-size:13px; }
+        .wk-btn.gold{ background:linear-gradient(135deg,#D9B968,#C29B45); color:#2B2010; border-color:transparent; }
+        .wk-btn.blue{ background:#4C7DD9; color:#fff; border-color:#4C7DD9; }
+        .wk-btn.green{ background:#2E9E5B; color:#fff; border-color:#2E9E5B; }
+        .wk-btn.red{ background:#FBEAEC; color:#A63E4C; border-color:#C8505F; }
+        .wk-chip{ font-size:12px; font-weight:700; padding:5px 10px; border-radius:999px; border:1px solid var(--ss-line); background:var(--ss-surface); color:var(--ss-ink-soft); cursor:pointer; font-family:'Manrope',sans-serif; }
+        .wk-chip.on{ background:var(--ss-gold); color:#2B2010; border-color:var(--ss-gold); }
+        .wk-tag{ font-size:11px; font-weight:800; padding:3px 8px; border-radius:999px; white-space:nowrap; }
+        .wk-tag.plan{ background:#E8F0FD; color:#22437F; } .wk-tag.done{ background:rgba(46,158,91,.14); color:#23794A; } .wk-tag.miss{ background:#FBEAEC; color:#A63E4C; }
+        .wk-plist{ margin-top:14px; display:flex; flex-direction:column; gap:12px; }
+        .wk-pday .pdh{ font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--ss-muted); margin-bottom:6px; }
+        .wk-pday.today .pdh{ color:var(--ss-gold-deep); }
+        .wk-prow{ display:flex; align-items:center; gap:8px; padding:9px 10px; border-radius:12px; background:var(--ss-surface-2); border:1px solid var(--ss-line-2); margin-bottom:6px; }
+        .wk-modal{ width:100%; max-width:560px; max-height:92vh; overflow:auto; background:var(--ss-surface); border:1px solid var(--ss-line); border-radius:20px 20px 0 0; box-shadow:0 20px 60px rgba(40,30,10,.25); }
+        @media(min-width:640px){ .wk-modal{ border-radius:20px; } }
+        .wk-mh{ display:flex; justify-content:space-between; gap:10px; padding:16px 18px 10px; border-bottom:1px solid var(--ss-line-2); }
+        .wk-mk{ font-size:11px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:#3A66B8; }
+        .wk-mt{ font-family:'Fraunces',Georgia,serif; font-size:20px; font-weight:600; color:var(--ss-ink); line-height:1.2; }
+        .wk-x{ background:transparent; border:0; font-size:20px; color:var(--ss-muted); cursor:pointer; }
+        .wk-mb{ padding:14px 18px; }
+        .wk-ml{ font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ss-muted); margin-bottom:6px; }
+        .wk-mf{ display:flex; gap:8px; justify-content:flex-end; padding:12px 18px 16px; border-top:1px solid var(--ss-line-2); position:sticky; bottom:0; background:var(--ss-surface); }
+        .wk-st{ padding:10px 6px; border-radius:12px; border:1.5px solid var(--ss-line-2); background:var(--ss-surface-2); font-weight:800; font-size:12.5px; color:var(--ss-ink); cursor:pointer; line-height:1.5; font-family:'Manrope',sans-serif; }
+        .wk-st.plan.on{ background:#4C7DD9; border-color:#4C7DD9; color:#fff; } .wk-st.done.on{ background:#2E9E5B; border-color:#2E9E5B; color:#fff; } .wk-st.miss.on{ background:#C8505F; border-color:#C8505F; color:#fff; }
+        .wk-need{ border-color:var(--ss-red)!important; box-shadow:0 0 0 3px var(--ss-red-wash); }
     </style>
     <script>
-        /* Apply saved theme before paint to avoid a flash. Dark is the default. */
+        /* Temple (light) palette is the default; the navy "evening" palette is opt-in. Applied before paint. */
         (function(){
-            try{
-                var saved = localStorage.getItem('f5Theme');
-                if(saved === 'light'){ document.documentElement.setAttribute('data-theme','light'); }
-            }catch(e){}
+            var saved = null;
+            try{ saved = localStorage.getItem('f5Theme2'); }catch(e){}
+            if(saved !== 'dark'){ document.documentElement.setAttribute('data-theme','light'); }
         })();
     </script>
 </head>
@@ -1124,7 +1176,7 @@
             promisePeople: [],
             images: {},
             activeTab: 'friends',
-            viewMode: 'thisweek',
+            viewMode: 'tracker',
             chartsScope: 'active',
             saveMessage: '',
             backgroundImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1920&q=80',
@@ -1588,7 +1640,6 @@
             else if (kind === 'promise') promiseUpdatePerson(id, tab, iso);
             else if (kind === 'hud') { hudSet('date', iso); render(); }
             else if (kind === 'hudf') hudFocus(parseInt(id), 'date', iso);
-            else if (kind === 'wkfu') wkSet(id, tab, target, 'followUp', iso);
             else if (kind === 'field') {
                 const inp = document.getElementById(target); if (inp) inp.value = iso;
                 if (btn) { btn.dataset.value = iso; btn.classList.toggle('empty', !iso);
@@ -1998,7 +2049,7 @@
             const isLight = document.documentElement.getAttribute('data-theme') === 'light';
             if (isLight) { document.documentElement.removeAttribute('data-theme'); }
             else { document.documentElement.setAttribute('data-theme', 'light'); }
-            try { localStorage.setItem('f5Theme', isLight ? 'dark' : 'light'); } catch(e){}
+            try { localStorage.setItem('f5Theme2', isLight ? 'dark' : 'light'); } catch(e){}
             render();
         };
         function currentThemeIsLight(){ return document.documentElement.getAttribute('data-theme') === 'light'; }
@@ -2571,8 +2622,8 @@
                             <!-- Primary tab bar (numbered) -->
                             <div class="ngatu-panel mb-5 md:mb-6" style="background:var(--ss-surface);border:1px solid var(--ss-line);border-radius:16px;box-shadow:0 14px 40px rgba(0,0,0,.18);padding:0 4px;">
                                 <div class="tabbar">
-                                    ${tabChip('thisweek','1','📋', t('This Week'), renderWeekBadge())}
-                                    ${tabChip('tracker','2','👥', t('Friends'))}
+                                    ${tabChip('tracker','1','👥', t('Friends'))}
+                                    ${tabChip('thisweek','2','📋', t('This Week'), renderWeekBadge())}
                                     ${tabChip('covenant','3','✨', t('Covenant Path'), covenantBadge())}
                                     ${tabChip('events','4','🎉', t('Calendar'))}
                                     ${tabChip('challenges','5','🏁', t2('Ngaahi Pole','Challenges'), bomWeekBadge())}
@@ -2608,8 +2659,9 @@
             return `<div class="space-y-4">
                 <div class="flex items-center justify-between gap-3 flex-wrap">
                     ${subSeg([['list','📋 '+t2('Lisi Fetuʻutaki','Follow-ups')], ['board','🗂️ '+t('Action Board')]], v, 'setWeekView')}
-                    <button onclick="setViewMode('tracker')" class="ab-mini" style="padding:8px 12px;">👥 ${t2('Kaungāmeʻa & Foki Mai','Friends & Returning')} →</button>
+                    <button onclick="setViewMode('tracker')" class="ab-mini" style="padding:8px 12px;">👥 ${t2('Kaungāmeʻa & Foki Mai','Friends & Returning')}</button>
                 </div>
+                ${weekPlanSectionHTML(v === 'board' ? 'all' : (state.weekFilter || 'all'))}
                 ${v === 'board' ? renderActionBoard() : renderThisWeek()}
                 ${experiencesPanelHTML()}
             </div>`;
@@ -2825,9 +2877,9 @@
                                                         <input type="text" value="${person.name || ''}" onchange="updateName(${person.id}, this.value)" placeholder="${idx + 1}. ${currentLang==='to'?'Hingoa...':'Name...'}" class="w-full px-2 py-1.5 border-2 border-amber-200 rounded-lg focus:border-amber-500 focus:outline-none font-bold text-sm shadow-sm" />
                                                         ${isInv ? `<select onchange="updateCategory(${person.id}, this.value)" class="mt-1 w-full px-2 py-1 border border-amber-200 rounded-lg text-xs font-bold focus:outline-none focus:border-amber-500" title="${t2('Faʻahinga','Category')}">
                                                             <option value="" ${!person.category?'selected':''}>${t2('Fili Faʻahinga…','Category…')}</option>
-                                                            <option value="NM" ${person.category==='NM'?'selected':''}>NM — ${t2('Tangata ʻIkai Kāinga','Non Member')}</option>
-                                                            <option value="PM" ${person.category==='PM'?'selected':''}>PM — ${t2('Fāmili ʻOku Konga Kāinga','Part Member Family')}</option>
-                                                            <option value="OAY" ${person.category==='OAY'?'selected':''}>OAY — ${t2('Talavou Motuʻa Ange','Over Aged Youth')}</option>
+                                                            <option value="NM" ${person.category==='NM'?'selected':''}>${t2('Kaungāmeʻa Foʻou','New Friend')}</option>
+                                                            <option value="PM" ${person.category==='PM'?'selected':''}>${t2('Fāmili ʻOku Konga Kāinga','Part Member')}</option>
+                                                            <option value="OAY" ${person.category==='OAY'?'selected':''}>OAY</option>
                                                         </select>` : ''}
                                                         <div class="mt-1.5">
                                                             ${(() => {
@@ -2926,70 +2978,64 @@
             `;
         }
 
-        // ═════════ Weekly Plan — Love · Share · Invite · Progress, week by week ═════════
-        // Each person keeps person.weekly['YYYY-MM-DD' (Sunday)] = { codes:{CODE:'plan'|'done'|'miss'}, synced:{CODE:'NOV'}, followUp, poc, note }
-        // plus person.nextOrd / person.ordFocus. Marking something Done also logs it in the monthly tracker (and un-logs it if changed back).
-        const WK_NEXT = { '':'plan', plan:'done', done:'miss', miss:'' };
+        // ═════════ Weekly Plan — plan Love · Share · Invite day by day ═════════
+        // person.weekly['YYYY-MM-DD' (that week's Sunday)] = {
+        //    items:{ id:{ day, code, who, status:'plan'|'done'|'miss', followUp, synced } },   ← day-by-day contacts
+        //    codes:{ CODE:'done' }, synced:{ CODE:'NOV' },                                       ← Progress outcomes for the week
+        //    note }
+        // person.nextOrd / person.ordFocus / person.poc (latest "who")
         const WK_STATUS = {
-            plan: { en:'Planned',   to:'Palani',     icon:'🔵', color:'#5B8DEF' },
-            done: { en:'Completed', to:'Kakato',     icon:'✅', color:'#22c55e' },
-            miss: { en:'Not done',  to:'ʻIkai fai',  icon:'✖️', color:'#ef4444' }
+            plan: { en:'Planned',   to:'Palani',    icon:'🔵', color:'#4C7DD9' },
+            done: { en:'Completed', to:'Kakato',    icon:'✅', color:'#2E9E5B' },
+            miss: { en:'Not done',  to:'ʻIkai fai', icon:'✖️', color:'#C8505F' }
         };
         const WK_SHORT = { MV:'Visit', TXT:'Text / call', SRV:'Serve', PRY:'Pray for', WEL:'Welcome at church', CMF:'Comfort',
             SSC:'Scripture / video', SWA:'Activity link', SBM:'Book of Mormon', STK:'Gospel talk', SRC:'Church resource',
-            IAC:'Church', IRB:'Read BoM', IACA:'Activity', IFHE:'FHE / dinner', ITM:'Missionaries teach', ITB:'Baptism', IFH:'Family history', ISP:'Service project', DEC:'Declined',
+            IAC:'Invite to church', IRB:'Invite to read BoM', IACA:'Invite to activity', IFHE:'Invite to FHE / dinner', ITM:'Invite to meet missionaries', ITB:'Invite to baptism', IFH:'Invite to family history', ISP:'Invite to service', DEC:'Declined',
             AC:'Came to church', RBOM:'Reading BoM', ACA:'Came to activity', APR:'Primary / youth', AFHE:'Came to FHE', TML:'Taking lessons', MPL:'Member at lesson',
             BD:'Baptismal date', B:'Baptized', C:'Confirmed', FHS:'Family history', ASP:'Service project', ACTIVE:'Active member' };
         const wkLabel = code => currentLang === 'to' ? indName(IND[code]) : (WK_SHORT[code] || indName(IND[code]));
-        // The doctrine that prepares someone for each ordinance — a starting point; each person's focus is editable.
+        const PLAN_LANES = ['love','share','invite'];
+
+        // Next ordinance — the covenant we are helping each person toward
+        const FRIEND_ORDS = ['Sacrament Meeting','Baptism & Confirmation','Aaronic Priesthood','Melchizedek Priesthood','Baptism for the Dead Recommend','Temple Endowment','Family Sealing'];
+        const ORD_ALIAS = { 'baptism & confirmation':'Baptism & Confirmation', 'return to church / sacrament':'Sacrament Meeting', 'temple baptisms':'Baptism for the Dead Recommend',
+            'limited-use temple recommend':'Baptism for the Dead Recommend', 'temple endowment':'Temple Endowment', 'temple sealing':'Family Sealing' };
         const ORD_DOCTRINE = {
-            'Baptism & confirmation': 'Faith in Jesus Christ, repentance, baptism, and the gift of the Holy Ghost — Preach My Gospel lessons 1–3 (Restoration · Plan of Salvation · Gospel of Jesus Christ).',
-            'Return to church / sacrament': 'The sacrament renews the baptismal covenant — the Atonement of Jesus Christ, belonging, and keeping the Sabbath day holy.',
+            'Sacrament Meeting': 'The sacrament — remembering Jesus Christ and renewing covenants each week (Moroni 4–5; D&C 59:9–12, the Sabbath day).',
+            'Baptism & Confirmation': 'Faith in Jesus Christ, repentance, baptism, and the gift of the Holy Ghost — Preach My Gospel lessons 1–3 (Restoration · Plan of Salvation · Gospel of Jesus Christ).',
             'Aaronic Priesthood': 'Restoration of the priesthood (D&C 13) and the duties of the Aaronic Priesthood (D&C 20:46–60).',
-            'Temple baptisms': 'Redeeming the dead (D&C 128) — finding family names and preparing for a limited-use recommend.',
-            'Limited-use temple recommend': 'Proxy baptisms for ancestors (D&C 128) and living worthy to enter the temple.',
-            'Patriarchal blessing': 'Personal revelation, lineage in the house of Israel, and the Abrahamic covenant.',
             'Melchizedek Priesthood': 'The oath and covenant of the priesthood (D&C 84:33–44).',
-            'Temple endowment': 'Temple covenants and the blessings of the endowment — temple preparation class and recommend interview.',
-            'Temple sealing': 'Eternal families — D&C 131:1–4, 132:19, and The Family: A Proclamation to the World.',
-            'Temple recommend': 'The recommend interview: testimony of the Savior, law of chastity, Word of Wisdom, tithing, sustaining leaders.',
-            'Attending Primary with their age group': 'Belonging — friends in Primary and Come, Follow Me at home.',
-            'Temple & Priesthood Preparation meeting': 'The blessings of the temple and the priesthood for children and parents.',
-            'Joined the deacons quorum': 'Priesthood duties (D&C 20, 84) and belonging in the quorum.',
-            'Ordained a deacon': 'Priesthood duties (D&C 20, 84) — passing the sacrament, ministering.',
-            'Ordained a teacher': 'Duties of a teacher (D&C 20:53–59) — watching over and strengthening the Church.',
-            'Ordained a priest': 'Duties of a priest (D&C 20:46–52) — baptizing and blessing the sacrament.',
-            'Joined a Young Women class': 'The Young Women theme, Children and Youth goals, and belonging.'
+            'Baptism for the Dead Recommend': 'Redeeming the dead (D&C 128:15–18) — finding family names and preparing for a limited-use recommend.',
+            'Temple Endowment': 'Temple covenants and the blessings of the endowment — temple preparation (Endowed from on High) and the recommend interview.',
+            'Family Sealing': 'Eternal families — D&C 131:1–4, 132:19, and The Family: A Proclamation to the World.'
         };
-        const defaultOrd = tab => tab === 'returning' ? 'Return to church / sacrament' : 'Baptism & confirmation';
-        const personOrd = (p, tab) => p.nextOrd || defaultOrd(tab);
+        const defaultOrd = tab => tab === 'returning' ? 'Sacrament Meeting' : 'Baptism & Confirmation';
+        const personOrd = (p, tab) => { const v = p.nextOrd || ''; return ORD_ALIAS[v.toLowerCase()] || v || defaultOrd(tab); };
+        const CATS = [['NM','New Friend','Kaungāmeʻa Foʻou'],['PM','Part Member','Fāmili ʻOku Konga Kāinga'],['OAY','OAY','OAY']];
+        const catLabel = c => { const x = CATS.find(k => k[0] === c); return x ? t2(x[2], x[1]) : ''; };
 
         function wkKeyFor(offset) {
             const d = new Date(); d.setHours(0,0,0,0);
             d.setDate(d.getDate() - d.getDay() + 7 * (offset || 0));   // weeks run Sunday → Saturday
             return ymd(d);
         }
+        function wkDays(key) { const a = parseLocalDate(key); return [0,1,2,3,4,5,6].map(i => { const d = new Date(a); d.setDate(a.getDate() + i); return ymd(d); }); }
         function wkRange(key) {
             const a = parseLocalDate(key), b = new Date(a); b.setDate(a.getDate() + 6);
             const f = d => d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
             return `${f(a)} – ${f(b)}`;
         }
-        // Month an item counts toward in the monthly tracker: today's month for the current week, else the week's Sunday
-        function wkMonth(key) {
-            const d = key === wkKeyFor(0) ? new Date() : parseLocalDate(key);
-            return MONTHS[d.getMonth()];
-        }
+        const dayShort = iso => parseLocalDate(iso).toLocaleDateString('en-US', { weekday:'short' });
+        const dayNum = iso => parseLocalDate(iso).getDate();
+        const dayLong = iso => parseLocalDate(iso).toLocaleDateString('en-US', { weekday:'long', month:'short', day:'numeric' });
+        function wkMonth(key) { const d = key === wkKeyFor(0) ? new Date() : parseLocalDate(key); return MONTHS[d.getMonth()]; }
         const wkData = (p, key) => (p.weekly && p.weekly[key]) || {};
+        const wkItems = (p, key) => Object.entries(wkData(p, key).items || {}).map(([id, it]) => ({ id, ...it }));
         function wkCounts(p, key) {
             const c = { plan:0, done:0, miss:0 };
-            Object.values(wkData(p, key).codes || {}).forEach(v => { if (c[v] !== undefined) c[v]++; });
+            wkItems(p, key).forEach(it => { if (c[it.status] !== undefined) c[it.status]++; });
             return c;
-        }
-        function wkCardState(c) {
-            if (c.miss) return 'miss';
-            if (c.plan) return 'plan';
-            if (c.done) return 'done';
-            return '';
         }
         function wkPatch(id, tab, key, fn) {
             const idNum = parseInt(id), list = tab === 'returning' ? 'returning' : 'friends';
@@ -3002,104 +3048,115 @@
                 return { ...(res.person || p), weekly };
             });
         }
+        const findPerson = (id, tab) => (tab === 'returning' ? state.returning : state.friends).find(p => p.id === parseInt(id));
+        // Everyone's items for a week (This Week + Action Board)
+        function allWeekItems(key, filter) {
+            const out = [];
+            [['friends', state.friends], ['returning', state.returning]].forEach(([tab, list]) => {
+                if (filter && filter !== 'all' && filter !== tab) return;
+                (list || []).filter(p => p.name).forEach(p => wkItems(p, key).forEach(it => out.push({ ...it, pid: p.id, tab, person: p })));
+            });
+            return out.sort((a, b) => (a.day || '').localeCompare(b.day || '') || (a.person.name || '').localeCompare(b.person.name || ''));
+        }
 
-        // Tap a pill: none → planned → completed → not done → none
-        window.wkCycle = (id, tab, key, code) => {
-            const idNum = parseInt(id), list = tab === 'returning' ? 'returning' : 'friends';
-            const person = state[list].find(p => p.id === idNum); if (!person) return;
-            const cur = (wkData(person, key).codes || {})[code] || '';
-            const nxt = WK_NEXT[cur];
-
-            // Baptized / Active member move the person to the Covenant Path, same as the monthly tracker
-            if (nxt === 'done' && (code === 'B' || code === 'ACTIVE')) {
-                const msg = code === 'B'
-                    ? t2(`Fakaʻilongaʻi ʻa ${person.name} kuo papitaiso pea hiki ki he Hala ʻo e Fuakavá?`, `Mark ${person.name || 'this person'} as baptized and move them to the Covenant Path?`)
-                    : t2(`Hiki ʻa ${person.name} ki he Hala ʻo e Fuakavá?`, `Mark ${person.name || 'this person'} as an active member and move them to the Covenant Path?`);
-                if (!confirm(msg)) return;
-                moveToCovenantPath(person);
-                state[list] = state[list].filter(p => p.id !== idNum);
-                saveToFirebase(); render();
-                return;
-            }
-
-            const month = wkMonth(key);
-            const isNow = key === wkKeyFor(0);
+        // Change an item's status / who / follow-up. Completed → logs in the monthly tracker + sets the next follow-up.
+        function wkApplyItem(id, tab, key, itemId, patch) {
             wkPatch(id, tab, key, (w, p) => {
-                const codes = { ...(w.codes || {}) }, synced = { ...(w.synced || {}) };
+                const items = { ...(w.items || {}) };
+                const old = items[itemId]; if (!old) return {};
+                const it = { ...old, ...patch };
                 const progress = { ...(p.progress || {}) };
-                if (nxt) codes[code] = nxt; else delete codes[code];
                 let person = p;
-                if (nxt === 'done') {
+                if (it.status === 'done' && old.status !== 'done') {
+                    const m = MONTHS[parseLocalDate(it.day).getMonth()];
+                    const md = progress[m] || [];
+                    if (!md.includes(it.code)) { progress[m] = [...md, it.code]; it.synced = m; }
+                    const contactDay = it.day <= todayISO() ? it.day : todayISO();
+                    person = laneSideEffects({ ...p, progress,
+                        lastContactDate: (p.lastContactDate || '') > contactDay ? p.lastContactDate : contactDay,
+                        ...(it.followUp ? { nextContactDate: it.followUp, taskDone: false, taskDoneDate: '' } : {}),
+                        ...(it.who ? { poc: it.who } : {}) }, it.code, true);
+                } else if (old.status === 'done' && it.status !== 'done' && old.synced) {
+                    progress[old.synced] = (progress[old.synced] || []).filter(c => c !== it.code);
+                    it.synced = '';
+                    person = { ...p, progress };
+                } else if (it.status === 'done' && patch.followUp) {
+                    person = { ...p, nextContactDate: patch.followUp, taskDone: false, taskDoneDate: '' };
+                }
+                if (patch.who && it.status === 'plan') person = { ...person, poc: patch.who };
+                items[itemId] = it;
+                return { week: { ...w, items }, person };
+            });
+        }
+        function wkAddItems(id, tab, key, day, codes, who) {
+            wkPatch(id, tab, key, (w, p) => {
+                const items = { ...(w.items || {}) };
+                codes.forEach((code, i) => { items['i' + Date.now().toString(36) + i] = { day, code, who, status:'plan', followUp:'', synced:'' }; });
+                return { week: { ...w, items }, person: { ...p, poc: who } };
+            });
+        }
+        function wkDeleteItem(id, tab, key, itemId) {
+            wkApplyItem(id, tab, key, itemId, { status:'plan' });   // un-log first if it was completed
+            wkPatch(id, tab, key, w => { const items = { ...(w.items || {}) }; delete items[itemId]; return { week: { ...w, items } }; });
+        }
+
+        // Progress outcomes for the week (what they chose to do) — tap to log / un-log
+        window.wkOutcome = (id, tab, key, code) => {
+            const p = findPerson(id, tab); if (!p) return;
+            const on = (wkData(p, key).codes || {})[code] === 'done';
+            if (!on && (code === 'B' || code === 'ACTIVE')) {
+                if (!confirm(code === 'B' ? `Mark ${p.name} as baptized and move them to the Covenant Path?` : `Mark ${p.name} as an active member and move them to the Covenant Path?`)) return;
+                moveToCovenantPath(p);
+                const list = tab === 'returning' ? 'returning' : 'friends';
+                state[list] = state[list].filter(x => x.id !== p.id);
+                saveToFirebase(); render(); return;
+            }
+            const month = wkMonth(key);
+            wkPatch(id, tab, key, (w, pp) => {
+                const codes = { ...(w.codes || {}) }, synced = { ...(w.synced || {}) }, progress = { ...(pp.progress || {}) };
+                let person = pp;
+                if (on) {
+                    delete codes[code];
+                    if (synced[code]) { progress[synced[code]] = (progress[synced[code]] || []).filter(c => c !== code); delete synced[code]; }
+                    person = { ...pp, progress };
+                } else {
+                    codes[code] = 'done';
                     const md = progress[month] || [];
                     if (!md.includes(code)) { progress[month] = [...md, code]; synced[code] = month; }
-                    person = laneSideEffects({ ...p, progress }, code, true);
-                    if (isNow && laneOf(code) !== 'progress') person = { ...person, lastContactDate: todayISO() };
-                } else if (cur === 'done' && synced[code]) {
-                    const m = synced[code];
-                    progress[m] = (progress[m] || []).filter(c => c !== code);
-                    delete synced[code];
-                    person = { ...p, progress };
+                    person = laneSideEffects({ ...pp, progress }, code, true);
                 }
                 return { week: { ...w, codes, synced }, person };
             });
             saveToFirebase(); render();
-            if (nxt === 'done' && code === 'BD') { const pp = state[list].find(p => p.id === idNum); if (pp) announceBaptismalDate(pp); }
+            if (!on && code === 'BD') { const pp = findPerson(id, tab); if (pp) announceBaptismalDate(pp); }
         };
 
-        // Follow-up date / point of contact / note for the week. The current week's follow-up also feeds This Week + badges.
-        window.wkSet = (id, tab, key, field, val) => {
-            if (field === 'followUp' && !validISO(val)) return;
-            wkPatch(id, tab, key, (w, p) => {
-                let person = p;
-                if (field === 'followUp' && key >= wkKeyFor(0)) person = { ...p, nextContactDate: val, ...(val ? { taskDone:false, taskDoneDate:'' } : {}) };
-                if (field === 'poc' && key >= wkKeyFor(0)) person = { ...p, poc: val };
-                return { week: { ...w, [field]: val }, person };
-            });
-            saveToFirebase();
-            if (field === 'followUp') { render(); if (val) showSaveMessage('📅 ' + t2('Muimui: ','Follow-up: ') + fmtNice(val)); }
-        };
-        window.wkSetPerson = (id, tab, field, val) => {
-            updatePerson(id, tab, { [field]: val });
-            saveToFirebase();
-            if (field === 'nextOrd') render();
-        };
+        window.wkSet = (id, tab, key, field, val) => { wkPatch(id, tab, key, w => ({ week: { ...w, [field]: val } })); saveToFirebase(); };
+        window.wkSetPerson = (id, tab, field, val) => { updatePerson(id, tab, { [field]: val }); saveToFirebase(); if (field !== 'ordFocus') render(); };
         window.wkNav = (d) => { state.wkOffset = d === 0 ? 0 : (state.wkOffset || 0) + d; render(); };
-        window.wkToggleAll = () => { state.wkCompact = !state.wkCompact; render(); };
-
-        // Bring last week's unfinished items (planned / not done) forward as planned
-        window.wkCarry = () => {
-            const key = wkKeyFor(state.wkOffset || 0);
-            const prev = ymd((() => { const d = parseLocalDate(key); d.setDate(d.getDate() - 7); return d; })());
+        window.wkAddPerson = () => {
+            const inp = document.getElementById('wkNewName'); const name = (inp?.value || '').trim();
+            if (!name) { inp?.focus(); return; }
             const tab = state.activeTab === 'returning' ? 'returning' : 'friends';
-            let n = 0;
-            state[tab].filter(p => p.name).forEach(p => {
-                const last = wkData(p, prev);
-                const todo = Object.entries(last.codes || {}).filter(([, v]) => v === 'plan' || v === 'miss').map(([c]) => c);
-                if (!todo.length && !last.poc) return;
-                wkPatch(p.id, tab, key, w => {
-                    const codes = { ...(w.codes || {}) };
-                    todo.forEach(c => { if (!codes[c]) { codes[c] = 'plan'; n++; } });
-                    return { week: { ...w, codes, poc: w.poc || last.poc || '' } };
-                });
-            });
+            const list = state[tab];
+            const person = { id: Math.max(...list.map(p => p.id), tab === 'returning' ? 99 : 0) + 1, name, notes:'', progress:{}, assignment:'', goal:'',
+                emoji: tab === 'friends' ? '👤' : '💙', assignedTo:'', nextContactDate:'', nextAction:'', lastContactDate:'', lastContactType:'', taskDone:false, taskDoneDate:'', baptismDate:'', keepLoving:false,
+                category: tab === 'friends' ? 'NM' : '' };
+            const blank = list.findIndex(p => !p.name && !Object.values(p.progress || {}).flat().length);
+            if (blank >= 0) { person.id = list[blank].id; list[blank] = person; } else list.push(person);
+            state[tab] = [...list];
             saveToFirebase(); render();
-            showSaveMessage(n ? `↪ ${n} ` + t2('kuo ʻave mai mei he uike kuo ʻosí','unfinished items carried from last week') : t2('Ikai ha meʻa ke ʻave mai','Nothing unfinished last week'));
+            showSaveMessage('✓ ' + name + t2(' kuo tānaki',' added'));
         };
 
         window.wkShare = () => {
             const key = wkKeyFor(state.wkOffset || 0);
-            const tab = state.activeTab === 'returning' ? 'returning' : 'friends';
-            const lines = [`🗓️ ${tab === 'returning' ? 'Returning' : 'Friends'} — Weekly Plan (${wkRange(key)})`, 'Riverton 24th Tongan Ward', ''];
-            state[tab].filter(p => p.name).forEach(p => {
-                const w = wkData(p, key), codes = w.codes || {};
-                const by = s => Object.keys(codes).filter(c => codes[c] === s).map(c => WK_SHORT[c] || c);
-                const plan = by('plan'), done = by('done'), miss = by('miss');
-                if (!plan.length && !done.length && !miss.length && !w.followUp && !w.poc) return;
-                lines.push(`• ${p.name} — next ordinance: ${personOrd(p, tab)}`);
-                if (w.poc || w.followUp) lines.push(`   👤 ${w.poc || '—'}${w.followUp ? ' · follow up ' + fmtNice(w.followUp) : ''}`);
-                if (plan.length) lines.push(`   🔵 Planned: ${plan.join(', ')}`);
-                if (done.length) lines.push(`   ✅ Done: ${done.join(', ')}`);
-                if (miss.length) lines.push(`   ✖️ Not done: ${miss.join(', ')}`);
+            const items = allWeekItems(key, 'all');
+            const lines = [`🗓️ Weekly Plan — ${wkRange(key)}`, 'Riverton 24th Tongan Ward', ''];
+            wkDays(key).forEach(d => {
+                const its = items.filter(i => i.day === d); if (!its.length) return;
+                lines.push(`${dayLong(d)}`);
+                its.forEach(i => lines.push(`  ${WK_STATUS[i.status]?.icon || '🔵'} ${i.person.name} — ${WK_SHORT[i.code] || i.code}${i.who ? ' · 👤 ' + i.who : ''}${i.status === 'done' && i.followUp ? ' · follow up ' + fmtNice(i.followUp) : ''}`));
             });
             if (lines.length === 3) lines.push('Nothing planned yet this week.');
             const text = lines.join('\n');
@@ -3107,144 +3164,244 @@
             else navigator.clipboard.writeText(text).then(() => showSaveMessage('✓ ' + t2('Kuo kopi','Weekly plan copied')));
         };
 
-        function wkPocOptions() {
-            const names = [...new Set([
-                ...(state.wardMissionaries || []).map(m => m.name).filter(Boolean),
-                state.wmlName, ...ORG_VALUES, 'Full-time missionaries'
-            ].filter(Boolean))];
-            return `<datalist id="wkPocList">${names.map(n => `<option value="${esc(n)}"></option>`).join('')}</datalist>`;
+        function wkPocNames() {
+            const recent = [];
+            [...state.friends, ...state.returning].forEach(p => { if (p.poc) recent.push(p.poc); Object.values(p.weekly || {}).forEach(w => Object.values(w.items || {}).forEach(i => i.who && recent.push(i.who))); });
+            return [...new Set([...(state.wardMissionaries || []).map(m => m.name), state.wmlName, ...recent, 'Full-time missionaries'].filter(Boolean).map(s => String(s).trim()).filter(Boolean))];
         }
+
+        // ── Pop-ups: plan a contact for a day / update a planned contact ──
+        const _wkm = {};
+        function wkModalShell(inner) {
+            let m = document.getElementById('wkModal');
+            if (!m) {
+                m = document.createElement('div'); m.id = 'wkModal';
+                m.className = 'fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4';
+                m.style.background = 'rgba(40,34,24,.45)'; m.style.backdropFilter = 'blur(3px)';
+                m.onclick = e => { if (e.target === m) wkClose(); };
+                document.body.appendChild(m);
+            }
+            m.innerHTML = `<div class="wk-modal">${inner}</div>`;
+        }
+        window.wkClose = () => { document.getElementById('wkModal')?.remove(); };
+        const whoField = val => `
+            <div class="wk-ml">👤 ${t2('Ko hai te ne fai ʻa e fetuʻutakí?','Who will make the contact?')} <span style="color:var(--ss-red);">*</span></div>
+            <input id="wkWho" class="ss-input" list="wkWhoList" value="${esc(val || '')}" placeholder="${t2('Hingoa','Name')}" oninput="_wkWho(this.value)" />
+            <datalist id="wkWhoList">${wkPocNames().map(n => `<option value="${esc(n)}"></option>`).join('')}</datalist>
+            <div class="flex flex-wrap gap-1.5 mt-2">${wkPocNames().slice(0, 8).map(n => `<button type="button" class="wk-chip" onclick="document.getElementById('wkWho').value=this.dataset.n;_wkWho(this.dataset.n)" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div>`;
+        window._wkWho = v => { _wkm.who = v; const w = document.getElementById('wkWho'); if (w) w.classList.remove('wk-need'); };
+
+        window.wkOpenPlan = (id, tab, key, day) => { Object.assign(_wkm, { mode:'new', id, tab, key, day, codes:[], who: findPerson(id, tab)?.poc || '' }); wkDrawPlan(); };
+        function wkDrawPlan() {
+            const p = findPerson(_wkm.id, _wkm.tab); if (!p) return;
+            wkModalShell(`
+                <div class="wk-mh"><div><div class="wk-mk">🔵 ${t2('Palani','Plan a contact')}</div><div class="wk-mt">${esc(p.name)} · ${dayLong(_wkm.day)}</div></div><button class="wk-x" onclick="wkClose()">✕</button></div>
+                <div class="wk-mb">
+                    ${PLAN_LANES.map(k => { const l = LANE[k]; return `
+                    <div class="wk-ml" style="color:${l.color};">${l.emoji} ${t2(l.to, l.en)} <span style="font-weight:600;color:var(--ss-muted);text-transform:none;letter-spacing:0;">· ${t2(l.subTo, l.sub)}</span></div>
+                    <div class="flex flex-wrap gap-1.5 mb-3">${INDICATORS.filter(i => i.lane === k && i.code !== 'DEC').map(i => `<button type="button" class="wk-pill ${_wkm.codes.includes(i.code) ? 'plan' : ''}" onclick="wkPick('${i.code}')"><span>${i.emoji}</span><span>${esc(wkLabel(i.code))}</span></button>`).join('')}</div>`; }).join('')}
+                    ${whoField(_wkm.who)}
+                </div>
+                <div class="wk-mf">
+                    <button class="wk-btn" onclick="wkClose()">${t('Close')}</button>
+                    <button class="wk-btn blue" ${_wkm.codes.length ? '' : 'disabled'} onclick="wkSavePlan()">🔵 ${t2('Palani','Plan it')}${_wkm.codes.length > 1 ? ' (' + _wkm.codes.length + ')' : ''}</button>
+                </div>`);
+        }
+        window.wkPick = code => { _wkm.who = document.getElementById('wkWho')?.value || _wkm.who; _wkm.codes = _wkm.codes.includes(code) ? _wkm.codes.filter(c => c !== code) : [..._wkm.codes, code]; wkDrawPlan(); };
+        window.wkSavePlan = () => {
+            const who = (document.getElementById('wkWho')?.value || '').trim();
+            if (!who) { const w = document.getElementById('wkWho'); w?.classList.add('wk-need'); w?.focus(); showSaveMessage(t2('Fakahū pe ko hai te ne fai','Add who will make the contact')); return; }
+            if (!_wkm.codes.length) return;
+            wkAddItems(_wkm.id, _wkm.tab, _wkm.key, _wkm.day, _wkm.codes, who);
+            wkClose(); saveToFirebase(); render();
+            showSaveMessage(`🔵 ${t2('Kuo palani','Planned')} · ${dayShort(_wkm.day)} · 👤 ${who}`);
+        };
+
+        window.wkOpenItem = (id, tab, key, itemId, status) => {
+            const p = findPerson(id, tab); const it = p && (wkData(p, key).items || {})[itemId]; if (!it) return;
+            Object.assign(_wkm, { mode:'item', id, tab, key, itemId, who: it.who || '', status: status || it.status, followUp: it.followUp || addDaysISO(7) });
+            wkDrawItem();
+        };
+        function wkDrawItem() {
+            const p = findPerson(_wkm.id, _wkm.tab); const it = p && (wkData(p, _wkm.key).items || {})[_wkm.itemId]; if (!it) return wkClose();
+            const ind = IND[it.code], l = LANE[ind?.lane] || LANE.love;
+            const chips = [[1, t2('ʻApongipongi','Tomorrow')], [3, '+3 days'], [7, '+1 week'], [14, '+2 weeks']];
+            wkModalShell(`
+                <div class="wk-mh"><div><div class="wk-mk" style="color:${l.color};">${l.emoji} ${t2(l.to, l.en)}</div><div class="wk-mt">${ind?.emoji || ''} ${esc(wkLabel(it.code))} — ${esc(p.name)}</div><div style="font-size:12.5px;color:var(--ss-muted);margin-top:2px;">${dayLong(it.day)}</div></div><button class="wk-x" onclick="wkClose()">✕</button></div>
+                <div class="wk-mb">
+                    ${whoField(_wkm.who)}
+                    <div class="wk-ml" style="margin-top:14px;">${t2('Tuʻunga','How did it go?')}</div>
+                    <div class="grid grid-cols-3 gap-2">${['plan','done','miss'].map(s => `<button type="button" class="wk-st ${s} ${_wkm.status === s ? 'on' : ''}" onclick="wkPickStatus('${s}')">${WK_STATUS[s].icon}<br>${t2(WK_STATUS[s].to, WK_STATUS[s].en)}</button>`).join('')}</div>
+                    ${_wkm.status === 'done' ? `
+                    <div class="wk-ml" style="margin-top:14px;">📅 ${t2('ʻAho ke muimui ai','When should we follow up?')}</div>
+                    <div class="flex flex-wrap gap-1.5">${chips.map(([d, lab]) => { const iso = addDaysISO(d); return `<button type="button" class="wk-chip ${_wkm.followUp === iso ? 'on' : ''}" onclick="wkPickFollow('${iso}')">${lab}</button>`; }).join('')}
+                        <input type="date" class="ss-input" style="width:auto;padding:6px 10px;font-size:13px;" value="${_wkm.followUp}" onchange="wkPickFollow(this.value)" /></div>
+                    <div style="font-size:12px;color:var(--ss-muted);margin-top:6px;">${t2('','Shows on the This Week tab on')} <b style="color:var(--ss-ink);">${_wkm.followUp ? dayLong(_wkm.followUp) : '—'}</b></div>` : ''}
+                </div>
+                <div class="wk-mf">
+                    <button class="wk-btn" style="color:var(--ss-red);" onclick="wkDelItem()">🗑️</button>
+                    <button class="wk-btn" style="margin-left:auto;" onclick="wkClose()">${t('Close')}</button>
+                    <button class="wk-btn ${_wkm.status === 'done' ? 'green' : _wkm.status === 'miss' ? 'red' : 'blue'}" onclick="wkSaveItem()">✓ ${t('Save')}</button>
+                </div>`);
+        }
+        window.wkPickStatus = s => { _wkm.who = document.getElementById('wkWho')?.value ?? _wkm.who; _wkm.status = s; wkDrawItem(); };
+        window.wkPickFollow = iso => { if (!validISO(iso)) return; _wkm.who = document.getElementById('wkWho')?.value ?? _wkm.who; _wkm.followUp = iso; wkDrawItem(); };
+        window.wkSaveItem = () => {
+            const who = (document.getElementById('wkWho')?.value || '').trim();
+            if (!who) { const w = document.getElementById('wkWho'); w?.classList.add('wk-need'); w?.focus(); return; }
+            wkApplyItem(_wkm.id, _wkm.tab, _wkm.key, _wkm.itemId, { who, status: _wkm.status, followUp: _wkm.status === 'done' ? _wkm.followUp : '' });
+            const st = _wkm.status;
+            wkClose(); saveToFirebase(); render();
+            showSaveMessage(st === 'done' ? `✅ ${t2('Kakato','Completed')}${_wkm.followUp ? ' · ' + t2('muimui','follow up') + ' ' + fmtNice(_wkm.followUp) : ''}` : st === 'miss' ? '✖️ ' + t2('ʻIkai fai','Not done') : '🔵 ' + t2('Palani','Planned'));
+        };
+        window.wkDelItem = () => {
+            if (!confirm(t2('Toʻo ʻa e palani ko ʻeni?','Remove this planned contact?'))) return;
+            wkDeleteItem(_wkm.id, _wkm.tab, _wkm.key, _wkm.itemId); wkClose(); saveToFirebase(); render();
+        };
+        // Quick "not done" from This Week without opening the pop-up
+        window.wkQuickMiss = (id, tab, key, itemId) => { wkApplyItem(id, tab, key, itemId, { status:'miss' }); saveToFirebase(); render(); };
+
+        const itemPill = (it, id, tab, key) => {
+            const ind = IND[it.code], st = it.status || 'plan';
+            return `<button type="button" class="wk-item ${st}" onclick="wkOpenItem('${id}','${tab}','${key}','${it.id}')" title="${esc(indName(ind))}">
+                <span class="t">${st === 'plan' ? (ind?.emoji || '') : WK_STATUS[st].icon} ${esc(wkLabel(it.code))}</span>
+                <span class="w">👤 ${esc(it.who || '—')}${st === 'done' && it.followUp ? ' · ⏭ ' + fmtNice(it.followUp) : ''}</span>
+            </button>`;
+        };
 
         function renderWeeklyPlan(currentList) {
             const tab = state.activeTab === 'returning' ? 'returning' : 'friends';
             const off = state.wkOffset || 0;
             const key = wkKeyFor(off);
+            const days = wkDays(key), tISO = todayISO();
             const people = currentList.filter(p => p.name && p.name.trim());
-            const tot = { plan:0, done:0, miss:0 };
-            let noPlan = 0;
+            const tot = { plan:0, done:0, miss:0 }; let noPlan = 0;
             people.forEach(p => { const c = wkCounts(p, key); tot.plan += c.plan; tot.done += c.done; tot.miss += c.miss; if (!c.plan && !c.done && !c.miss) noPlan++; });
-            const closed = tot.done + tot.miss, all = closed + tot.plan;
-            const pct = all ? Math.round(tot.done / all * 100) : 0;
-            const compact = !!state.wkCompact;
-            const ordOpts = sel => [...NEXT_ORDS, ...(sel && !NEXT_ORDS.includes(sel) ? [sel] : [])].map(o => `<option value="${esc(o)}" ${o===sel?'selected':''}>${esc(o)}</option>`).join('');
-            const lanesFor = LANES;
+            const all = tot.plan + tot.done + tot.miss, pct = all ? Math.round(tot.done / all * 100) : 0;
+            const ordOpts = sel => [...FRIEND_ORDS, ...(sel && !FRIEND_ORDS.includes(sel) ? [sel] : [])].map(o => `<option value="${esc(o)}" ${o === sel ? 'selected' : ''}>${esc(o)}</option>`).join('');
             const weekTitle = off === 0 ? t2('Uike ni','This week') : off === 1 ? t2('Uike kahaʻu','Next week') : off === -1 ? t2('Uike kuo ʻosi','Last week') : '';
 
             const card = p => {
-                const w = wkData(p, key), codes = w.codes || {};
-                const c = wkCounts(p, key);
+                const w = wkData(p, key), items = wkItems(p, key), c = wkCounts(p, key);
                 const ord = personOrd(p, tab);
-                const followUp = w.followUp || (off === 0 ? (p.nextContactDate || '') : '');
-                const poc = w.poc !== undefined ? w.poc : (off >= 0 ? (p.poc || '') : '');
+                const outcomes = w.codes || {};
                 return `
-                <div class="wk-card ${c.miss || c.plan || c.done ? 's-' + wkCardState(c) : ''}">
-                    <div class="wk-head">
-                        <div class="flex items-start gap-3 min-w-0">
-                            <span class="text-3xl flex-shrink-0">${p.emoji || (tab === 'friends' ? '👤' : '💙')}</span>
-                            <div class="min-w-0 flex-1">
-                                <div style="font-family:'Fraunces',Georgia,serif;font-size:20px;font-weight:600;color:var(--ss-ink);line-height:1.15;">${esc(p.name)}</div>
-                                <div class="flex items-center gap-2 mt-1.5 flex-wrap">
-                                    ${p.assignedTo ? `<span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background:var(--ss-gold-wash);color:var(--ss-gold-deep);">${orgShort(p.assignedTo)}</span>` : `<span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background:var(--ss-red-wash);color:var(--ss-red);">⚠️ ${t2('ʻIkai vahe','Unassigned')}</span>`}
-                                    ${p.category ? `<span class="text-xs font-bold" style="color:var(--ss-muted);">${p.category}</span>` : ''}
-                                    ${p.keepLoving ? `<span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background:rgba(224,143,176,.18);color:#E08FB0;">💛 ${t2('Hokohoko ʻOfa','Keep loving')}</span>` : ''}
-                                </div>
-                                <div class="wk-stat mt-2">
-                                    ${c.plan ? `<span style="background:rgba(91,141,239,.18);color:#8fb0f5;">🔵 ${c.plan} ${t2('palani','planned')}</span>` : ''}
-                                    ${c.done ? `<span style="background:rgba(34,197,94,.18);color:#4ade80;">✅ ${c.done} ${t2('kakato','done')}</span>` : ''}
-                                    ${c.miss ? `<span style="background:rgba(239,68,68,.16);color:#f87171;">✖️ ${c.miss} ${t2('ʻikai fai','not done')}</span>` : ''}
-                                    ${!c.plan && !c.done && !c.miss ? `<span style="background:var(--ss-surface-2);color:var(--ss-muted);">${t2('ʻIkai ha palani','Nothing planned yet')}</span>` : ''}
-                                </div>
+                <div class="wk-card ${c.miss ? 's-miss' : c.plan ? 's-plan' : c.done ? 's-done' : ''}">
+                    <div class="wk-top">
+                        <div class="wk-id">
+                            <div class="wk-l">${tab === 'friends' ? t2('Hingoa','Friend') : t('Returning')}</div>
+                            <input class="wk-name" value="${esc(p.name)}" onchange="updateName(${p.id}, this.value)" />
+                            <div class="flex gap-2 flex-wrap mt-2">
+                                ${tab === 'friends' ? `<select class="wk-sel" onchange="updateCategory(${p.id}, this.value)">
+                                    <option value="" ${!p.category ? 'selected' : ''}>${t2('Faʻahinga…','Type…')}</option>
+                                    ${CATS.map(([v, en, to]) => `<option value="${v}" ${p.category === v ? 'selected' : ''}>${t2(to, en)}</option>`).join('')}
+                                </select>` : ''}
+                                <select class="wk-sel" onchange="quickSetOrg('${p.id}','${tab}',this.value)" title="${t2('Kautaha','Organization responsible')}">${orgOptionsHTML(p.assignedTo)}</select>
+                            </div>
+                            <div class="wk-ord">
+                                <div class="wk-l" style="color:var(--ss-gold-deep);">⛪ ${t2('Ouau Hoko','Next Ordinance')}</div>
+                                <select class="wk-sel wk-ordsel" onchange="wkSetPerson('${p.id}','${tab}','nextOrd',this.value)">${ordOpts(ord)}</select>
+                                <div class="wk-cue">📖 ${esc(ORD_DOCTRINE[ord] || 'Teach the doctrine that prepares them for this covenant.')}</div>
+                                <textarea rows="1" class="wk-focus" placeholder="🎯 ${t2('Tokāteline ke tau tokangataha ki ai…','Our doctrine focus for them (scripture, lesson, talk)…')}" onchange="wkSetPerson('${p.id}','${tab}','ordFocus',this.value)">${esc(p.ordFocus || '')}</textarea>
                             </div>
                         </div>
-                        <div class="wk-ord">
-                            <div class="lab">⛪ ${t2('Ouau Hoko','Next Ordinance')}</div>
-                            <select style="margin-top:6px;font-weight:700;" onchange="wkSetPerson('${p.id}','${tab}','nextOrd',this.value)">${ordOpts(ord)}</select>
-                            <div class="cue">📖 ${esc(ORD_DOCTRINE[ord] || t2('Akoʻi ʻa e tokāteline ʻoku teuteuʻi ai kinautolu ki he fuakava ko ʻeni.','Teach the doctrine that prepares them for this covenant.'))}</div>
-                            <textarea rows="1" placeholder="🎯 ${t2('Tokāteline ke tau tokangataha ki ai…','Our doctrine focus for them (scripture, lesson, talk)…')}" onchange="wkSetPerson('${p.id}','${tab}','ordFocus',this.value)">${esc(p.ordFocus || '')}</textarea>
+                        <div class="wk-sum">
+                            ${c.plan ? `<span class="b plan">🔵 ${c.plan}</span>` : ''}${c.done ? `<span class="b done">✅ ${c.done}</span>` : ''}${c.miss ? `<span class="b miss">✖️ ${c.miss}</span>` : ''}
+                            ${p.nextContactDate ? `<div class="nx">⏭ ${t2('Muimui','Follow up')} <b>${fmtNice(p.nextContactDate)}</b>${p.poc ? ' · ' + esc(p.poc) : ''}</div>` : ''}
                         </div>
                     </div>
 
-                    <div class="wk-lanes">
-                        ${lanesFor.map(l => {
-                            const laneCodesList = INDICATORS.filter(i => i.lane === l.k).map(i => i.code);
-                            const shown = compact ? laneCodesList.filter(cd => codes[cd]) : laneCodesList;
-                            const n = laneCodesList.filter(cd => codes[cd]).length;
-                            return `<div class="wk-lane" style="background:${l.wash};border-top:3px solid ${l.color};">
-                                <div class="lh"><span>${l.emoji} ${t2(l.to,l.en)}</span>${n ? `<small>${n}</small>` : ''}</div>
-                                <div class="wk-pills">
-                                    ${shown.length ? shown.map(cd => {
-                                        const s = codes[cd] || '';
-                                        const st = WK_STATUS[s];
-                                        return `<button type="button" class="wk-pill ${s}" title="${esc(indName(IND[cd]))} (${cd})${st ? ' — ' + t2(st.to, st.en) : ''}" onclick="wkCycle('${p.id}','${tab}','${key}','${cd}')">${st ? `<span class="st">${st.icon}</span>` : `<span>${IND[cd].emoji}</span>`}<span>${esc(wkLabel(cd))}</span></button>`;
-                                    }).join('') : `<span class="wk-empty">${t2('ʻIkai ha meʻa','—')}</span>`}
-                                </div>
+                    <div class="wk-week">
+                        ${days.map(d => {
+                            const its = items.filter(i => i.day === d);
+                            return `<div class="wk-day ${d === tISO ? 'today' : ''} ${d < tISO ? 'past' : ''}">
+                                <div class="dh"><span>${dayShort(d)}</span><b>${dayNum(d)}</b></div>
+                                <div class="di">${its.map(it => itemPill(it, p.id, tab, key)).join('')}</div>
+                                <button type="button" class="wk-add" onclick="wkOpenPlan('${p.id}','${tab}','${key}','${d}')">＋ ${t2('Palani','Plan')}</button>
                             </div>`;
                         }).join('')}
                     </div>
 
-                    <div class="wk-foot">
-                        <div>
-                            <div class="fl">📅 ${t2('ʻAho muimui','Follow-up date')}</div>
-                            ${calBtnHTML({ kind:'wkfu', id:p.id, tab, target:key, value:followUp, placeholder:t2('Fili ʻaho','Pick a date') })}
-                        </div>
-                        <div>
-                            <div class="fl">👤 ${t2('Tokotaha fetuʻutaki','Point of contact')}</div>
-                            <input type="text" list="wkPocList" value="${esc(poc)}" placeholder="${t2('Ko hai te ne muimui?','Who follows up?')}" onchange="wkSet('${p.id}','${tab}','${key}','poc',this.value)" />
-                        </div>
-                        <div>
-                            <div class="fl">🗒️ ${t2('Fakamatala','Note for this week')}</div>
-                            <input type="text" value="${esc(w.note || '')}" placeholder="${t2('Ko e hā ʻa e palani?','What is the plan / what happened?')}" onchange="wkSet('${p.id}','${tab}','${key}','note',this.value)" />
-                        </div>
-                        <div class="flex gap-1.5">
-                            <button class="wk-mini" title="${t2('Lēkooti fetuʻutaki','Log contact today')}" onclick="markContacted_tab('${p.id}','${tab}')">✓ ${t2('Fetuʻutaki','Contacted')}</button>
-                        </div>
+                    <div class="wk-out">
+                        <div class="wk-l">${LANE.progress.emoji} ${t2('Ko e meʻa naʻa nau fai ʻi he uike ni','What they chose to do this week')}</div>
+                        <div class="flex flex-wrap gap-1.5">${INDICATORS.filter(i => i.lane === 'progress').map(i => `<button type="button" class="wk-pill ${outcomes[i.code] === 'done' ? 'done' : ''}" onclick="wkOutcome('${p.id}','${tab}','${key}','${i.code}')">${outcomes[i.code] === 'done' ? '✅' : i.emoji} ${esc(wkLabel(i.code))}</button>`).join('')}</div>
+                        <input class="wk-note" value="${esc(w.note || '')}" placeholder="🗒️ ${t2('Fakamatala ki he uike ni','Note for this week')}" onchange="wkSet('${p.id}','${tab}','${key}','note',this.value)" />
                     </div>
                 </div>`;
             };
 
             return `
             <div class="space-y-4">
-                <div class="rounded-2xl p-4 md:p-5" style="background:var(--ss-surface);border:1px solid var(--ss-line);box-shadow:0 14px 40px rgba(0,0,0,.18);">
+                <div class="wk-hero">
                     <div class="flex items-center justify-between gap-3 flex-wrap">
                         <div>
-                            <div style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--ss-gold);">🗓️ ${t2('Palani Fakauike','Weekly Plan')} · ${tab === 'returning' ? t('Returning') : t('Friends')}</div>
-                            <div style="font-family:'Fraunces',Georgia,serif;font-size:24px;font-weight:600;color:var(--ss-ink);">${wkRange(key)} ${weekTitle ? `<span style="font-size:14px;color:var(--ss-muted);font-family:Manrope;font-weight:700;">· ${weekTitle}</span>` : ''}</div>
+                            <div class="wk-l" style="color:var(--ss-gold-deep);">🗓️ ${t2('Palani Fakauike','Weekly Plan')} · ${tab === 'returning' ? t('Returning') : t('Friends')}</div>
+                            <div style="font-family:'Fraunces',Georgia,serif;font-size:26px;font-weight:600;color:var(--ss-ink);">${wkRange(key)} ${weekTitle ? `<span style="font-size:14px;color:var(--ss-muted);font-family:Manrope;font-weight:700;">· ${weekTitle}</span>` : ''}</div>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap">
-                            <button class="wk-mini" onclick="wkNav(-1)">◀ ${t2('Kimuʻa','Prev')}</button>
-                            ${off !== 0 ? `<button class="wk-mini gold" onclick="wkNav(0)">${t2('Uike ni','This week')}</button>` : ''}
-                            <button class="wk-mini" onclick="wkNav(1)">${t2('Hoko','Next')} ▶</button>
+                            <button class="wk-btn" onclick="wkNav(-1)">◀</button>
+                            ${off !== 0 ? `<button class="wk-btn gold" onclick="wkNav(0)">${t2('Uike ni','This week')}</button>` : ''}
+                            <button class="wk-btn" onclick="wkNav(1)">▶</button>
+                            <button class="wk-btn gold" onclick="wkShare()">📱 ${t2('Vahevahe','Share plan')}</button>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mt-4">
-                        ${[[tot.plan,'#5B8DEF',t2('Palani','Planned')],[tot.done,'#22c55e',t2('Kakato','Completed')],[tot.miss,'#ef4444',t2('ʻIkai fai','Not done')],[pct+'%','var(--ss-gold)',t2('Kakato %','Follow-through')],[noPlan,'var(--ss-muted)',t2('ʻIkai palani','No plan yet')]].map(([v,col,lab]) =>
-                            `<div class="rounded-xl p-3 text-center" style="background:var(--ss-surface-2);border:1px solid var(--ss-line-2);border-top:3px solid ${col};"><div class="text-2xl font-black" style="color:${col};">${v}</div><div class="text-[11px] font-bold uppercase tracking-wide" style="color:var(--ss-muted);">${lab}</div></div>`).join('')}
+                        ${[[tot.plan, WK_STATUS.plan.color, t2('Palani','Planned')], [tot.done, WK_STATUS.done.color, t2('Kakato','Completed')], [tot.miss, WK_STATUS.miss.color, t2('ʻIkai fai','Not done')], [pct + '%', 'var(--ss-gold)', t2('Kakato %','Follow-through')], [noPlan, 'var(--ss-muted)', t2('ʻIkai palani','No plan yet')]].map(([v, col, lab]) =>
+                            `<div class="wk-kpi" style="border-top-color:${col};"><div class="v" style="color:${col};">${v}</div><div class="k">${lab}</div></div>`).join('')}
                     </div>
-                    <div class="flex items-center justify-between gap-3 flex-wrap mt-4">
-                        <div class="wk-legend">
-                            <span>${t2('Lomiʻi ke liliu:','Tap to cycle:')}</span>
-                            <span class="k">◯ ${t2('ʻIkai','None')}</span>
-                            <span class="k" style="border-color:#5B8DEF;background:rgba(91,141,239,.18);color:var(--ss-ink);">🔵 ${t2('Palani','Planned')}</span>
-                            <span class="k" style="border-color:#22c55e;background:#22c55e;color:#06240f;">✅ ${t2('Kakato','Completed')}</span>
-                            <span class="k" style="border-color:#ef4444;background:rgba(239,68,68,.16);color:var(--ss-ink);">✖️ ${t2('ʻIkai fai','Not done')}</span>
-                        </div>
-                        <div class="flex gap-2 flex-wrap">
-                            <button class="wk-mini" onclick="wkToggleAll()">${compact ? '👁️ ' + t2('Fakahā kotoa','Show all indicators') : '🎯 ' + t2('Ko e palani pē','Show only the plan')}</button>
-                            <button class="wk-mini" onclick="wkCarry()">↪ ${t2('ʻAve mai mei he uike kuo ʻosí','Carry over last week')}</button>
-                            <button class="wk-mini gold" onclick="wkShare()">📱 ${t2('Vahevahe','Share plan')}</button>
-                        </div>
-                    </div>
-                    <div style="font-size:11.5px;color:var(--ss-muted);margin-top:10px;">${t2('Ko e meʻa kotoa ʻoku fakaʻilongaʻi ✅ ʻoku lēkooti foki ia ʻi he tēpile fakamāhina.','Anything marked ✅ is also logged in the monthly tracker. The follow-up date and contact for this week show up on the This Week tab.')}</div>
+                    <div class="wk-howto">${t2('','How it works:')} <b>＋ Plan</b> ${t2('','on a day → pick Love / Share / Invite → add who will make the contact.')} <span class="dot plan"></span>${t2('','Planned shows on the This Week tab and Action Board.')} ${t2('','Tap it afterward →')} <span class="dot done"></span>${t2('','Completed (pick the follow-up date) or')} <span class="dot miss"></span>${t2('','Not done.')}</div>
                 </div>
-                ${wkPocOptions()}
-                ${people.length ? people.map(card).join('') : `
-                <div class="rounded-2xl p-10 text-center" style="background:var(--ss-surface);border:1px dashed var(--ss-line);">
-                    <div class="text-5xl mb-3">🌱</div>
-                    <div class="font-black" style="color:var(--ss-ink);">${t2('ʻIkai ha taha ʻi heni','Nobody here yet')}</div>
-                    <p class="text-sm mt-1" style="color:var(--ss-muted);">${t2('Tānaki ha taha ʻi he tēpile fakaquarter.','Add people in the Quarterly view, then plan their week here.')}</p>
-                    <button class="wk-mini gold mt-3" onclick="setTrackerView('quarter')">📅 ${t('Quarterly')}</button>
-                </div>`}
+                ${people.map(card).join('')}
+                <div class="wk-card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                    <input id="wkNewName" class="ss-input" style="flex:1;min-width:200px;" placeholder="${tab === 'friends' ? t2('Hingoa ʻo ha kaungāmeʻa foʻou…','New friend’s name…') : t2('Hingoa…','Name…')}" onkeydown="if(event.key==='Enter')wkAddPerson()" />
+                    <button class="wk-btn gold" onclick="wkAddPerson()">➕ ${t('Add Person')}</button>
+                </div>
             </div>`;
+        }
+
+        // This Week tab + Action Board: the week's planned contacts, by day
+        function weekPlanSectionHTML(filter) {
+            const key = wkKeyFor(0), tISO = todayISO();
+            const items = allWeekItems(key, filter);
+            const c = { plan:0, done:0, miss:0 }; items.forEach(i => c[i.status] !== undefined && c[i.status]++);
+            const days = wkDays(key).filter(d => items.some(i => i.day === d));
+            return `
+            <div class="wk-hero">
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <div>
+                        <div class="wk-l" style="color:var(--ss-gold-deep);">🗓️ ${t2('Palani ʻo e Uike ni','This Week’s Plan')} · ${wkRange(key)}</div>
+                        <div class="wk-badges">
+                            <span class="b plan">🔵 ${c.plan} ${t2('palani','planned')}</span><span class="b done">✅ ${c.done} ${t2('kakato','completed')}</span><span class="b miss">✖️ ${c.miss} ${t2('ʻikai fai','not done')}</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <button class="wk-btn" onclick="state.wkOffset=0;setViewMode('tracker')">👥 ${t2('Palani ʻi he Kaungāmeʻa','Plan on Friends tab')} →</button>
+                        <button class="wk-btn gold" onclick="state.wkOffset=0;wkShare()">📱 ${t2('Vahevahe','Share plan')}</button>
+                    </div>
+                </div>
+                ${days.length ? `<div class="wk-plist">${days.map(d => `
+                    <div class="wk-pday ${d === tISO ? 'today' : ''}">
+                        <div class="pdh">${d === tISO ? '⭐ ' + t2('ʻAho ni','Today') + ' · ' : ''}${dayLong(d)}</div>
+                        ${items.filter(i => i.day === d).map(i => { const ind = IND[i.code], st = i.status || 'plan'; return `
+                        <div class="wk-prow ${st}">
+                            <span class="sd"></span>
+                            <div class="min-w-0 flex-1" style="cursor:pointer;" onclick="wkOpenItem('${i.pid}','${i.tab}','${key}','${i.id}')">
+                                <div style="font-weight:800;color:var(--ss-ink);">${esc(i.person.name)} <span style="font-weight:600;color:var(--ss-muted);font-size:12px;">· ${esc(personOrd(i.person, i.tab))}</span></div>
+                                <div style="font-size:12.5px;color:var(--ss-ink-soft);">${ind?.emoji || ''} ${esc(wkLabel(i.code))} · 👤 <b>${esc(i.who || '—')}</b>${st === 'done' && i.followUp ? ' · ⏭ ' + fmtNice(i.followUp) : ''}</div>
+                            </div>
+                            ${st === 'plan' ? `<button class="wk-btn green sm" onclick="wkOpenItem('${i.pid}','${i.tab}','${key}','${i.id}','done')">✅</button><button class="wk-btn red sm" onclick="wkQuickMiss('${i.pid}','${i.tab}','${key}','${i.id}')">✖️</button>`
+                              : `<span class="wk-tag ${st}">${WK_STATUS[st].icon} ${t2(WK_STATUS[st].to, WK_STATUS[st].en)}</span>`}
+                        </div>`; }).join('')}
+                    </div>`).join('')}</div>`
+                : `<div style="margin-top:12px;font-size:13.5px;color:var(--ss-muted);">${t2('ʻIkai ha palani ki he uike ni.','Nothing planned yet this week — open the Friends tab and tap ＋ Plan on a day.')}</div>`}
+            </div>`;
+        }
+        // Small line on Action Board cards: this week's planned contacts for that person
+        function boardPlanHTML(p) {
+            const key = wkKeyFor(0);
+            const its = wkItems(p, key).sort((a, b) => a.day.localeCompare(b.day));
+            if (!its.length) return '';
+            return `<div class="flex flex-wrap gap-1 mt-1.5">${its.map(i => `<span class="wk-tag ${i.status || 'plan'}" style="cursor:pointer;" onclick="wkOpenItem('${p.id}','${p._tab}','${key}','${i.id}')">${dayShort(i.day)} · ${IND[i.code]?.emoji || ''} ${esc(WK_SHORT[i.code] || i.code)} · ${esc(i.who || '—')}</span>`).join('')}</div>`;
         }
 
         // <optgroup> per lane for the quick "log activity" dropdowns
@@ -3257,7 +3414,9 @@
             const allPeople = [...state.friends, ...state.returning].filter(p => p.name);
             const overdue = allPeople.filter(p => p.nextContactDate && parseLocalDate(p.nextContactDate) < today).length;
             const thisWeek = allPeople.filter(p => p.nextContactDate && parseLocalDate(p.nextContactDate) >= today && parseLocalDate(p.nextContactDate) <= in7).length;
-            const total = overdue + thisWeek;
+            const tISO = todayISO();
+            const planDue = allWeekItems(wkKeyFor(0), 'all').filter(i => i.status === 'plan' && i.day <= tISO).length;
+            const total = overdue + thisWeek + planDue;
             if (total === 0) return '';
             return `<span class="ml-1 ${overdue > 0 ? 'bg-red-500' : 'bg-orange-400'} text-white rounded-full px-1.5 text-xs font-black">${total}</span>`;
         }
@@ -3374,7 +3533,7 @@
             <div class="space-y-5">
                 ${imageSlot('thisweek', { label: t2('Foto ki he Ngāue ʻo e Wikí','Photo (This Week Focus)') })}
                 <!-- Header -->
-                <div class="rounded-2xl p-5 shadow-xl text-white" style="background:#b5485a;">
+                <div class="rounded-2xl p-5 shadow-xl text-white" style="background:var(--ss-bar);">
                     <div class="flex items-center justify-between flex-wrap gap-3">
                         <div class="flex items-center gap-3">
                             <span class="text-4xl">📋</span>
@@ -3754,6 +3913,7 @@
                                 ${streak > 0 ? `<span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-black">🔥 ${streak}mo</span>` : ''}
                             </div>
                             ${p.nextAction ? `<div class="mt-1 text-xs text-gray-600 bg-gray-50 rounded px-2 py-1 leading-tight">📝 ${p.nextAction}</div>` : ''}
+                            ${boardPlanHTML(p)}
                             <div class="flex items-center gap-2 mt-1.5 flex-wrap">
                                 ${topInd ? `<span class="text-xs bg-white border border-gray-200 px-1.5 py-0.5 rounded font-bold">${topInd.emoji} ${topInd.code}</span>` : ''}
                                 ${thisMonthActs > 0 ? `<span class="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">✓ ${thisMonthActs} this mo.</span>` : ''}
@@ -5648,10 +5808,10 @@
             (state.friends||[]).filter(p => p.name && p.name.trim()).forEach(p => {
                 const acts = Object.values(p.progress||{}).flat();
                 const cat = p.category === 'PM' ? 'returning' : acts.some(c => ['ITM','TML','MPL','BD'].includes(c)) ? 'taught' : 'finding';
-                out.push({ pid: p.id, tab: 'friends', name: p.name.trim(), type: 'Friend', cat, nextOrd: p.nextOrd || 'Baptism & confirmation', org: p.assignedTo || '', helper: '', followUp: p.assignedTo || '', plan: p.nextAction || '', date: p.nextContactDate || '' });
+                out.push({ pid: p.id, tab: 'friends', name: p.name.trim(), type: 'Friend', cat, nextOrd: personOrd(p, 'friends'), org: p.assignedTo || '', helper: '', followUp: p.assignedTo || '', plan: p.nextAction || '', date: p.nextContactDate || '' });
             });
             (state.returning||[]).filter(p => p.name && p.name.trim()).forEach(p => {
-                out.push({ pid: p.id, tab: 'returning', name: p.name.trim(), type: 'Returning', cat: 'returning', nextOrd: p.nextOrd || 'Return to church / sacrament', org: p.assignedTo || '', helper: '', followUp: p.assignedTo || '', plan: p.nextAction || '', date: p.nextContactDate || '' });
+                out.push({ pid: p.id, tab: 'returning', name: p.name.trim(), type: 'Returning', cat: 'returning', nextOrd: personOrd(p, 'returning'), org: p.assignedTo || '', helper: '', followUp: p.assignedTo || '', plan: p.nextAction || '', date: p.nextContactDate || '' });
             });
             (state.covenantPath||[]).filter(p => p.name && !(p.ordinances?.endowment || p.femaleOrdinances?.endowment || false)).forEach(p => {
                 out.push({ pid: p.id, tab: 'covenant', name: p.name.trim(), type: 'New member', cat: 'baptized', nextOrd: nextOrdFor(p), org: p.assignment || '', helper: '', followUp: p.assignment || '', plan: '', date: '' });
