@@ -524,6 +524,46 @@
         .wk-st{ padding:10px 6px; border-radius:12px; border:1.5px solid var(--ss-line-2); background:var(--ss-surface-2); font-weight:800; font-size:12.5px; color:var(--ss-ink); cursor:pointer; line-height:1.5; font-family:'Manrope',sans-serif; }
         .wk-st.plan.on{ background:#4C7DD9; border-color:#4C7DD9; color:#fff; } .wk-st.done.on{ background:#2E9E5B; border-color:#2E9E5B; color:#fff; } .wk-st.miss.on{ background:#C8505F; border-color:#C8505F; color:#fff; }
         .wk-need{ border-color:var(--ss-red)!important; box-shadow:0 0 0 3px var(--ss-red-wash); }
+        /* ── Readability pass: every label keeps enough contrast against what it sits on ── */
+        /* Gradient classes with no solid fallback used to render as white text on nothing */
+        [class~="from-amber-400"],[class~="from-orange-400"],[class~="from-amber-700"]{ background-color:#B5862B!important; color:#fff!important; }
+        [class~="from-pink-400"],[class~="from-red-400"]{ background-color:#B8557A!important; color:#fff!important; }
+        [class~="from-green-400"],[class~="from-emerald-400"],[class~="from-lime-400"]{ background-color:#3E8A60!important; color:#fff!important; }
+        [class~="from-teal-400"],[class~="from-cyan-400"]{ background-color:#2F8577!important; color:#fff!important; }
+        [class~="from-blue-400"],[class~="from-blue-500"],[class~="from-indigo-400"]{ background-color:#4A6FA5!important; color:#fff!important; }
+        [class~="from-purple-400"]{ background-color:#6A5BA6!important; color:#fff!important; }
+        [class~="from-slate-500"]{ background-color:#5F6B7A!important; color:#fff!important; }
+        [class~="from-amber-50"]{ background-color:var(--ss-gold-wash)!important; }
+        html[data-theme="light"]{ --ss-gold:#96701F; --ss-gold-deep:#74540F; --ss-bar:#3F6A99; --ss-muted:#6F6657; }
+        html[data-theme="light"] .wk-btn.gold, html[data-theme="light"] .wk-chip.on{ background:linear-gradient(135deg,#E2C377,#CDA450); color:#2B2010; border-color:transparent; }
+        html[data-theme="light"] .seg button[aria-pressed="true"], html[data-theme="light"] .ss-btn.primary, html[data-theme="light"] .iconbtn.gold{ background:linear-gradient(135deg,#E2C377,#CDA450); color:#2B2010; }
+        /* solid headers so their white titles show */
+        html[data-theme="light"] [class~="from-rose-600"], html[data-theme="light"] [class~="from-red-500"], html[data-theme="light"] [class~="from-red-600"]{ background-color:#B24A57!important; color:#fff!important; }
+        html[data-theme="light"] [class~="from-emerald-500"]{ background-color:#3E8A60!important; color:#fff!important; }
+        html[data-theme="light"] [class~="bg-amber-500"]{ background-color:#A8750F!important; }
+        /* pale tints that were written for dark headers → near-white on the colored bars */
+        html[data-theme="light"] [class~="text-rose-200"], html[data-theme="light"] [class~="text-violet-200"], html[data-theme="light"] [class~="text-purple-200"], html[data-theme="light"] [class~="text-indigo-200"],
+        html[data-theme="light"] [class~="text-green-200"], html[data-theme="light"] [class~="text-blue-200"], html[data-theme="light"] [class~="text-amber-200"], html[data-theme="light"] [class~="text-white/70"],
+        html[data-theme="light"] [class~="text-white/80"], html[data-theme="light"] [class~="text-white/60"], html[data-theme="light"] [class~="text-white/50"]{ color:rgba(255,255,255,.95)!important; }
+        html[data-theme="light"] :is([class~="from-violet-700"],[class~="from-purple-700"],[class~="from-purple-900"],[class~="from-indigo-700"],[class~="from-indigo-800"],[class~="from-indigo-900"]) :is([class~="text-purple-300"],[class~="text-purple-200"],[class~="text-blue-200"]){ color:rgba(255,255,255,.95)!important; }
+        html[data-theme="light"] :is([class~="from-violet-700"],[class~="from-purple-700"],[class~="from-purple-900"],[class~="from-indigo-700"],[class~="from-indigo-800"],[class~="from-indigo-900"]) [class~="text-amber-300"]{ color:#FFE7A8!important; }
+        /* lane + status colors used as text: deeper shades on light backgrounds */
+        html[data-theme="light"] [style*="color:#E08FB0"]{ color:#A84373!important; }
+        html[data-theme="light"] [style*="color:#5FC2A8"]{ color:#22775F!important; }
+        html[data-theme="light"] [style*="color:#E7BD6A"]{ color:#8A6414!important; }
+        html[data-theme="light"] [style*="color:#6E86C6"]{ color:#415A9E!important; }
+        html[data-theme="light"] [style*="color:#f87171"]{ color:#B23A49!important; }
+        html[data-theme="light"] [style*="color:#fbbf24"]{ color:#94670A!important; }
+        html[data-theme="light"] [style*="color:#34d399"], html[data-theme="light"] [style*="color:#4ade80"]{ color:#1F7244!important; }
+        html[data-theme="light"] [style*="color:#f6b87a"]{ color:#A35A17!important; }
+        html[data-theme="light"] [style*="color:#8fb0f5"]{ color:#33599F!important; }
+        html[data-theme="light"] .tw-field{ background:var(--ss-surface-2)!important; }
+        /* gold used as a fill keeps its brighter tone so the dark lettering on it stays readable */
+        html[data-theme="light"] :is(.seg button[aria-pressed="true"], .iconbtn.gold, .ss-btn.primary, #ssCal .cal-day.sel, #ssToast button, .wk-btn.gold, .wk-chip.on, .promise-progress .pbar > i),
+        html[data-theme="light"] [style*="var(--ss-gold),var(--ss-gold-deep)"], html[data-theme="light"] [style*="background:var(--ss-gold);color"]{ background:linear-gradient(135deg,#E2C377,#CDA450)!important; color:#2B2010; border-color:#CDA450; }
+        html[data-theme="light"] [class~="text-white"] :is(h1,h2,h3,h4){ color:#fff!important; }
+        html[data-theme="light"] [class~="bg-white/20"]{ background-color:rgba(255,255,255,.14)!important; }
+        html[data-theme="light"] [class~="bg-amber-400/20"]{ background-color:rgba(0,0,0,.18)!important; }
     </style>
     <script>
         /* Temple (light) palette is the default; the navy "evening" palette is opt-in. Applied before paint. */
@@ -542,8 +582,8 @@
 
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getDatabase, ref, set, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
-        import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
+        import { getDatabase, ref, set, get, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getStorage, ref as storageRef, uploadString, uploadBytesResumable, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 
         const firebaseConfig = {
             apiKey: "AIzaSyAMTk39-yO86IA36-ZzBCtpLswW4skCIH4",
@@ -2728,12 +2768,84 @@
             state.invVideoEdit = false; saveToFirebase(); render();
             showSaveMessage(state.inviteVideoUrl ? t2('✓ Kuo tauhi ʻa e vitiō','✓ Video link saved') : t2('Kuo fakafoki','Video reset'));
         };
+        // Upload a video file from this device so it stays with the tracker for everyone.
+        // Free (Spark) plan: the video is saved in the Realtime Database under media/inviteVideo, in small pieces, separate from
+        // the tracker data (so normal saves stay fast). If Firebase Storage is turned on (USE_STORAGE), it goes there instead.
+        const VID_PATH = 'media/inviteVideo', VID_CHUNK = 720 * 1024, VID_MAX_DB = 25 * 1024 * 1024;
+        let _vidUp = null;                       // { pct } while an upload is running
+        const _dbVid = { key:'', url:'', loading:false };   // the downloaded copy for this visit
+        const bytesToB64 = bytes => { let x = ''; for (let i = 0; i < bytes.length; i += 0x8000) x += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(x); };
+        const b64ToBytes = b => { const bin = atob(b), out = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i); return out; };
+        function vidStatus(html) { const el = document.getElementById('invUpStatus'); if (el) el.innerHTML = html; }
+        function vidProgress() { vidStatus(_vidUp ? `<div class="wk-bar" style="margin:10px 0 0;"><span class="n" style="flex:0 0 auto;">⬆️ ${t2('ʻOku hiki…','Uploading…')}</span><span class="tr"><i style="width:${_vidUp.pct}%;background:var(--ss-gold);"></i></span><b>${_vidUp.pct}%</b></div><div style="font-size:12px;color:var(--ss-muted);margin-top:4px;">${t2('','Keep this page open until it finishes.')}</div>` : ''); }
+        function vidFail(msg) { _vidUp = null; vidStatus(`<div style="margin-top:10px;padding:12px;border-radius:12px;background:var(--ss-red-wash);color:var(--ss-ink);font-size:13px;line-height:1.5;">⚠️ ${msg}</div>`); }
+        function vidDone(url) {
+            _vidUp = null; state.inviteVideoUrl = url; state.invVideoEdit = false; saveToFirebase(); render();
+            showSaveMessage(t2('✓ Kuo hiki ʻa e vitiō','✓ Video uploaded — it now plays for everyone'));
+        }
+        window.invUploadVideo = async (ev) => {
+            const file = ev.target.files && ev.target.files[0]; ev.target.value = '';
+            if (!file) return;
+            if (_vidUp) return;
+            if (!editMode) { showSaveMessage(t2('🔒 Lomiʻi ʻa e “Foto” ʻi ʻolunga pea fakahū ʻa e fika','🔒 Tap “Photos” at the top and enter the code first')); return; }
+            if (!file.type.startsWith('video/')) { showSaveMessage(t2('Fili ha faile vitiō','Please choose a video file')); return; }
+            _vidUp = { pct: 0 }; vidProgress();
+            if (storage) {
+                const ext = (file.name.match(/\.(mp4|m4v|webm|mov)$/i) || ['.mp4'])[0].toLowerCase();
+                let task;
+                try { task = uploadBytesResumable(storageRef(storage, 'videos/invite-' + Date.now() + ext), file, { contentType: file.type }); }
+                catch (e) { return vidFail(t2('Hala ʻi he hiki','The upload could not start.')); }
+                task.on('state_changed',
+                    snap => { _vidUp = { pct: Math.round(snap.bytesTransferred / Math.max(1, snap.totalBytes) * 100) }; vidProgress(); },
+                    err => { console.warn('Video upload failed:', err && err.message); vidFail(t2('Naʻe ʻikai lava ʻa e hiki.','The upload was blocked by Firebase Storage. Check the Storage rules, or paste a YouTube link instead.')); },
+                    async () => { try { vidDone(await getDownloadURL(task.snapshot.ref)); } catch (e) { vidFail(t2('Hala','Could not finish the upload.')); } });
+                return;
+            }
+            if (file.size > VID_MAX_DB) return vidFail(`${t2('ʻOku fuʻu lahi ʻa e vitiō.','That video is too large.')} ${Math.round(file.size / 1048576)} MB — ${t2('','the limit is 25 MB. Use a shorter or smaller copy, or paste a YouTube link instead.')}`);
+            try {
+                const bytes = new Uint8Array(await file.arrayBuffer());
+                const n = Math.ceil(bytes.length / VID_CHUNK), stamp = Date.now();
+                await set(ref(database, VID_PATH), null);                       // clear the previous video
+                for (let i = 0; i < n; i++) {
+                    await set(ref(database, `${VID_PATH}/chunks/${i}`), bytesToB64(bytes.subarray(i * VID_CHUNK, (i + 1) * VID_CHUNK)));
+                    _vidUp = { pct: Math.round((i + 1) / n * 100) }; vidProgress();
+                }
+                await set(ref(database, `${VID_PATH}/meta`), { type: file.type || 'video/mp4', size: bytes.length, n, name: file.name, at: stamp });
+                _dbVid.key = 'db:' + stamp; _dbVid.url = URL.createObjectURL(file);   // this device can play it right away
+                vidDone('db:' + stamp);
+            } catch (e) {
+                console.warn('Video upload failed:', e && e.message);
+                vidFail(t2('Naʻe ʻikai lava ʻa e hiki.','The upload did not finish. Check the connection and try again; if it keeps failing, the database rules may not allow saving under “media”.'));
+            }
+        };
+        // Download the saved video the first time someone taps play on this visit
+        window.invLoadDbVideo = async () => {
+            const key = state.inviteVideoUrl || '';
+            if (_dbVid.loading) return;
+            _dbVid.loading = true;
+            const box = document.getElementById('invDbVideo'); if (box) box.querySelector('button').innerHTML = '⏳ ' + t2('ʻOku tatali…','Loading video…');
+            try {
+                const v = (await get(ref(database, VID_PATH))).val();
+                if (!v || !v.meta || !v.chunks) throw new Error('missing');
+                const parts = Object.keys(v.chunks).sort((a, b) => a - b).map(k => b64ToBytes(v.chunks[k]));
+                if (_dbVid.url) URL.revokeObjectURL(_dbVid.url);
+                _dbVid.key = key; _dbVid.url = URL.createObjectURL(new Blob(parts, { type: v.meta.type || 'video/mp4' }));
+                _dbVid.loading = false; _dbVid.autoplay = true; render();
+            } catch (e) {
+                _dbVid.loading = false;
+                if (box) box.innerHTML = `<div style="padding:14px;border-radius:12px;background:var(--ss-red-wash);color:var(--ss-ink);font-size:13.5px;">⚠️ ${t2('ʻOku ʻikai maʻu ʻa e vitiō.','The saved video could not be loaded. Try again, or upload it again with “Change video”.')}</div>`;
+            }
+        };
         function inviteVideoHTML() {
             const url = state.inviteVideoUrl || DEFAULT_INVITE_VIDEO;
             const yt = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/))([\w-]{11})/);
             const frame = 'width:100%;max-width:820px;aspect-ratio:16/9;border:0;border-radius:14px;background:#000;display:block;margin:0 auto;';
+            if (url.startsWith('db:')) {
+                if (_dbVid.key === url && _dbVid.url) { const auto = _dbVid.autoplay; _dbVid.autoplay = false; return `<video controls playsinline ${auto ? 'autoplay' : ''} style="${frame}" src="${_dbVid.url}"></video>`; }
+                return `<div id="invDbVideo" style="${frame}display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#3F6A99,#2C4D73);"><button type="button" class="wk-btn gold" style="font-size:16px;padding:14px 22px;" onclick="invLoadDbVideo()">▶ ${t2('Tā ʻa e vitiō','Play video')}</button></div>`;
+            }
             if (yt) return `<iframe style="${frame}" src="https://www.youtube-nocookie.com/embed/${yt[1]}" title="Video" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
-            if (/\.(mp4|m4v|webm|mov)(\?|#|$)/i.test(url)) return `<video controls playsinline preload="metadata" style="${frame}" src="${esc(url)}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"></video>
+            if (/\.(mp4|m4v|webm|mov)(\?|#|$)/i.test(url) || /firebasestorage/.test(url)) return `<video controls playsinline preload="metadata" style="${frame}" src="${esc(url)}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"></video>
                 <div style="display:none;padding:14px;border-radius:12px;background:var(--ss-red-wash);color:var(--ss-ink);font-size:13.5px;line-height:1.5;">⚠️ ${t2('ʻOku ʻikai maʻu ʻa e vitiō.','The video file could not be found.')} ${state.inviteVideoUrl ? '' : `Upload <b>${DEFAULT_INVITE_VIDEO}</b> to the repo next to index.html, or`} ${t2('','tap “Change video” and paste a YouTube or video link.')}</div>`;
             return `<a class="wk-btn gold" style="display:inline-block;text-decoration:none;" href="${esc(url)}" target="_blank" rel="noopener">▶ ${t2('Mamata ʻi he vitiō','Watch the video')} ↗</a>`;
         }
@@ -2745,9 +2857,17 @@
                     <div style="font-family:'Fraunces',Georgia,serif;font-size:22px;font-weight:600;color:var(--ss-ink);">Love, Share, and Invite</div></div>
                     <button class="wk-btn sm" onclick="invEditVideo()">✏️ ${t2('Liliu vitiō','Change video')}</button>
                 </div>
-                ${state.invVideoEdit ? `<div class="flex gap-2 flex-wrap" style="margin-bottom:12px;">
-                    <input id="invVideoUrl" class="ss-input" style="flex:1;min-width:220px;" value="${esc(state.inviteVideoUrl || '')}" placeholder="${t2('','Paste a YouTube link or a video (.mp4) link — leave empty to use ')}${DEFAULT_INVITE_VIDEO}" onkeydown="if(event.key==='Enter')invSaveVideo()" />
-                    <button class="wk-btn gold" onclick="invSaveVideo()">✓ ${t('Save')}</button></div>` : ''}
+                ${state.invVideoEdit ? `<div style="margin-bottom:12px;padding:12px;border-radius:14px;background:var(--ss-surface-2);border:1px solid var(--ss-line-2);">
+                    <div class="wk-ml">⬆️ ${t2('Hiki ha vitiō mei he meʻangāue ni','Upload a video from this device')}</div>
+                    <label class="wk-btn gold" style="display:inline-block;cursor:pointer;">📁 ${t2('Fili ha vitiō','Choose video file')}<input type="file" accept="video/*" class="hidden" style="display:none;" onchange="invUploadVideo(event)" /></label>
+                    <span style="font-size:12px;color:var(--ss-muted);margin-left:8px;">${editMode ? t2('', storage ? 'MP4 works best' : 'MP4 works best · up to 25 MB') : '🔒 ' + t2('','Unlock with the “Photos” button at the top first')}</span>
+                    <div class="wk-ml" style="margin-top:14px;">🔗 ${t2('Pe fakapipiki ha link','Or paste a link')}</div>
+                    <div class="flex gap-2 flex-wrap">
+                    <input id="invVideoUrl" class="ss-input" style="flex:1;min-width:220px;" value="${esc(/firebasestorage|^db:/.test(state.inviteVideoUrl || '') ? '' : (state.inviteVideoUrl || ''))}" placeholder="${t2('','YouTube link or a video (.mp4) link')}" onkeydown="if(event.key==='Enter')invSaveVideo()" />
+                    <button class="wk-btn" onclick="invSaveVideo()">✓ ${t('Save')}</button></div>
+                    ${state.inviteVideoUrl ? `<div style="font-size:12px;color:var(--ss-muted);margin-top:8px;">${/firebasestorage|^db:/.test(state.inviteVideoUrl) ? '✓ ' + t2('','An uploaded video is in use.') : ''} ${t2('','Saving an empty link resets to the default.')}</div>` : ''}
+                </div>` : ''}
+                <div id="invUpStatus"></div>
                 ${inviteVideoHTML()}
             </div>
             <div class="wk-hero">
