@@ -1234,7 +1234,24 @@
             });
             if (!d.experiences) { d.experiences = []; }
             if (d.schemaVersion !== 2) { d.schemaVersion = 2; changed = true; }
+            // Firebase drops empty values ({}, [], null), so filling those in looks like a "change" on every load —
+            // and two open devices end up re-saving to each other forever (the flashing sync light).
+            // Only write back when the saved result would actually differ from what's stored.
+            if (changed) changed = fbCanon(d) !== fbCanon(data);
             return { data: d, changed };
+        }
+        // What Firebase would actually store: empty objects/arrays and nulls removed, keys sorted, lastSaved ignored
+        function fbCanon(v) {
+            const prune = x => {
+                if (Array.isArray(x)) { const a = x.map(prune).filter(y => y !== undefined); return a.length ? a : undefined; }
+                if (x && typeof x === 'object') {
+                    const o = {};
+                    Object.keys(x).sort().forEach(k => { if (k === 'lastSaved') return; const y = prune(x[k]); if (y !== undefined) o[k] = y; });
+                    return Object.keys(o).length ? o : undefined;
+                }
+                return x === null || x === undefined ? undefined : x;
+            };
+            return JSON.stringify(prune(v)) || '';
         }
         let _backedUp = false;
         function backupBeforeMigration(raw) {
