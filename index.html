@@ -466,7 +466,12 @@
         .inv-doc.on{ border-color:var(--ss-gold); background:var(--ss-gold-wash); }
         .inv-main{ flex:1; min-width:0; display:flex; align-items:center; gap:10px; text-align:left; background:transparent; border:0; cursor:pointer; font-family:'Manrope',sans-serif; color:var(--ss-ink); }
         .inv-main .e{ font-size:22px; } .inv-main b{ display:block; font-size:13.5px; line-height:1.25; } .inv-main small{ color:var(--ss-muted); font-size:11.5px; font-weight:700; }
-        .inv-doc a{ text-decoration:none; white-space:nowrap; }
+        a.inv-doc{ text-decoration:none; } a.inv-doc:hover{ border-color:var(--ss-gold); background:var(--ss-gold-wash); }
+        .inv-main small{ display:block; font-weight:600; line-height:1.3; margin-top:2px; }
+        .wk-bar{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--ss-ink); margin-bottom:6px; }
+        .wk-bar .n{ flex:0 0 46%; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; }
+        .wk-bar .tr{ flex:1; height:8px; border-radius:99px; background:var(--ss-line-2); overflow:hidden; } .wk-bar .tr i{ display:block; height:100%; border-radius:99px; }
+        .wk-bar b{ flex:0 0 auto; font-size:12px; color:var(--ss-ink-soft); }
         .wk-none{ font-size:12.5px; color:var(--ss-muted); font-style:italic; padding:4px 2px; }
         .wk-day .dh{ display:flex; justify-content:space-between; align-items:baseline; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--ss-muted); }
         .wk-day .dh b{ font-family:'Fraunces',Georgia,serif; font-size:17px; color:var(--ss-ink); letter-spacing:0; }
@@ -1362,6 +1367,7 @@
                 state.huddles = (data.huddles || []).map(h => ({ ...h }));
                 state.experiences = Object.values(data.experiences || []).filter(Boolean);
                 state.wardPageUrl = data.wardPageUrl || '';
+                state.inviteVideoUrl = data.inviteVideoUrl || '';
                 state.wardMissionaries = Object.values(data.wardMissionaries || []).filter(Boolean).map(m => ({ ...m, auxes: Object.values(m.auxes || []) }));
                 state.wmTasks = Object.values(data.wmTasks || []).filter(Boolean);
                 state.wmlName = data.wmlName || '';
@@ -1426,6 +1432,7 @@
                 huddles: state.huddles || [],
                 experiences: state.experiences || [],
                 wardPageUrl: state.wardPageUrl || '',
+                inviteVideoUrl: state.inviteVideoUrl || '',
                 wardMissionaries: state.wardMissionaries || [],
                 wmTasks: state.wmTasks || [],
                 wmlName: state.wmlName || '',
@@ -2695,54 +2702,104 @@
             </div>`;
         }
         // Tab 5 — Challenges (21-Day Promise · B.O.M. Hand-Out · Reading Check-in)
-        // ═════════ Invite tab — Love · Share · Invite library (the original Church articles + video, shown as-is) ═════════
+        // ═════════ Invite tab — Love · Share · Invite library (links to the official Church pages) ═════════
+        const CJC = 'https://www.churchofjesuschrist.org/study/manual/';
         const INVITE_DOCS = [
             { g:'Everyone', gTo:'Kakai kotoa', items:[
-                { f:'love-share-invite', e:'💛', title:'Love, Share, and Invite — Simple Ways to Love, Share, and Invite', pages:3 },
-                { f:'children',     e:'🧒', title:'How Children Can Share the Gospel', pages:2 },
-                { f:'youth',        e:'🎯', title:'How Youth Can Share the Gospel', pages:2 },
-                { f:'young-adults', e:'💫', title:'How Young Adults Can Share the Gospel', pages:2 },
-                { f:'adults',       e:'🌸', title:'How Adults Can Share the Gospel', pages:2 },
-                { f:'families',     e:'🏠', title:'How Families Can Share the Gospel', pages:2 } ] },
+                { u:'ways-to-share-the-gospel/01a-learn', e:'💛', title:'Love, Share, Invite', d:'The three principles, with simple everyday ways anyone can live them.' },
+                { u:'ways-to-share-the-gospel/01-children', e:'🧒', title:'How Children Can Share the Gospel', d:'Ideas for Primary-age children, and things they can share with friends.' },
+                { u:'ways-to-share-the-gospel/02-youth', e:'🎯', title:'How Youth Can Share the Gospel', d:'Ideas for youth, and resources they can pass along to friends.' },
+                { u:'ways-to-share-the-gospel/03-young-adults', e:'💫', title:'How Young Adults Can Share the Gospel', d:'Ideas and shareable resources for young adults.' },
+                { u:'ways-to-share-the-gospel/04-adults', e:'🌸', title:'How Adults Can Share the Gospel', d:'Ideas and shareable resources for adults.' },
+                { u:'ways-to-share-the-gospel/05-families', e:'🏠', title:'How Families Can Share the Gospel', d:'Ways a family can love, share, and invite together.' } ] },
             { g:'Leaders', gTo:'Kau Taki', items:[
-                { f:'leaders',             e:'🧭', title:'Helping Spread the Gospel of Jesus Christ', pages:2 },
-                { f:'weekly-coordination', e:'🗓️', title:'Ideas for Weekly Missionary Coordination', pages:5 },
-                { f:'fifth-sunday',        e:'📖', title:'Fifth-Sunday Lesson Ideas', pages:6 },
-                { f:'new-and-returning',   e:'🤝', title:'Strengthening New and Returning Members', pages:1 } ] },
+                { u:'sharing-the-gospel-resources-for-leaders/01-privilege', e:'🧭', title:'Helping Spread the Gospel of Jesus Christ', d:'How leaders can help members share the gospel.' },
+                { u:'sharing-the-gospel-resources-for-leaders/02-effective-coordination-with-missionaries', e:'🗓️', title:'Ideas for Weekly Missionary Coordination', d:'A sample agenda and ideas for the weekly coordination meeting.' },
+                { u:'sharing-the-gospel-resources-for-leaders/05-fifth-sunday-lesson', e:'📖', title:'Fifth-Sunday Lesson Ideas', d:'Outlines and resources for a fifth-Sunday lesson on sharing the gospel.' },
+                { u:'sharing-the-gospel-resources-for-leaders/03-strengthening-new-members', e:'🤝', title:'Strengthening New and Returning Members', d:'Helping new and returning members feel loved and connected.' } ] },
             { g:'Sharing', gTo:'Vahevahe', items:[
-                { f:'activity-sharing',  e:'🔗', title:'Activity Sharing — Share Ward Activities and Sunday Services with Your Community', pages:4 },
-                { f:'church-resources',  e:'🧰', title:'Sharing Church Resources', pages:1 } ] }
+                { u:'sharing-the-gospel-resources-for-leaders/06-share-ward-activities', e:'🔗', title:'Share Ward Activities and Sunday Services with Your Community', d:'Using Activity Sharing to invite friends and neighbors.' },
+                { u:'sharing-the-gospel-resources-for-leaders/04-sharing-church-resources', e:'🧰', title:'Sharing Church Resources', d:'Church resources that meet everyday needs, and how to share them.' } ] }
         ];
-        window.invOpen = f => { state.invDoc = state.invDoc === f ? '' : f; render(); if (state.invDoc) setTimeout(() => document.getElementById('invViewer')?.scrollIntoView({ behavior:'smooth', block:'start' }), 60); };
+        const DEFAULT_INVITE_VIDEO = 'love-share-invite.mp4';
+        window.invEditVideo = () => { state.invVideoEdit = !state.invVideoEdit; render(); };
+        window.invSaveVideo = () => {
+            state.inviteVideoUrl = (document.getElementById('invVideoUrl')?.value || '').trim();
+            state.invVideoEdit = false; saveToFirebase(); render();
+            showSaveMessage(state.inviteVideoUrl ? t2('✓ Kuo tauhi ʻa e vitiō','✓ Video link saved') : t2('Kuo fakafoki','Video reset'));
+        };
+        function inviteVideoHTML() {
+            const url = state.inviteVideoUrl || DEFAULT_INVITE_VIDEO;
+            const yt = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/))([\w-]{11})/);
+            const frame = 'width:100%;max-width:820px;aspect-ratio:16/9;border:0;border-radius:14px;background:#000;display:block;margin:0 auto;';
+            if (yt) return `<iframe style="${frame}" src="https://www.youtube-nocookie.com/embed/${yt[1]}" title="Video" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+            if (/\.(mp4|m4v|webm|mov)(\?|#|$)/i.test(url)) return `<video controls playsinline preload="metadata" style="${frame}" src="${esc(url)}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"></video>
+                <div style="display:none;padding:14px;border-radius:12px;background:var(--ss-red-wash);color:var(--ss-ink);font-size:13.5px;line-height:1.5;">⚠️ ${t2('ʻOku ʻikai maʻu ʻa e vitiō.','The video file could not be found.')} ${state.inviteVideoUrl ? '' : `Upload <b>${DEFAULT_INVITE_VIDEO}</b> to the repo next to index.html, or`} ${t2('','tap “Change video” and paste a YouTube or video link.')}</div>`;
+            return `<a class="wk-btn gold" style="display:inline-block;text-decoration:none;" href="${esc(url)}" target="_blank" rel="noopener">▶ ${t2('Mamata ʻi he vitiō','Watch the video')} ↗</a>`;
+        }
         function renderInviteLibrary() {
-            const all = INVITE_DOCS.flatMap(g => g.items);
-            const cur = all.find(d => d.f === state.invDoc);
             return `
             <div class="wk-hero">
-                <div class="wk-l" style="color:var(--ss-gold-deep);">🎬 ${t2('Vitiō','Video')}</div>
-                <div style="font-family:'Fraunces',Georgia,serif;font-size:22px;font-weight:600;color:var(--ss-ink);margin-bottom:10px;">Love, Share, and Invite</div>
-                <video controls playsinline preload="metadata" style="width:100%;max-width:820px;border-radius:14px;background:#000;display:block;margin:0 auto;" src="resources/love-share-invite.mp4"></video>
+                <div class="flex items-center justify-between gap-3 flex-wrap" style="margin-bottom:10px;">
+                    <div><div class="wk-l" style="color:var(--ss-gold-deep);">🎬 ${t2('Vitiō','Video')}</div>
+                    <div style="font-family:'Fraunces',Georgia,serif;font-size:22px;font-weight:600;color:var(--ss-ink);">Love, Share, and Invite</div></div>
+                    <button class="wk-btn sm" onclick="invEditVideo()">✏️ ${t2('Liliu vitiō','Change video')}</button>
+                </div>
+                ${state.invVideoEdit ? `<div class="flex gap-2 flex-wrap" style="margin-bottom:12px;">
+                    <input id="invVideoUrl" class="ss-input" style="flex:1;min-width:220px;" value="${esc(state.inviteVideoUrl || '')}" placeholder="${t2('','Paste a YouTube link or a video (.mp4) link — leave empty to use ')}${DEFAULT_INVITE_VIDEO}" onkeydown="if(event.key==='Enter')invSaveVideo()" />
+                    <button class="wk-btn gold" onclick="invSaveVideo()">✓ ${t('Save')}</button></div>` : ''}
+                ${inviteVideoHTML()}
             </div>
             <div class="wk-hero">
                 <div class="wk-l" style="color:var(--ss-gold-deep);">📚 ${t2('Ngaahi Tohi','Articles')}</div>
-                <div style="font-size:12.5px;color:var(--ss-muted);margin:3px 0 12px;">${t2('','The original articles from The Church of Jesus Christ of Latter-day Saints, shown exactly as published.')}</div>
+                <div style="font-size:12.5px;color:var(--ss-muted);margin:3px 0 12px;">${t2('','Each one opens the full article on ChurchofJesusChrist.org.')}</div>
                 ${INVITE_DOCS.map(g => `
                 <div class="wk-l" style="margin:12px 0 6px;">${t2(g.gTo, g.g)}</div>
                 <div class="inv-grid">${g.items.map(d => `
-                    <div class="inv-doc ${state.invDoc === d.f ? 'on' : ''}">
-                        <button type="button" class="inv-main" onclick="invOpen('${d.f}')"><span class="e">${d.e}</span><span><b>${esc(d.title)}</b><small>${d.pages} ${d.pages === 1 ? 'page' : 'pages'}</small></span></button>
-                        <a class="wk-btn sm" href="resources/${d.f}.pdf" target="_blank" rel="noopener">${t2('Fakaava','Open')} ↗</a>
-                    </div>`).join('')}</div>`).join('')}
-            </div>
-            ${cur ? `
-            <div class="wk-hero" id="invViewer">
-                <div class="flex items-center justify-between gap-3 flex-wrap" style="margin-bottom:10px;">
-                    <div style="font-family:'Fraunces',Georgia,serif;font-size:19px;font-weight:600;color:var(--ss-ink);">${cur.e} ${esc(cur.title)}</div>
-                    <div class="flex gap-2"><a class="wk-btn gold sm" href="resources/${cur.f}.pdf" target="_blank" rel="noopener">${t2('Fakaava kakato','Open full screen')} ↗</a><button class="wk-btn sm" onclick="invOpen('${cur.f}')">✕</button></div>
+                    <a class="inv-doc" href="${CJC}${d.u}?lang=eng" target="_blank" rel="noopener">
+                        <span class="inv-main"><span class="e">${d.e}</span><span><b>${esc(d.title)}</b><small>${esc(d.d)}</small></span></span>
+                        <span style="color:var(--ss-gold-deep);font-weight:800;">↗</span>
+                    </a>`).join('')}</div>`).join('')}
+            </div>`;
+        }
+        // Weekly plan numbers (planned / completed / not done) — used on This Week and the Dashboard
+        function wkStats(key, filter) {
+            const items = allWeekItems(key, filter);
+            const c = { plan:0, done:0, miss:0, total: items.length, people: new Set(items.map(i => i.tab + i.pid)).size };
+            items.forEach(i => c[i.status] !== undefined && c[i.status]++);
+            c.rate = c.total ? Math.round(c.done / c.total * 100) : 0;
+            c.items = items;
+            return c;
+        }
+        function weeklyKpiHTML(filter) {
+            const key = wkKeyFor(0), s = wkStats(key, filter);
+            const named = [...(filter === 'returning' ? [] : state.friends), ...(filter === 'friends' ? [] : state.returning)].filter(p => p.name);
+            const noPlan = named.length - s.people;
+            const weeks = [-3,-2,-1,0].map(o => { const k = wkKeyFor(o); return { k, s: wkStats(k, filter) }; });
+            const tile = (v, lab, col) => `<div class="wk-kpi" style="border-top-color:${col};"><div class="v" style="color:${col};">${v}</div><div class="k">${lab}</div></div>`;
+            const orgs = [...ORG_LIST.map(o => ({ k:o.v, label:`${o.e} ${t(o.v)}` })), { k:'', label:'⚠️ ' + t2('ʻIkai vahe','Unassigned') }].map(g => {
+                const its = s.items.filter(i => (ORG_VALUES.includes(i.person.assignedTo) ? i.person.assignedTo : '') === g.k);
+                return { ...g, n: its.length, done: its.filter(i => i.status === 'done').length, miss: its.filter(i => i.status === 'miss').length };
+            }).filter(g => g.k || g.n);
+            return `
+            <div class="wk-hero">
+                <div class="wk-l" style="color:var(--ss-gold-deep);">🗓️ ${t2('Palani Fakauike','Weekly Plan')} · ${wkRange(key)}</div>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mt-3">
+                    ${tile(s.plan, t2('Palani','Planned'), WK_STATUS.plan.color)}${tile(s.done, t2('Kakato','Tasks completed'), WK_STATUS.done.color)}${tile(s.miss, t2('ʻIkai fai','Not done'), WK_STATUS.miss.color)}${tile(s.rate + '%', t2('Kakato %','Follow-through'), 'var(--ss-gold)')}${tile(noPlan, t2('ʻIkai palani','People with no plan'), 'var(--ss-muted)')}
                 </div>
-                <iframe src="resources/${cur.f}.pdf#view=FitH" title="${esc(cur.title)}" style="width:100%;height:80vh;border:1px solid var(--ss-line);border-radius:12px;background:#fff;"></iframe>
-                <div style="font-size:12px;color:var(--ss-muted);margin-top:6px;">${t2('','On a phone, tap “Open full screen” to read every page.')}</div>
-            </div>` : ''}`;
+                <div class="grid md:grid-cols-3 gap-3 mt-4">
+                    <div class="wk-org"><div class="oh"><span>${t2('Faʻahinga','By lane')}</span></div>
+                        ${LANES.map(l => { const its = s.items.filter(i => laneOf(i.code) === l.k); const d = its.filter(i => i.status === 'done').length; return `<div class="wk-bar"><span class="n"><span class="ld" style="background:${l.color};"></span>${l.emoji} ${t2(l.to, l.en)}</span><span class="tr"><i style="width:${its.length ? Math.round(d / its.length * 100) : 0}%;background:${l.color};"></i></span><b>${d}/${its.length}</b></div>`; }).join('')}
+                    </div>
+                    <div class="wk-org"><div class="oh"><span>${t2('Kautaha','By organization')}</span></div>
+                        ${orgs.map(g => `<div class="wk-bar"><span class="n">${g.label}</span><span class="tr"><i style="width:${g.n ? Math.round(g.done / g.n * 100) : 0}%;background:${WK_STATUS.done.color};"></i></span><b>${g.done}/${g.n}</b></div>`).join('')}
+                    </div>
+                    <div class="wk-org"><div class="oh"><span>${t2('Uike ʻe 4','Last 4 weeks')}</span></div>
+                        ${weeks.map(w => `<div class="wk-bar"><span class="n">${wkRange(w.k)}</span><span class="tr"><i style="width:${w.s.rate}%;background:var(--ss-gold);"></i></span><b>${w.s.done}/${w.s.total}</b></div>`).join('')}
+                    </div>
+                </div>
+                <div style="font-size:12px;color:var(--ss-muted);margin-top:8px;">${t2('','Bars show completed out of planned. These update the moment a task is marked on the Friends tab, This Week, or the Action Board.')}</div>
+            </div>`;
         }
         function renderChallenges() {
             const v = ['library','promise','bom','checkin'].includes(state.challengeView) ? state.challengeView : 'library';
@@ -3714,24 +3771,8 @@
                 </div>
 
                 <!-- KPI headline strip -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div class="rounded-2xl p-4 text-center" style="background:var(--ss-surface);border:1px solid var(--ss-line-2);border-top:3px solid #ef4444;">
-                        <div class="text-3xl font-black" style="color:#f87171;">${overdue.length}</div>
-                        <div class="text-xs font-bold uppercase tracking-wide" style="color:var(--ss-muted);">${t('Overdue')}</div>
-                    </div>
-                    <div class="rounded-2xl p-4 text-center" style="background:var(--ss-surface);border:1px solid var(--ss-line-2);border-top:3px solid #f59e0b;">
-                        <div class="text-3xl font-black" style="color:#fbbf24;">${dueThisWeek.length}</div>
-                        <div class="text-xs font-bold uppercase tracking-wide" style="color:var(--ss-muted);">${t('Due This Week')}</div>
-                    </div>
-                    <div class="rounded-2xl p-4 text-center" style="background:var(--ss-surface);border:1px solid var(--ss-line-2);border-top:3px solid #94a3b8;">
-                        <div class="text-3xl font-black" style="color:var(--ss-ink);">${noDate.length}</div>
-                        <div class="text-xs font-bold uppercase tracking-wide" style="color:var(--ss-muted);">${t('Awaiting Date')}</div>
-                    </div>
-                    <div class="rounded-2xl p-4 text-center" style="background:var(--ss-surface);border:1px solid var(--ss-line-2);border-top:3px solid #16a34a;">
-                        <div class="text-3xl font-black" style="color:#34d399;">${completed.length}</div>
-                        <div class="text-xs font-bold uppercase tracking-wide" style="color:var(--ss-muted);">${t('Task Completed')}</div>
-                    </div>
-                </div>
+                ${(() => { const ws = wkStats(wkKeyFor(0), weekFilter); const tile = (v, lab, col) => `<div class="rounded-2xl p-4 text-center" style="background:var(--ss-surface);border:1px solid var(--ss-line-2);border-top:3px solid ${col};"><div class="text-3xl font-black" style="color:${col};">${v}</div><div class="text-xs font-bold uppercase tracking-wide" style="color:var(--ss-muted);">${lab}</div></div>`;
+                    return `<div class="grid grid-cols-2 md:grid-cols-4 gap-3">${tile(overdue.length, t2('Muimui tōmui','Overdue follow-ups'), '#ef4444')}${tile(ws.plan, t2('Palani','Planned'), WK_STATUS.plan.color)}${tile(ws.done, t2('Kakato','Tasks completed'), WK_STATUS.done.color)}${tile(noDate.length, t('Awaiting Date'), '#94a3b8')}</div>`; })()}
 
                 ${totalContacts === 0 ? `
                 <div class="rounded-2xl p-10 text-center" style="background:var(--ss-surface);border:1px dashed var(--ss-line);">
@@ -3768,15 +3809,6 @@
                     <div class="p-4 space-y-3">${overdue.map(p=>renderPersonCard(p,'overdue')).join('')}</div>
                 </div>` : ''}
 
-                ${dueThisWeek.length > 0 ? `
-                <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border-2 border-yellow-200">
-                    <div class="bg-gradient-to-r from-yellow-400 to-orange-400 px-5 py-3 flex items-center gap-2">
-                        <span class="text-xl">🟡</span>
-                        <h3 class="font-black text-yellow-900 text-lg">Due This Week <span class="bg-yellow-900/20 text-yellow-900 text-sm px-2 py-0.5 rounded-full ml-1">${dueThisWeek.length}</span></h3>
-                    </div>
-                    <div class="p-4 space-y-3">${dueThisWeek.map(p=>renderPersonCard(p,'week')).join('')}</div>
-                </div>` : ''}
-
                 ${upcoming.length > 0 ? `
                 <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border-2 border-green-200">
                     <div class="bg-gradient-to-r from-green-400 to-emerald-500 px-5 py-3 flex items-center gap-2">
@@ -3793,15 +3825,6 @@
                         <h3 class="font-black text-gray-700 text-lg">No Contact Date Set <span class="bg-gray-400/20 text-gray-600 text-sm px-2 py-0.5 rounded-full ml-1">${noDate.length}</span></h3>
                     </div>
                     <div class="p-4 space-y-3">${noDate.filter(p=>p.name).map(p=>renderPersonCard(p,'none')).join('')}</div>
-                </div>` : ''}
-
-                ${completed.length > 0 ? `
-                <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border-2 border-green-200">
-                    <div class="bg-gradient-to-r from-green-500 to-emerald-600 px-5 py-3 flex items-center gap-2">
-                        <span class="text-xl">✅</span>
-                        <h3 class="font-black text-white text-lg">${t('Task Completed')} <span class="bg-white/30 text-white text-sm px-2 py-0.5 rounded-full ml-1">${completed.length}</span></h3>
-                    </div>
-                    <div class="p-4 space-y-3">${completed.map(p=>renderPersonCard(p,'done')).join('')}</div>
                 </div>` : ''}
 
                 ${allPeople.length === 0 ? `
@@ -4472,12 +4495,13 @@
             // ── Follow-up health (mirrors the This Week board) ──
             const _today = new Date(); _today.setHours(0,0,0,0);
             const _named = currentList.filter(p => p.name);
-            const fuCompleted = _named.filter(p => p.taskDone).length;
+            const _ws = wkStats(wkKeyFor(0), scope === 'both' ? 'all' : (state.activeTab === 'returning' ? 'returning' : 'friends'));
+            const fuCompleted = _ws.done;
             const fuActive = _named.filter(p => !p.taskDone);
             const fuOverdue = fuActive.filter(p => p.nextContactDate && parseLocalDate(p.nextContactDate) < _today).length;
             const fuNoDate = fuActive.filter(p => !p.nextContactDate).length;
             const fuTotalTasks = _named.filter(p => p.nextAction || p.nextContactDate || p.taskDone).length;
-            const fuCompletionRate = fuTotalTasks > 0 ? Math.round((fuCompleted / fuTotalTasks) * 100) : 0;
+            const fuCompletionRate = _ws.rate;
 
             setTimeout(() => {
                 // Chart 1 — Monthly Trend Line Chart
@@ -4617,6 +4641,7 @@
             return `
                 <div class="space-y-5">
                     ${imageSlot('kpi', { label: t2('Foto ki he Tapuleti KPI','Photo (top of KPI Dashboard)') })}
+                    ${weeklyKpiHTML(scope === 'both' ? 'all' : (state.activeTab === 'returning' ? 'returning' : 'friends'))}
                     <!-- Scope toggle: Friends / Returning / Both -->
                     <div class="seg" style="display:inline-flex;">
                         <button onclick="setActiveTab('friends')" aria-pressed="${scope!=='both' && state.activeTab==='friends'}">👤 ${t('Friends')}</button>
