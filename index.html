@@ -461,6 +461,12 @@
         .wk-orow.done{ background:#EEF8F1; } .wk-orow.miss{ background:#FDF3F4; }
         .wk-orow .d{ width:34px; text-align:center; font-size:10px; font-weight:800; text-transform:uppercase; color:var(--ss-muted); line-height:1.1; }
         .wk-orow .d b{ display:block; font-family:'Fraunces',Georgia,serif; font-size:16px; color:var(--ss-ink); }
+        .inv-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:8px; }
+        .inv-doc{ display:flex; align-items:center; gap:8px; padding:8px; border-radius:12px; background:var(--ss-surface-2); border:1px solid var(--ss-line-2); }
+        .inv-doc.on{ border-color:var(--ss-gold); background:var(--ss-gold-wash); }
+        .inv-main{ flex:1; min-width:0; display:flex; align-items:center; gap:10px; text-align:left; background:transparent; border:0; cursor:pointer; font-family:'Manrope',sans-serif; color:var(--ss-ink); }
+        .inv-main .e{ font-size:22px; } .inv-main b{ display:block; font-size:13.5px; line-height:1.25; } .inv-main small{ color:var(--ss-muted); font-size:11.5px; font-weight:700; }
+        .inv-doc a{ text-decoration:none; white-space:nowrap; }
         .wk-none{ font-size:12.5px; color:var(--ss-muted); font-style:italic; padding:4px 2px; }
         .wk-day .dh{ display:flex; justify-content:space-between; align-items:baseline; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--ss-muted); }
         .wk-day .dh b{ font-family:'Fraunces',Georgia,serif; font-size:17px; color:var(--ss-ink); letter-spacing:0; }
@@ -1217,7 +1223,7 @@
             wmlName: '',            // ward mission leader's name (signs reminders)
             leaderView: 'huddles',  // Leadership: 'huddles' | 'missionaries'
             weekView: 'list',       // This Week tab: 'list' | 'board'
-            challengeView: 'promise', // Challenges tab: 'promise' | 'bom' | 'checkin'
+            challengeView: 'library', // Invite tab: 'library' |: 'promise' | 'bom' | 'checkin'
             schemaVersion: 2
         };
 
@@ -1234,7 +1240,8 @@
         }
         // Use for background refreshes (Firebase) and date edits: waits until the field loses focus.
         function softRender() {
-            if (editingField()) { _pendingRender = true; return; }
+            const vid = document.querySelector('#app video');
+            if (editingField() || (vid && !vid.paused && !vid.ended)) { _pendingRender = true; return; }
             render();
         }
         document.addEventListener('focusout', () => {
@@ -2113,6 +2120,7 @@
         // Old tab names still work (buttons, shared links, the reading QR code) — they open the merged tab.
         const LEGACY_VIEWS = {
             actionboard: ['thisweek', { weekView:'board' }],
+            invite: ['challenges', { challengeView:'library' }],
             promise: ['challenges', { challengeView:'promise' }],
             bomchallenge: ['challenges', { challengeView:'bom' }],
             checkin: ['challenges', { challengeView:'checkin' }]
@@ -2125,7 +2133,7 @@
         }
         window.setViewMode = (mode) => { const hash = mode; state.viewMode = resolveView(mode); try { history.replaceState(null, '', '#' + hash); } catch(e){} render(); };
         window.setWeekView = (v) => { state.weekView = v; try { history.replaceState(null, '', '#' + (v === 'board' ? 'actionboard' : 'thisweek')); } catch(e){} render(); };
-        window.setChallengeView = (v) => { state.challengeView = v; try { history.replaceState(null, '', '#' + ({ promise:'promise', bom:'bom', checkin:'checkin' }[v])); } catch(e){} render(); };
+        window.setChallengeView = (v) => { state.challengeView = v; try { history.replaceState(null, '', '#' + ({ library:'invite', promise:'promise', bom:'bom', checkin:'checkin' }[v])); } catch(e){} render(); };
         // ES-module scope fix: inline on* handlers run in global scope, so expose these.
         window.state = state;
         window.render = render;
@@ -2646,7 +2654,7 @@
                                     ${tabChip('thisweek','2','📋', t('This Week'), renderWeekBadge())}
                                     ${tabChip('covenant','3','✨', t('Covenant Path'), covenantBadge())}
                                     ${tabChip('events','4','🎉', t('Calendar'))}
-                                    ${tabChip('challenges','5','🏁', t2('Ngaahi Pole','Challenges'), bomWeekBadge())}
+                                    ${tabChip('challenges','5','✉️', t2('Fakaafe','Invite'), bomWeekBadge())}
                                     ${tabChip('charts','6','📊', t('Dashboard'))}
                                 </div>
                             </div>
@@ -2687,11 +2695,60 @@
             </div>`;
         }
         // Tab 5 — Challenges (21-Day Promise · B.O.M. Hand-Out · Reading Check-in)
+        // ═════════ Invite tab — Love · Share · Invite library (the original Church articles + video, shown as-is) ═════════
+        const INVITE_DOCS = [
+            { g:'Everyone', gTo:'Kakai kotoa', items:[
+                { f:'love-share-invite', e:'💛', title:'Love, Share, and Invite — Simple Ways to Love, Share, and Invite', pages:3 },
+                { f:'children',     e:'🧒', title:'How Children Can Share the Gospel', pages:2 },
+                { f:'youth',        e:'🎯', title:'How Youth Can Share the Gospel', pages:2 },
+                { f:'young-adults', e:'💫', title:'How Young Adults Can Share the Gospel', pages:2 },
+                { f:'adults',       e:'🌸', title:'How Adults Can Share the Gospel', pages:2 },
+                { f:'families',     e:'🏠', title:'How Families Can Share the Gospel', pages:2 } ] },
+            { g:'Leaders', gTo:'Kau Taki', items:[
+                { f:'leaders',             e:'🧭', title:'Helping Spread the Gospel of Jesus Christ', pages:2 },
+                { f:'weekly-coordination', e:'🗓️', title:'Ideas for Weekly Missionary Coordination', pages:5 },
+                { f:'fifth-sunday',        e:'📖', title:'Fifth-Sunday Lesson Ideas', pages:6 },
+                { f:'new-and-returning',   e:'🤝', title:'Strengthening New and Returning Members', pages:1 } ] },
+            { g:'Sharing', gTo:'Vahevahe', items:[
+                { f:'activity-sharing',  e:'🔗', title:'Activity Sharing — Share Ward Activities and Sunday Services with Your Community', pages:4 },
+                { f:'church-resources',  e:'🧰', title:'Sharing Church Resources', pages:1 } ] }
+        ];
+        window.invOpen = f => { state.invDoc = state.invDoc === f ? '' : f; render(); if (state.invDoc) setTimeout(() => document.getElementById('invViewer')?.scrollIntoView({ behavior:'smooth', block:'start' }), 60); };
+        function renderInviteLibrary() {
+            const all = INVITE_DOCS.flatMap(g => g.items);
+            const cur = all.find(d => d.f === state.invDoc);
+            return `
+            <div class="wk-hero">
+                <div class="wk-l" style="color:var(--ss-gold-deep);">🎬 ${t2('Vitiō','Video')}</div>
+                <div style="font-family:'Fraunces',Georgia,serif;font-size:22px;font-weight:600;color:var(--ss-ink);margin-bottom:10px;">Love, Share, and Invite</div>
+                <video controls playsinline preload="metadata" style="width:100%;max-width:820px;border-radius:14px;background:#000;display:block;margin:0 auto;" src="resources/love-share-invite.mp4"></video>
+            </div>
+            <div class="wk-hero">
+                <div class="wk-l" style="color:var(--ss-gold-deep);">📚 ${t2('Ngaahi Tohi','Articles')}</div>
+                <div style="font-size:12.5px;color:var(--ss-muted);margin:3px 0 12px;">${t2('','The original articles from The Church of Jesus Christ of Latter-day Saints, shown exactly as published.')}</div>
+                ${INVITE_DOCS.map(g => `
+                <div class="wk-l" style="margin:12px 0 6px;">${t2(g.gTo, g.g)}</div>
+                <div class="inv-grid">${g.items.map(d => `
+                    <div class="inv-doc ${state.invDoc === d.f ? 'on' : ''}">
+                        <button type="button" class="inv-main" onclick="invOpen('${d.f}')"><span class="e">${d.e}</span><span><b>${esc(d.title)}</b><small>${d.pages} ${d.pages === 1 ? 'page' : 'pages'}</small></span></button>
+                        <a class="wk-btn sm" href="resources/${d.f}.pdf" target="_blank" rel="noopener">${t2('Fakaava','Open')} ↗</a>
+                    </div>`).join('')}</div>`).join('')}
+            </div>
+            ${cur ? `
+            <div class="wk-hero" id="invViewer">
+                <div class="flex items-center justify-between gap-3 flex-wrap" style="margin-bottom:10px;">
+                    <div style="font-family:'Fraunces',Georgia,serif;font-size:19px;font-weight:600;color:var(--ss-ink);">${cur.e} ${esc(cur.title)}</div>
+                    <div class="flex gap-2"><a class="wk-btn gold sm" href="resources/${cur.f}.pdf" target="_blank" rel="noopener">${t2('Fakaava kakato','Open full screen')} ↗</a><button class="wk-btn sm" onclick="invOpen('${cur.f}')">✕</button></div>
+                </div>
+                <iframe src="resources/${cur.f}.pdf#view=FitH" title="${esc(cur.title)}" style="width:100%;height:80vh;border:1px solid var(--ss-line);border-radius:12px;background:#fff;"></iframe>
+                <div style="font-size:12px;color:var(--ss-muted);margin-top:6px;">${t2('','On a phone, tap “Open full screen” to read every page.')}</div>
+            </div>` : ''}`;
+        }
         function renderChallenges() {
-            const v = ['promise','bom','checkin'].includes(state.challengeView) ? state.challengeView : 'promise';
+            const v = ['library','promise','bom','checkin'].includes(state.challengeView) ? state.challengeView : 'library';
             return `<div class="space-y-4">
-                ${subSeg([['promise','🙏 '+t('21-Day Promise')], ['bom','🚗 '+t2('Tufa Tohi Molomona','B.O.M. Hand-Out')+(bomWeekBadge()?' · '+bomWeekBadge():'')], ['checkin','🐢 '+t2('Lau Tohi','Reading Check-in')]], v, 'setChallengeView')}
-                ${v === 'bom' ? renderBomChallenge() : v === 'checkin' ? renderCheckin() : renderPromise()}
+                ${subSeg([['library','✉️ '+t2('ʻOfa · Vahevahe · Fakaafe','Love · Share · Invite')], ['promise','🙏 '+t('21-Day Promise')], ['bom','🚗 '+t2('Tufa Tohi Molomona','B.O.M. Hand-Out')+(bomWeekBadge()?' · '+bomWeekBadge():'')], ['checkin','🐢 '+t2('Lau Tohi','Reading Check-in')]], v, 'setChallengeView')}
+                ${v === 'library' ? renderInviteLibrary() : v === 'bom' ? renderBomChallenge() : v === 'checkin' ? renderCheckin() : renderPromise()}
             </div>`;
         }
 
@@ -6510,7 +6567,7 @@
         }
 
         // Deep-link routing: a shared link like …/#promise opens that tab.
-        const HASH_VIEWS = { leadership:'leadership', huddle:'leadership', tracker:'tracker', friends:'tracker', thisweek:'thisweek', actionboard:'actionboard', board:'actionboard', charts:'charts', kpi:'charts', dashboard:'charts', events:'events', calendar:'events', challenges:'challenges', promise:'promise', '21day':'promise', bom:'bomchallenge', bomchallenge:'bomchallenge', covenant:'covenant', covenantpath:'covenant', checkin:'checkin', readingcheckin:'checkin' };
+        const HASH_VIEWS = { leadership:'leadership', huddle:'leadership', tracker:'tracker', friends:'tracker', thisweek:'thisweek', actionboard:'actionboard', board:'actionboard', charts:'charts', kpi:'charts', dashboard:'charts', events:'events', calendar:'events', challenges:'challenges', invite:'invite', promise:'promise', '21day':'promise', bom:'bomchallenge', bomchallenge:'bomchallenge', covenant:'covenant', covenantpath:'covenant', checkin:'checkin', readingcheckin:'checkin' };
         function applyHashView(){
             const h = (location.hash || '').replace('#','').toLowerCase();
             if (HASH_VIEWS[h]) state.viewMode = resolveView(HASH_VIEWS[h]);
