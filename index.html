@@ -1783,6 +1783,29 @@
             render();
         };
 
+        // Add someone straight onto the Covenant Path (already baptized — this year or earlier)
+        window.cpToggleAdd = () => { state.cpAddOpen = !state.cpAddOpen; render(); if (state.cpAddOpen) setTimeout(() => document.getElementById('cpAddName')?.focus(), 40); };
+        window.cpAddPerson = () => {
+            const name = (document.getElementById('cpAddName')?.value || '').trim();
+            if (!name) { showSaveMessage(t2('Fakahū ha hingoa','Please enter a name')); document.getElementById('cpAddName')?.focus(); return; }
+            const date = document.getElementById('cpAddDate')?.value || '';
+            if (date && (!validISO(date) || date > todayISO())) { showSaveMessage(t2('Vakaiʻi ʻa e ʻaho papitaiso','Check the baptism date — it can’t be in the future')); return; }
+            const type = document.getElementById('cpAddType')?.value || '';
+            const org = document.getElementById('cpAddOrg')?.value || '';
+            if (state.covenantPath.some(p => (p.name || '').trim().toLowerCase() === name.toLowerCase()) && !confirm(t2(`ʻOku ʻosi ʻi ai ʻa ${name}. Tānaki pē?`, `${name} is already on the Covenant Path. Add again anyway?`))) return;
+            state.covenantPath = [...state.covenantPath, {
+                id: Date.now(), name, assignment: org, type,
+                oay: { gender: '', birthYear: '', steps: { attendingPrimary: false } },
+                ordinances: { aaronicPriesthood: false, templeBaptisms: false, patriarchalBlessing: false, melchizedekPriesthood: false, endowment: false },
+                femaleOrdinances: { templeBaptisms: false, patriarchalBlessing: false, endowment: false },
+                selfRelianceCompleted: Object.fromEntries(CHURCH_RESOURCES.map(r => [r.key, false])),
+                lcn: { ministeringFriend: false, classCompanion: false, calling: false, myCovenantPath: false },
+                notes: '', baptismDate: date || todayISO(), progress: {}
+            }];
+            saveToFirebase(); render();
+            showSaveMessage('✓ ' + name + t2(' kuo tānaki ki he Hala ʻo e Fuakavá',' added to the Covenant Path'));
+            setTimeout(() => document.getElementById('cpAddName')?.focus(), 40);
+        };
         window.removeFromCovenantPath = (personId) => {
             if (confirm(t('Remove this person from the Covenant Path?'))) {
                 state.covenantPath = state.covenantPath.filter(p => p.id !== personId);
@@ -5363,6 +5386,26 @@
             return `
                 <div class="space-y-5">
                 ${imageSlot('covenant', { label: t2('Foto ki he Hala Fuakavá','Photo (top of Covenant Path)') })}
+                <div class="wk-hero">
+                    <div class="flex items-center justify-between gap-3 flex-wrap">
+                        <div>
+                            <div class="wk-l" style="color:var(--ss-gold-deep);">➕ ${t2('Tānaki ha mēmipa kuo papitaiso','Add a baptized member')}</div>
+                            <div style="font-size:12.5px;color:var(--ss-muted);margin-top:3px;">${t2('','For anyone already baptized — recently or in a past year — whose progress you want to track.')}</div>
+                        </div>
+                        <button class="wk-btn ${state.cpAddOpen ? '' : 'gold'}" onclick="cpToggleAdd()">${state.cpAddOpen ? '✕ ' + t('Close') : '➕ ' + t2('Tānaki','Add person')}</button>
+                    </div>
+                    ${state.cpAddOpen ? `
+                    <div class="grid md:grid-cols-2 gap-3" style="margin-top:14px;">
+                        <div><div class="wk-ml">${t('Name')} <span style="color:var(--ss-red);">*</span></div><input id="cpAddName" class="ss-input" placeholder="${t2('Hingoa kakato','Full name')}" onkeydown="if(event.key==='Enter')cpAddPerson()" /></div>
+                        <div><div class="wk-ml">📅 ${t2('ʻAho papitaiso','Baptism date')}</div><input id="cpAddDate" type="date" class="ss-input" max="${todayISO()}" /></div>
+                        <div><div class="wk-ml">${t2('Faʻahinga','Type')}</div><select id="cpAddType" class="ss-input"><option value="">${t2('Fili…','Choose…')}</option><option value="Male">👨 ${t2('Tangata','Male')}</option><option value="Female">👩 ${t2('Fefine','Female')}</option><option value="OAY">🎯 OAY</option></select></div>
+                        <div><div class="wk-ml">${t2('Kautaha','Organization')}</div><select id="cpAddOrg" class="ss-input">${orgOptionsHTML('')}</select></div>
+                    </div>
+                    <div class="flex items-center gap-3 flex-wrap" style="margin-top:12px;">
+                        <button class="wk-btn gold" onclick="cpAddPerson()">✓ ${t2('Tānaki ki he Hala ʻo e Fuakavá','Add to Covenant Path')}</button>
+                        <span style="font-size:12px;color:var(--ss-muted);">${t2('','The form stays open so you can add the next person. Type and date can be changed later on their card.')}</span>
+                    </div>` : ''}
+                </div>
                 <div class="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border border-purple-200">
                     <!-- Header -->
                     <div class="bg-gradient-to-r from-purple-700 to-indigo-700 px-5 py-4 flex items-center justify-between">
