@@ -405,6 +405,41 @@
             html, body { background: #fff !important; }
             .pn-canvas { display: none !important; }
         }
+        /* ── Weekly Plan (Friends & Returning) ── */
+        .wk-legend{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:12px; color:var(--ss-muted); font-weight:700; }
+        .wk-legend .k{ display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; border:1px solid var(--ss-line-2); }
+        .wk-card{ background:var(--ss-surface); border:1px solid var(--ss-line-2); border-left:5px solid var(--ss-line-2); border-radius:16px; padding:14px; box-shadow:0 10px 30px rgba(0,0,0,.14); }
+        .wk-card.s-plan{ border-left-color:#5B8DEF; } .wk-card.s-done{ border-left-color:#22c55e; } .wk-card.s-miss{ border-left-color:#ef4444; }
+        .wk-head{ display:grid; grid-template-columns:minmax(0,1fr); gap:12px; }
+        @media(min-width:900px){ .wk-head{ grid-template-columns:minmax(0,1fr) minmax(0,1.25fr); } }
+        .wk-ord{ border-radius:12px; padding:10px 12px; background:var(--ss-violet-wash); border:1px solid var(--ss-line-2); border-top:3px solid var(--ss-violet); }
+        .wk-ord .lab{ font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--ss-violet); }
+        .wk-ord select, .wk-ord textarea, .wk-foot input, .wk-foot select{ width:100%; box-sizing:border-box; background:var(--ss-surface-2); border:1px solid var(--ss-line-2); color:var(--ss-ink); border-radius:9px; padding:7px 9px; font-size:13px; font-family:'Manrope',sans-serif; }
+        .wk-ord textarea{ resize:vertical; min-height:38px; margin-top:6px; }
+        .wk-ord .cue{ font-size:12px; color:var(--ss-ink-soft); margin-top:6px; line-height:1.35; }
+        .wk-lanes{ display:grid; grid-template-columns:1fr; gap:10px; margin-top:12px; }
+        @media(min-width:640px){ .wk-lanes{ grid-template-columns:1fr 1fr; } }
+        @media(min-width:1200px){ .wk-lanes{ grid-template-columns:repeat(4,1fr); } }
+        .wk-lane{ border-radius:12px; padding:9px; border:1px solid var(--ss-line-2); }
+        .wk-lane .lh{ font-size:13px; font-weight:800; color:var(--ss-ink); margin-bottom:7px; display:flex; justify-content:space-between; align-items:center; }
+        .wk-lane .lh small{ font-size:10.5px; color:var(--ss-muted); font-weight:700; }
+        .wk-pills{ display:flex; flex-wrap:wrap; gap:5px; }
+        .wk-pill{ display:inline-flex; align-items:center; gap:4px; max-width:100%; font-size:11.5px; font-weight:700; line-height:1.15; padding:6px 9px; border-radius:999px; cursor:pointer;
+            border:1px solid var(--ss-line-2); background:transparent; color:var(--ss-muted); font-family:'Manrope',sans-serif; transition:.12s; -webkit-tap-highlight-color:transparent; }
+        .wk-pill:hover{ border-color:var(--ss-gold); color:var(--ss-ink); }
+        .wk-pill .st{ font-size:11px; }
+        .wk-pill.plan{ background:rgba(91,141,239,.18); border-color:#5B8DEF; color:var(--ss-ink); }
+        .wk-pill.done{ background:#22c55e; border-color:#22c55e; color:#06240f; }
+        .wk-pill.miss{ background:rgba(239,68,68,.16); border-color:#ef4444; color:var(--ss-ink); text-decoration:line-through; text-decoration-color:rgba(239,68,68,.7); }
+        .wk-empty{ font-size:11.5px; color:var(--ss-muted); font-style:italic; }
+        .wk-foot{ display:grid; grid-template-columns:1fr; gap:8px; margin-top:12px; padding-top:12px; border-top:1px dashed var(--ss-line-2); }
+        @media(min-width:760px){ .wk-foot{ grid-template-columns:auto minmax(0,1fr) minmax(0,1.4fr) auto; align-items:end; } }
+        .wk-foot .fl{ font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--ss-muted); margin-bottom:4px; }
+        .wk-stat{ display:inline-flex; gap:6px; flex-wrap:wrap; font-size:11px; font-weight:800; }
+        .wk-stat span{ padding:3px 8px; border-radius:999px; }
+        .wk-mini{ font-size:12px; font-weight:800; padding:7px 11px; border-radius:10px; cursor:pointer; border:1px solid var(--ss-line-2); background:var(--ss-surface-2); color:var(--ss-ink-soft); font-family:'Manrope',sans-serif; }
+        .wk-mini:hover{ border-color:var(--ss-gold); color:var(--ss-ink); }
+        .wk-mini.gold{ background:linear-gradient(135deg,var(--ss-gold),var(--ss-gold-deep)); color:#1a1206; border-color:transparent; }
     </style>
     <script>
         /* Apply saved theme before paint to avoid a flash. Dark is the default. */
@@ -1098,7 +1133,8 @@
             eventsView: 'calendar',
             darkMode: false,
             trackerMonth: new Date().getMonth(),
-            trackerView: 'quarter',
+            trackerView: 'week',
+            wkOffset: 0,
             checkins: {},
             bomFinishDate: '',
             huddles: [],
@@ -1535,6 +1571,7 @@
             else if (kind === 'promise') promiseUpdatePerson(id, tab, iso);
             else if (kind === 'hud') { hudSet('date', iso); render(); }
             else if (kind === 'hudf') hudFocus(parseInt(id), 'date', iso);
+            else if (kind === 'wkfu') wkSet(id, tab, target, 'followUp', iso);
             else if (kind === 'field') {
                 const inp = document.getElementById(target); if (inp) inp.value = iso;
                 if (btn) { btn.dataset.value = iso; btn.classList.toggle('empty', !iso);
@@ -2643,6 +2680,24 @@
             // Which months to show
             const visibleMonths = state.trackerView === 'year' ? MONTHS : quarterMonths;
 
+            if (state.trackerView === 'week') {
+                return `
+                ${orgStandingsHTML()}
+                <div class="flex items-center gap-2 flex-wrap mb-4">
+                    <div class="seg">
+                        <button onclick="setActiveTab('friends')" aria-pressed="${state.activeTab === 'friends'}">👤 ${t('Friends')} <span class="cnt">${state.friends.filter(p=>p.name).length}</span></button>
+                        <button onclick="setActiveTab('returning')" aria-pressed="${state.activeTab === 'returning'}">💙 ${t('Returning')} <span class="cnt">${state.returning.filter(p=>p.name).length}</span></button>
+                    </div>
+                    <div class="seg">
+                        <button onclick="setTrackerView('week')" aria-pressed="true">🗓️ ${t2('Fakauike','Weekly')}</button>
+                        <button onclick="setTrackerView('quarter')" aria-pressed="false">📅 ${t('Quarterly')}</button>
+                        <button onclick="setTrackerView('year')" aria-pressed="false">📆 ${t('Full Year')}</button>
+                    </div>
+                </div>
+                ${renderWeeklyPlan(currentList)}
+                ${ideaBankHTML()}`;
+            }
+
             return `
                 ${orgStandingsHTML()}
                 ${imageSlot('tracker_top', { label: t2('Foto ki ʻolunga','Photo (top of tracker)') })}
@@ -2658,6 +2713,7 @@
                                     <button onclick="setActiveTab('returning')" aria-pressed="${state.activeTab === 'returning'}">💙 ${t('Returning')} <span class="cnt">${state.returning.length}</span></button>
                                 </div>
                                 <div class="seg">
+                                    <button onclick="setTrackerView('week')" aria-pressed="${state.trackerView === 'week'}">🗓️ ${t2('Fakauike','Weekly')}</button>
                                     <button onclick="setTrackerView('quarter')" aria-pressed="${state.trackerView === 'quarter'}">📅 ${t('Quarterly')}</button>
                                     <button onclick="setTrackerView('year')" aria-pressed="${state.trackerView === 'year'}">📆 ${t('Full Year')}</button>
                                 </div>
@@ -2853,6 +2909,327 @@
             `;
         }
 
+        // ═════════ Weekly Plan — Love · Share · Invite · Progress, week by week ═════════
+        // Each person keeps person.weekly['YYYY-MM-DD' (Sunday)] = { codes:{CODE:'plan'|'done'|'miss'}, synced:{CODE:'NOV'}, followUp, poc, note }
+        // plus person.nextOrd / person.ordFocus. Marking something Done also logs it in the monthly tracker (and un-logs it if changed back).
+        const WK_NEXT = { '':'plan', plan:'done', done:'miss', miss:'' };
+        const WK_STATUS = {
+            plan: { en:'Planned',   to:'Palani',     icon:'🔵', color:'#5B8DEF' },
+            done: { en:'Completed', to:'Kakato',     icon:'✅', color:'#22c55e' },
+            miss: { en:'Not done',  to:'ʻIkai fai',  icon:'✖️', color:'#ef4444' }
+        };
+        const WK_SHORT = { MV:'Visit', TXT:'Text / call', SRV:'Serve', PRY:'Pray for', WEL:'Welcome at church', CMF:'Comfort',
+            SSC:'Scripture / video', SWA:'Activity link', SBM:'Book of Mormon', STK:'Gospel talk', SRC:'Church resource',
+            IAC:'Church', IRB:'Read BoM', IACA:'Activity', IFHE:'FHE / dinner', ITM:'Missionaries teach', ITB:'Baptism', IFH:'Family history', ISP:'Service project', DEC:'Declined',
+            AC:'Came to church', RBOM:'Reading BoM', ACA:'Came to activity', APR:'Primary / youth', AFHE:'Came to FHE', TML:'Taking lessons', MPL:'Member at lesson',
+            BD:'Baptismal date', B:'Baptized', C:'Confirmed', FHS:'Family history', ASP:'Service project', ACTIVE:'Active member' };
+        const wkLabel = code => currentLang === 'to' ? indName(IND[code]) : (WK_SHORT[code] || indName(IND[code]));
+        // The doctrine that prepares someone for each ordinance — a starting point; each person's focus is editable.
+        const ORD_DOCTRINE = {
+            'Baptism & confirmation': 'Faith in Jesus Christ, repentance, baptism, and the gift of the Holy Ghost — Preach My Gospel lessons 1–3 (Restoration · Plan of Salvation · Gospel of Jesus Christ).',
+            'Return to church / sacrament': 'The sacrament renews the baptismal covenant — the Atonement of Jesus Christ, belonging, and keeping the Sabbath day holy.',
+            'Aaronic Priesthood': 'Restoration of the priesthood (D&C 13) and the duties of the Aaronic Priesthood (D&C 20:46–60).',
+            'Temple baptisms': 'Redeeming the dead (D&C 128) — finding family names and preparing for a limited-use recommend.',
+            'Limited-use temple recommend': 'Proxy baptisms for ancestors (D&C 128) and living worthy to enter the temple.',
+            'Patriarchal blessing': 'Personal revelation, lineage in the house of Israel, and the Abrahamic covenant.',
+            'Melchizedek Priesthood': 'The oath and covenant of the priesthood (D&C 84:33–44).',
+            'Temple endowment': 'Temple covenants and the blessings of the endowment — temple preparation class and recommend interview.',
+            'Temple sealing': 'Eternal families — D&C 131:1–4, 132:19, and The Family: A Proclamation to the World.',
+            'Temple recommend': 'The recommend interview: testimony of the Savior, law of chastity, Word of Wisdom, tithing, sustaining leaders.',
+            'Attending Primary with their age group': 'Belonging — friends in Primary and Come, Follow Me at home.',
+            'Temple & Priesthood Preparation meeting': 'The blessings of the temple and the priesthood for children and parents.',
+            'Joined the deacons quorum': 'Priesthood duties (D&C 20, 84) and belonging in the quorum.',
+            'Ordained a deacon': 'Priesthood duties (D&C 20, 84) — passing the sacrament, ministering.',
+            'Ordained a teacher': 'Duties of a teacher (D&C 20:53–59) — watching over and strengthening the Church.',
+            'Ordained a priest': 'Duties of a priest (D&C 20:46–52) — baptizing and blessing the sacrament.',
+            'Joined a Young Women class': 'The Young Women theme, Children and Youth goals, and belonging.'
+        };
+        const defaultOrd = tab => tab === 'returning' ? 'Return to church / sacrament' : 'Baptism & confirmation';
+        const personOrd = (p, tab) => p.nextOrd || defaultOrd(tab);
+
+        function wkKeyFor(offset) {
+            const d = new Date(); d.setHours(0,0,0,0);
+            d.setDate(d.getDate() - d.getDay() + 7 * (offset || 0));   // weeks run Sunday → Saturday
+            return ymd(d);
+        }
+        function wkRange(key) {
+            const a = parseLocalDate(key), b = new Date(a); b.setDate(a.getDate() + 6);
+            const f = d => d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+            return `${f(a)} – ${f(b)}`;
+        }
+        // Month an item counts toward in the monthly tracker: today's month for the current week, else the week's Sunday
+        function wkMonth(key) {
+            const d = key === wkKeyFor(0) ? new Date() : parseLocalDate(key);
+            return MONTHS[d.getMonth()];
+        }
+        const wkData = (p, key) => (p.weekly && p.weekly[key]) || {};
+        function wkCounts(p, key) {
+            const c = { plan:0, done:0, miss:0 };
+            Object.values(wkData(p, key).codes || {}).forEach(v => { if (c[v] !== undefined) c[v]++; });
+            return c;
+        }
+        function wkCardState(c) {
+            if (c.miss) return 'miss';
+            if (c.plan) return 'plan';
+            if (c.done) return 'done';
+            return '';
+        }
+        function wkPatch(id, tab, key, fn) {
+            const idNum = parseInt(id), list = tab === 'returning' ? 'returning' : 'friends';
+            state[list] = state[list].map(p => {
+                if (p.id !== idNum) return p;
+                const weekly = { ...(p.weekly || {}) };
+                const cur = { ...(weekly[key] || {}) };
+                const res = fn(cur, p) || {};
+                weekly[key] = res.week || cur;
+                return { ...(res.person || p), weekly };
+            });
+        }
+
+        // Tap a pill: none → planned → completed → not done → none
+        window.wkCycle = (id, tab, key, code) => {
+            const idNum = parseInt(id), list = tab === 'returning' ? 'returning' : 'friends';
+            const person = state[list].find(p => p.id === idNum); if (!person) return;
+            const cur = (wkData(person, key).codes || {})[code] || '';
+            const nxt = WK_NEXT[cur];
+
+            // Baptized / Active member move the person to the Covenant Path, same as the monthly tracker
+            if (nxt === 'done' && (code === 'B' || code === 'ACTIVE')) {
+                const msg = code === 'B'
+                    ? t2(`Fakaʻilongaʻi ʻa ${person.name} kuo papitaiso pea hiki ki he Hala ʻo e Fuakavá?`, `Mark ${person.name || 'this person'} as baptized and move them to the Covenant Path?`)
+                    : t2(`Hiki ʻa ${person.name} ki he Hala ʻo e Fuakavá?`, `Mark ${person.name || 'this person'} as an active member and move them to the Covenant Path?`);
+                if (!confirm(msg)) return;
+                moveToCovenantPath(person);
+                state[list] = state[list].filter(p => p.id !== idNum);
+                saveToFirebase(); render();
+                return;
+            }
+
+            const month = wkMonth(key);
+            const isNow = key === wkKeyFor(0);
+            wkPatch(id, tab, key, (w, p) => {
+                const codes = { ...(w.codes || {}) }, synced = { ...(w.synced || {}) };
+                const progress = { ...(p.progress || {}) };
+                if (nxt) codes[code] = nxt; else delete codes[code];
+                let person = p;
+                if (nxt === 'done') {
+                    const md = progress[month] || [];
+                    if (!md.includes(code)) { progress[month] = [...md, code]; synced[code] = month; }
+                    person = laneSideEffects({ ...p, progress }, code, true);
+                    if (isNow && laneOf(code) !== 'progress') person = { ...person, lastContactDate: todayISO() };
+                } else if (cur === 'done' && synced[code]) {
+                    const m = synced[code];
+                    progress[m] = (progress[m] || []).filter(c => c !== code);
+                    delete synced[code];
+                    person = { ...p, progress };
+                }
+                return { week: { ...w, codes, synced }, person };
+            });
+            saveToFirebase(); render();
+            if (nxt === 'done' && code === 'BD') { const pp = state[list].find(p => p.id === idNum); if (pp) announceBaptismalDate(pp); }
+        };
+
+        // Follow-up date / point of contact / note for the week. The current week's follow-up also feeds This Week + badges.
+        window.wkSet = (id, tab, key, field, val) => {
+            if (field === 'followUp' && !validISO(val)) return;
+            wkPatch(id, tab, key, (w, p) => {
+                let person = p;
+                if (field === 'followUp' && key >= wkKeyFor(0)) person = { ...p, nextContactDate: val, ...(val ? { taskDone:false, taskDoneDate:'' } : {}) };
+                if (field === 'poc' && key >= wkKeyFor(0)) person = { ...p, poc: val };
+                return { week: { ...w, [field]: val }, person };
+            });
+            saveToFirebase();
+            if (field === 'followUp') { render(); if (val) showSaveMessage('📅 ' + t2('Muimui: ','Follow-up: ') + fmtNice(val)); }
+        };
+        window.wkSetPerson = (id, tab, field, val) => {
+            updatePerson(id, tab, { [field]: val });
+            saveToFirebase();
+            if (field === 'nextOrd') render();
+        };
+        window.wkNav = (d) => { state.wkOffset = d === 0 ? 0 : (state.wkOffset || 0) + d; render(); };
+        window.wkToggleAll = () => { state.wkCompact = !state.wkCompact; render(); };
+
+        // Bring last week's unfinished items (planned / not done) forward as planned
+        window.wkCarry = () => {
+            const key = wkKeyFor(state.wkOffset || 0);
+            const prev = ymd((() => { const d = parseLocalDate(key); d.setDate(d.getDate() - 7); return d; })());
+            const tab = state.activeTab === 'returning' ? 'returning' : 'friends';
+            let n = 0;
+            state[tab].filter(p => p.name).forEach(p => {
+                const last = wkData(p, prev);
+                const todo = Object.entries(last.codes || {}).filter(([, v]) => v === 'plan' || v === 'miss').map(([c]) => c);
+                if (!todo.length && !last.poc) return;
+                wkPatch(p.id, tab, key, w => {
+                    const codes = { ...(w.codes || {}) };
+                    todo.forEach(c => { if (!codes[c]) { codes[c] = 'plan'; n++; } });
+                    return { week: { ...w, codes, poc: w.poc || last.poc || '' } };
+                });
+            });
+            saveToFirebase(); render();
+            showSaveMessage(n ? `↪ ${n} ` + t2('kuo ʻave mai mei he uike kuo ʻosí','unfinished items carried from last week') : t2('Ikai ha meʻa ke ʻave mai','Nothing unfinished last week'));
+        };
+
+        window.wkShare = () => {
+            const key = wkKeyFor(state.wkOffset || 0);
+            const tab = state.activeTab === 'returning' ? 'returning' : 'friends';
+            const lines = [`🗓️ ${tab === 'returning' ? 'Returning' : 'Friends'} — Weekly Plan (${wkRange(key)})`, 'Riverton 24th Tongan Ward', ''];
+            state[tab].filter(p => p.name).forEach(p => {
+                const w = wkData(p, key), codes = w.codes || {};
+                const by = s => Object.keys(codes).filter(c => codes[c] === s).map(c => WK_SHORT[c] || c);
+                const plan = by('plan'), done = by('done'), miss = by('miss');
+                if (!plan.length && !done.length && !miss.length && !w.followUp && !w.poc) return;
+                lines.push(`• ${p.name} — next ordinance: ${personOrd(p, tab)}`);
+                if (w.poc || w.followUp) lines.push(`   👤 ${w.poc || '—'}${w.followUp ? ' · follow up ' + fmtNice(w.followUp) : ''}`);
+                if (plan.length) lines.push(`   🔵 Planned: ${plan.join(', ')}`);
+                if (done.length) lines.push(`   ✅ Done: ${done.join(', ')}`);
+                if (miss.length) lines.push(`   ✖️ Not done: ${miss.join(', ')}`);
+            });
+            if (lines.length === 3) lines.push('Nothing planned yet this week.');
+            const text = lines.join('\n');
+            if (navigator.share) navigator.share({ title: 'Weekly Plan', text }).catch(() => {});
+            else navigator.clipboard.writeText(text).then(() => showSaveMessage('✓ ' + t2('Kuo kopi','Weekly plan copied')));
+        };
+
+        function wkPocOptions() {
+            const names = [...new Set([
+                ...(state.wardMissionaries || []).map(m => m.name).filter(Boolean),
+                state.wmlName, ...ORG_VALUES, 'Full-time missionaries'
+            ].filter(Boolean))];
+            return `<datalist id="wkPocList">${names.map(n => `<option value="${esc(n)}"></option>`).join('')}</datalist>`;
+        }
+
+        function renderWeeklyPlan(currentList) {
+            const tab = state.activeTab === 'returning' ? 'returning' : 'friends';
+            const off = state.wkOffset || 0;
+            const key = wkKeyFor(off);
+            const people = currentList.filter(p => p.name && p.name.trim());
+            const tot = { plan:0, done:0, miss:0 };
+            let noPlan = 0;
+            people.forEach(p => { const c = wkCounts(p, key); tot.plan += c.plan; tot.done += c.done; tot.miss += c.miss; if (!c.plan && !c.done && !c.miss) noPlan++; });
+            const closed = tot.done + tot.miss, all = closed + tot.plan;
+            const pct = all ? Math.round(tot.done / all * 100) : 0;
+            const compact = !!state.wkCompact;
+            const ordOpts = sel => [...NEXT_ORDS, ...(sel && !NEXT_ORDS.includes(sel) ? [sel] : [])].map(o => `<option value="${esc(o)}" ${o===sel?'selected':''}>${esc(o)}</option>`).join('');
+            const lanesFor = LANES;
+            const weekTitle = off === 0 ? t2('Uike ni','This week') : off === 1 ? t2('Uike kahaʻu','Next week') : off === -1 ? t2('Uike kuo ʻosi','Last week') : '';
+
+            const card = p => {
+                const w = wkData(p, key), codes = w.codes || {};
+                const c = wkCounts(p, key);
+                const ord = personOrd(p, tab);
+                const followUp = w.followUp || (off === 0 ? (p.nextContactDate || '') : '');
+                const poc = w.poc !== undefined ? w.poc : (off >= 0 ? (p.poc || '') : '');
+                return `
+                <div class="wk-card ${c.miss || c.plan || c.done ? 's-' + wkCardState(c) : ''}">
+                    <div class="wk-head">
+                        <div class="flex items-start gap-3 min-w-0">
+                            <span class="text-3xl flex-shrink-0">${p.emoji || (tab === 'friends' ? '👤' : '💙')}</span>
+                            <div class="min-w-0 flex-1">
+                                <div style="font-family:'Fraunces',Georgia,serif;font-size:20px;font-weight:600;color:var(--ss-ink);line-height:1.15;">${esc(p.name)}</div>
+                                <div class="flex items-center gap-2 mt-1.5 flex-wrap">
+                                    ${p.assignedTo ? `<span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background:var(--ss-gold-wash);color:var(--ss-gold-deep);">${orgShort(p.assignedTo)}</span>` : `<span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background:var(--ss-red-wash);color:var(--ss-red);">⚠️ ${t2('ʻIkai vahe','Unassigned')}</span>`}
+                                    ${p.category ? `<span class="text-xs font-bold" style="color:var(--ss-muted);">${p.category}</span>` : ''}
+                                    ${p.keepLoving ? `<span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background:rgba(224,143,176,.18);color:#E08FB0;">💛 ${t2('Hokohoko ʻOfa','Keep loving')}</span>` : ''}
+                                </div>
+                                <div class="wk-stat mt-2">
+                                    ${c.plan ? `<span style="background:rgba(91,141,239,.18);color:#8fb0f5;">🔵 ${c.plan} ${t2('palani','planned')}</span>` : ''}
+                                    ${c.done ? `<span style="background:rgba(34,197,94,.18);color:#4ade80;">✅ ${c.done} ${t2('kakato','done')}</span>` : ''}
+                                    ${c.miss ? `<span style="background:rgba(239,68,68,.16);color:#f87171;">✖️ ${c.miss} ${t2('ʻikai fai','not done')}</span>` : ''}
+                                    ${!c.plan && !c.done && !c.miss ? `<span style="background:var(--ss-surface-2);color:var(--ss-muted);">${t2('ʻIkai ha palani','Nothing planned yet')}</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="wk-ord">
+                            <div class="lab">⛪ ${t2('Ouau Hoko','Next Ordinance')}</div>
+                            <select style="margin-top:6px;font-weight:700;" onchange="wkSetPerson('${p.id}','${tab}','nextOrd',this.value)">${ordOpts(ord)}</select>
+                            <div class="cue">📖 ${esc(ORD_DOCTRINE[ord] || t2('Akoʻi ʻa e tokāteline ʻoku teuteuʻi ai kinautolu ki he fuakava ko ʻeni.','Teach the doctrine that prepares them for this covenant.'))}</div>
+                            <textarea rows="1" placeholder="🎯 ${t2('Tokāteline ke tau tokangataha ki ai…','Our doctrine focus for them (scripture, lesson, talk)…')}" onchange="wkSetPerson('${p.id}','${tab}','ordFocus',this.value)">${esc(p.ordFocus || '')}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="wk-lanes">
+                        ${lanesFor.map(l => {
+                            const laneCodesList = INDICATORS.filter(i => i.lane === l.k).map(i => i.code);
+                            const shown = compact ? laneCodesList.filter(cd => codes[cd]) : laneCodesList;
+                            const n = laneCodesList.filter(cd => codes[cd]).length;
+                            return `<div class="wk-lane" style="background:${l.wash};border-top:3px solid ${l.color};">
+                                <div class="lh"><span>${l.emoji} ${t2(l.to,l.en)}</span>${n ? `<small>${n}</small>` : ''}</div>
+                                <div class="wk-pills">
+                                    ${shown.length ? shown.map(cd => {
+                                        const s = codes[cd] || '';
+                                        const st = WK_STATUS[s];
+                                        return `<button type="button" class="wk-pill ${s}" title="${esc(indName(IND[cd]))} (${cd})${st ? ' — ' + t2(st.to, st.en) : ''}" onclick="wkCycle('${p.id}','${tab}','${key}','${cd}')">${st ? `<span class="st">${st.icon}</span>` : `<span>${IND[cd].emoji}</span>`}<span>${esc(wkLabel(cd))}</span></button>`;
+                                    }).join('') : `<span class="wk-empty">${t2('ʻIkai ha meʻa','—')}</span>`}
+                                </div>
+                            </div>`;
+                        }).join('')}
+                    </div>
+
+                    <div class="wk-foot">
+                        <div>
+                            <div class="fl">📅 ${t2('ʻAho muimui','Follow-up date')}</div>
+                            ${calBtnHTML({ kind:'wkfu', id:p.id, tab, target:key, value:followUp, placeholder:t2('Fili ʻaho','Pick a date') })}
+                        </div>
+                        <div>
+                            <div class="fl">👤 ${t2('Tokotaha fetuʻutaki','Point of contact')}</div>
+                            <input type="text" list="wkPocList" value="${esc(poc)}" placeholder="${t2('Ko hai te ne muimui?','Who follows up?')}" onchange="wkSet('${p.id}','${tab}','${key}','poc',this.value)" />
+                        </div>
+                        <div>
+                            <div class="fl">🗒️ ${t2('Fakamatala','Note for this week')}</div>
+                            <input type="text" value="${esc(w.note || '')}" placeholder="${t2('Ko e hā ʻa e palani?','What is the plan / what happened?')}" onchange="wkSet('${p.id}','${tab}','${key}','note',this.value)" />
+                        </div>
+                        <div class="flex gap-1.5">
+                            <button class="wk-mini" title="${t2('Lēkooti fetuʻutaki','Log contact today')}" onclick="markContacted_tab('${p.id}','${tab}')">✓ ${t2('Fetuʻutaki','Contacted')}</button>
+                        </div>
+                    </div>
+                </div>`;
+            };
+
+            return `
+            <div class="space-y-4">
+                <div class="rounded-2xl p-4 md:p-5" style="background:var(--ss-surface);border:1px solid var(--ss-line);box-shadow:0 14px 40px rgba(0,0,0,.18);">
+                    <div class="flex items-center justify-between gap-3 flex-wrap">
+                        <div>
+                            <div style="font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--ss-gold);">🗓️ ${t2('Palani Fakauike','Weekly Plan')} · ${tab === 'returning' ? t('Returning') : t('Friends')}</div>
+                            <div style="font-family:'Fraunces',Georgia,serif;font-size:24px;font-weight:600;color:var(--ss-ink);">${wkRange(key)} ${weekTitle ? `<span style="font-size:14px;color:var(--ss-muted);font-family:Manrope;font-weight:700;">· ${weekTitle}</span>` : ''}</div>
+                        </div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <button class="wk-mini" onclick="wkNav(-1)">◀ ${t2('Kimuʻa','Prev')}</button>
+                            ${off !== 0 ? `<button class="wk-mini gold" onclick="wkNav(0)">${t2('Uike ni','This week')}</button>` : ''}
+                            <button class="wk-mini" onclick="wkNav(1)">${t2('Hoko','Next')} ▶</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mt-4">
+                        ${[[tot.plan,'#5B8DEF',t2('Palani','Planned')],[tot.done,'#22c55e',t2('Kakato','Completed')],[tot.miss,'#ef4444',t2('ʻIkai fai','Not done')],[pct+'%','var(--ss-gold)',t2('Kakato %','Follow-through')],[noPlan,'var(--ss-muted)',t2('ʻIkai palani','No plan yet')]].map(([v,col,lab]) =>
+                            `<div class="rounded-xl p-3 text-center" style="background:var(--ss-surface-2);border:1px solid var(--ss-line-2);border-top:3px solid ${col};"><div class="text-2xl font-black" style="color:${col};">${v}</div><div class="text-[11px] font-bold uppercase tracking-wide" style="color:var(--ss-muted);">${lab}</div></div>`).join('')}
+                    </div>
+                    <div class="flex items-center justify-between gap-3 flex-wrap mt-4">
+                        <div class="wk-legend">
+                            <span>${t2('Lomiʻi ke liliu:','Tap to cycle:')}</span>
+                            <span class="k">◯ ${t2('ʻIkai','None')}</span>
+                            <span class="k" style="border-color:#5B8DEF;background:rgba(91,141,239,.18);color:var(--ss-ink);">🔵 ${t2('Palani','Planned')}</span>
+                            <span class="k" style="border-color:#22c55e;background:#22c55e;color:#06240f;">✅ ${t2('Kakato','Completed')}</span>
+                            <span class="k" style="border-color:#ef4444;background:rgba(239,68,68,.16);color:var(--ss-ink);">✖️ ${t2('ʻIkai fai','Not done')}</span>
+                        </div>
+                        <div class="flex gap-2 flex-wrap">
+                            <button class="wk-mini" onclick="wkToggleAll()">${compact ? '👁️ ' + t2('Fakahā kotoa','Show all indicators') : '🎯 ' + t2('Ko e palani pē','Show only the plan')}</button>
+                            <button class="wk-mini" onclick="wkCarry()">↪ ${t2('ʻAve mai mei he uike kuo ʻosí','Carry over last week')}</button>
+                            <button class="wk-mini gold" onclick="wkShare()">📱 ${t2('Vahevahe','Share plan')}</button>
+                        </div>
+                    </div>
+                    <div style="font-size:11.5px;color:var(--ss-muted);margin-top:10px;">${t2('Ko e meʻa kotoa ʻoku fakaʻilongaʻi ✅ ʻoku lēkooti foki ia ʻi he tēpile fakamāhina.','Anything marked ✅ is also logged in the monthly tracker. The follow-up date and contact for this week show up on the This Week tab.')}</div>
+                </div>
+                ${wkPocOptions()}
+                ${people.length ? people.map(card).join('') : `
+                <div class="rounded-2xl p-10 text-center" style="background:var(--ss-surface);border:1px dashed var(--ss-line);">
+                    <div class="text-5xl mb-3">🌱</div>
+                    <div class="font-black" style="color:var(--ss-ink);">${t2('ʻIkai ha taha ʻi heni','Nobody here yet')}</div>
+                    <p class="text-sm mt-1" style="color:var(--ss-muted);">${t2('Tānaki ha taha ʻi he tēpile fakaquarter.','Add people in the Quarterly view, then plan their week here.')}</p>
+                    <button class="wk-mini gold mt-3" onclick="setTrackerView('quarter')">📅 ${t('Quarterly')}</button>
+                </div>`}
+            </div>`;
+        }
+
         // <optgroup> per lane for the quick "log activity" dropdowns
         function indicatorOptgroups() {
             return LANES.map(l => `<optgroup label="${l.emoji} ${t2(l.to,l.en)}">${INDICATORS.filter(i => i.lane === l.k).map(i => `<option value="${i.code}">${i.emoji} ${indName(i)} (${i.code})</option>`).join('')}</optgroup>`).join('');
@@ -2932,6 +3309,8 @@
                                         : `<span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background:var(--ss-red-wash);color:var(--ss-red);">⚠️ Unassigned</span>`}
                                     <span class="text-xs font-bold" style="color:${p._tab==='friends'?'var(--ss-gold)':'var(--ss-sage)'};">${p._tab==='friends'?t2('Kaungāmeʻa','Friend'):t('Returning')}</span>
                                     ${p.keepLoving ? `<span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background:rgba(224,143,176,.18);color:#E08FB0;">💛 ${t2('Hokohoko ʻOfa','Keep loving')}</span>` : ''}
+                                    ${p.poc ? `<span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background:rgba(91,141,239,.18);color:#8fb0f5;">📞 ${esc(p.poc)}</span>` : ''}
+                                    <span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background:var(--ss-violet-wash);color:var(--ss-violet);">⛪ ${esc(personOrd(p, p._tab))}</span>
                                 </div>
                                 <input type="text" value="${(p.nextAction||'').replace(/"/g,'&quot;')}" onchange="quickSetAction('${p.id}','${p._tab}',this.value)" placeholder="📝 ${t('Add a task / next action...')}" class="tw-field mt-2 w-full text-sm font-semibold rounded-lg px-2 py-1.5 focus:outline-none ${isDone?'line-through opacity-60':''}" style="${fieldStyle}" />
                                 <textarea onchange="quickSetNotes('${p.id}','${p._tab}',this.value)" rows="1" placeholder="🗒️ ${t('Note for this contact...')}" class="tw-field mt-2 w-full text-xs rounded-lg px-2 py-1.5 resize-none focus:outline-none" style="${fieldStyle}">${p.notes||''}</textarea>
@@ -5252,10 +5631,10 @@
             (state.friends||[]).filter(p => p.name && p.name.trim()).forEach(p => {
                 const acts = Object.values(p.progress||{}).flat();
                 const cat = p.category === 'PM' ? 'returning' : acts.some(c => ['ITM','TML','MPL','BD'].includes(c)) ? 'taught' : 'finding';
-                out.push({ pid: p.id, tab: 'friends', name: p.name.trim(), type: 'Friend', cat, nextOrd: 'Baptism & confirmation', org: p.assignedTo || '', helper: '', followUp: p.assignedTo || '', plan: p.nextAction || '', date: p.nextContactDate || '' });
+                out.push({ pid: p.id, tab: 'friends', name: p.name.trim(), type: 'Friend', cat, nextOrd: p.nextOrd || 'Baptism & confirmation', org: p.assignedTo || '', helper: '', followUp: p.assignedTo || '', plan: p.nextAction || '', date: p.nextContactDate || '' });
             });
             (state.returning||[]).filter(p => p.name && p.name.trim()).forEach(p => {
-                out.push({ pid: p.id, tab: 'returning', name: p.name.trim(), type: 'Returning', cat: 'returning', nextOrd: 'Return to church / sacrament', org: p.assignedTo || '', helper: '', followUp: p.assignedTo || '', plan: p.nextAction || '', date: p.nextContactDate || '' });
+                out.push({ pid: p.id, tab: 'returning', name: p.name.trim(), type: 'Returning', cat: 'returning', nextOrd: p.nextOrd || 'Return to church / sacrament', org: p.assignedTo || '', helper: '', followUp: p.assignedTo || '', plan: p.nextAction || '', date: p.nextContactDate || '' });
             });
             (state.covenantPath||[]).filter(p => p.name && !(p.ordinances?.endowment || p.femaleOrdinances?.endowment || false)).forEach(p => {
                 out.push({ pid: p.id, tab: 'covenant', name: p.name.trim(), type: 'New member', cat: 'baptized', nextOrd: nextOrdFor(p), org: p.assignment || '', helper: '', followUp: p.assignment || '', plan: '', date: '' });
