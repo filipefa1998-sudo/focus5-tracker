@@ -472,6 +472,15 @@
         .wk-bar .n{ flex:0 0 46%; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; }
         .wk-bar .tr{ flex:1; height:8px; border-radius:99px; background:var(--ss-line-2); overflow:hidden; } .wk-bar .tr i{ display:block; height:100%; border-radius:99px; }
         .wk-bar b{ flex:0 0 auto; font-size:12px; color:var(--ss-ink-soft); }
+        .done-btn{ font-family:'Manrope',sans-serif; font-weight:800; font-size:13px; padding:9px 12px; border-radius:11px; cursor:pointer; background:#2E9E5B; color:#fff; border:1px solid #2E9E5B; white-space:nowrap; }
+        .done-btn:hover{ filter:brightness(1.06); }
+        .done-roll{ margin-top:16px; border-radius:14px; border:1px solid var(--ss-line-2); background:var(--ss-sage-wash); padding:12px; }
+        .done-roll .dh{ font-weight:800; font-size:13.5px; color:var(--ss-ink); margin-bottom:8px; } .done-roll .dh .n{ font-size:12px; background:#2E9E5B; color:#fff; border-radius:999px; padding:1px 8px; margin-left:4px; }
+        .dl{ display:flex; flex-direction:column; gap:5px; }
+        .dr{ display:flex; align-items:center; gap:10px; padding:7px 10px; border-radius:10px; background:var(--ss-surface); border:1px solid var(--ss-line-2); font-size:13px; }
+        .dr .nm{ font-weight:800; color:var(--ss-ink); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; } .dr .dt{ color:var(--ss-muted); font-size:12px; font-weight:700; white-space:nowrap; }
+        .dr button{ background:transparent; border:1px solid var(--ss-line-2); border-radius:8px; padding:3px 8px; cursor:pointer; color:var(--ss-ink-soft); font-size:12px; font-weight:800; font-family:'Manrope',sans-serif; }
+        .dr button.ok{ background:#2E9E5B; border-color:#2E9E5B; color:#fff; }
         .wk-none{ font-size:12.5px; color:var(--ss-muted); font-style:italic; padding:4px 2px; }
         .wk-day .dh{ display:flex; justify-content:space-between; align-items:baseline; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--ss-muted); }
         .wk-day .dh b{ font-family:'Fraunces',Georgia,serif; font-size:17px; color:var(--ss-ink); letter-spacing:0; }
@@ -1403,6 +1412,7 @@
                 state.images = data.images || {};
                 state.darkMode = data.darkMode || false;
                 state.checkins = data.checkins || {};
+                state.readDone = data.readDone || {};
                 state.bomFinishDate = data.bomFinishDate || '';
                 state.huddles = (data.huddles || []).map(h => ({ ...h }));
                 state.experiences = Object.values(data.experiences || []).filter(Boolean);
@@ -1468,6 +1478,7 @@
                 images: state.images,
                 darkMode: state.darkMode,
                 checkins: state.checkins,
+                readDone: state.readDone || {},
                 bomFinishDate: state.bomFinishDate,
                 huddles: state.huddles || [],
                 experiences: state.experiences || [],
@@ -2657,6 +2668,7 @@
                         <input id="checkinNameInput" class="ss-input" placeholder="${t2('Ho hingoá','Your name')}" style="text-align:center;font-weight:700;margin-bottom:12px;">
                         <button onclick="startCheckin()" style="width:100%;background:var(--ss-gold);color:#1a1205;font-weight:900;padding:13px;border:0;border-radius:12px;cursor:pointer;font-size:15px;">${t2('Kamata','Start')}</button>
                     </div>
+                    ${readersRosterHTML()}
                     ${qrShareHTML(CHECKIN_URL)}
                 </div>`;
             }
@@ -2675,8 +2687,12 @@
                     <button onclick="memberCheckIn()" ${doneToday?'disabled':''} style="width:100%;padding:16px;border-radius:14px;border:0;font-weight:900;font-size:16px;cursor:${doneToday?'default':'pointer'};background:${doneToday?'var(--ss-sage-wash)':'var(--ss-gold)'};color:${doneToday?'var(--ss-sage)':'#1a1205'};">
                         ${doneToday ? '✅ '+t2('Kuo lau he ʻahó ni','Read today') : '📖 '+t2('Naʻá ku lau he ʻahó ni','I read today')}
                     </button>
+                    ${(state.readDone||{})[name]
+                        ? `<div style="margin-top:12px;padding:10px;border-radius:12px;background:var(--ss-sage-wash);color:var(--ss-sage);font-weight:800;font-size:14px;">🏅 ${t2('Kuo ke ʻosi ʻa e Tohi ʻa Molomoná','You finished the Book of Mormon')} · ${fmtNice(state.readDone[name])}</div>`
+                        : `<button type="button" class="done-btn" style="width:100%;margin-top:12px;" onclick="readComplete(localStorage.getItem('f5_checkin_name')||'')">🎉 ${t2('Kuó u ʻosi ʻa e Tohi ʻa Molomoná','I finished the Book of Mormon')}</button>`}
                     <button onclick="changeCheckinName()" style="margin-top:12px;background:none;border:0;color:var(--ss-muted);font-size:12px;cursor:pointer;">${t2('ʻIkai ko koe? Liliu hingoa','Not you? Change name')}</button>
                 </div>
+                ${readersRosterHTML()}
                 ${qrShareHTML(CHECKIN_URL)}
             </div>`;
         }
@@ -5762,6 +5778,50 @@
             saveToFirebase(); render();
         };
 
+        // Shared "Completed" roll for the three Invite challenges: names leave the working list and show here with the date
+        function doneRollHTML(title, rows, reopenFn) {
+            if (!rows.length) return '';
+            return `<div class="done-roll">
+                <div class="dh">✅ ${title} <span class="n">${rows.length}</span></div>
+                <div class="dl">${rows.map(r => `<div class="dr"><span class="nm">🏅 ${esc(r.name || '—')}</span><span class="dt">${r.sub ? esc(r.sub) + ' · ' : ''}${r.date ? fmtNice(r.date) : ''}</span><button type="button" onclick="${reopenFn}('${String(r.id).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')" title="${t2('Fakafoki','Move back to the working list')}">↩</button></div>`).join('')}</div>
+            </div>`;
+        }
+        window.promiseComplete = (id) => {
+            const p = (state.promisePeople||[]).find(x=>x.id===id); if(!p) return;
+            if (!(p.name||'').trim()) { showSaveMessage(t2('Fakahū ha hingoa','Add the name first')); return; }
+            p.completeDate = todayISO(); saveToFirebase(); render();
+            showSaveMessage('🎉 ' + p.name + t2(' kuo kakato ʻa e ʻAho ʻe 21!',' completed the 21-Day Promise!'));
+        };
+        window.promiseReopen = (id) => { const p = (state.promisePeople||[]).find(x=>x.id===id); if(!p) return; p.completeDate = ''; saveToFirebase(); render(); };
+        window.bomComplete = (id) => {
+            const c = (state.bomChallenge||[]).find(x=>x.id===id); if(!c) return;
+            if (!(c.member||'').trim()) { showSaveMessage(t2('Fakahū ha hingoa','Add the name first')); return; }
+            c.done = true; c.doneDate = todayISO();
+            if ((c.status||'pledged') === 'pledged') c.status = 'given';   // completing the hand-out means the copy was given
+            saveToFirebase(); render();
+            showSaveMessage('🎉 ' + c.member + t2(' kuo kakato!',' completed the hand-out!'));
+        };
+        window.bomReopen = (id) => { const c = (state.bomChallenge||[]).find(x=>x.id===id); if(!c) return; c.done = false; c.doneDate = ''; saveToFirebase(); render(); };
+        window.readComplete = (name) => {
+            if (!name) return;
+            if (!confirm(t2(`Kuo ʻosi ʻe ${name} ʻa e lau ʻo e Tohi ʻa Molomoná?`, `Mark ${name} as finished reading the Book of Mormon?`))) return;
+            state.readDone = { ...(state.readDone || {}), [name]: todayISO() }; saveToFirebase(); render();
+            showSaveMessage('🎉 ' + name + t2(' kuo ʻosi ʻa e Tohi ʻa Molomoná!',' finished the Book of Mormon!'));
+        };
+        window.readReopen = (name) => { const d = { ...(state.readDone || {}) }; delete d[name]; state.readDone = d; saveToFirebase(); render(); };
+        // Everyone who has checked in for reading: still reading vs finished
+        function readersRosterHTML() {
+            const done = state.readDone || {};
+            const names = Object.keys(state.checkins || {});
+            const reading = names.filter(n => !done[n]).map(n => ({ n, dates: state.checkins[n] || [] })).sort((a, b) => checkinStreak(b.dates) - checkinStreak(a.dates));
+            const finished = Object.keys(done).map(n => ({ id: n, name: n, date: done[n], sub: ((state.checkins || {})[n] || []).length + ' ' + t2('ʻaho','days read') })).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+            if (!reading.length && !finished.length) return '';
+            return `<div class="ngatu-panel" style="background:var(--ss-surface);border:1px solid var(--ss-line);border-radius:18px;padding:18px;margin-top:16px;">
+                <div class="wk-l" style="color:var(--ss-gold-deep);">📖 ${t2('Kau Lau Tohi','Readers')} · ${reading.length} ${t2('ʻoku lau','reading')}</div>
+                <div class="dl" style="margin-top:8px;">${reading.map(r => { const last = [...r.dates].sort().pop(); return `<div class="dr"><span class="nm">${esc(r.n)}</span><span class="dt">${checkinStreak(r.dates)}🔥 · ${r.dates.length} ${t2('ʻaho','days')}${last ? ' · ' + fmtNice(last) : ''}</span><button type="button" class="ok" onclick="readComplete('${r.n.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">✅ ${t2('Kakato','Completed')}</button></div>`; }).join('') || `<div style="font-size:13px;color:var(--ss-muted);">${t2('ʻIkai ha taha','No one is reading right now')}</div>`}</div>
+                ${doneRollHTML(t2('Kuo ʻosi ʻa e Tohi ʻa Molomoná','Finished the Book of Mormon'), finished, 'readReopen')}
+            </div>`;
+        }
         function renderPromise(){
             const lng = currentLang==='to' ? 'ton' : 'eng';
             const invNames = (state.friends||[]).map(p=>p.name).filter(n=>n&&n.trim());
@@ -5807,9 +5867,9 @@
                     <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
                         <button class="ss-btn primary" onclick="promiseAddPerson()">＋ ${t2('Tānaki Kakai','Add Person')}</button>
                     </div>
-                    ${(state.promisePeople||[]).length === 0 ? `<div style="text-align:center;padding:18px;color:var(--ss-muted);font-size:13px;">${t2('Heʻeki ai ha taha ʻoku kau','No one is tracked yet — tap Add Person.')}</div>` : `
+                    ${(state.promisePeople||[]).filter(p=>!p.completeDate).length === 0 ? `<div style="text-align:center;padding:18px;color:var(--ss-muted);font-size:13px;">${(state.promisePeople||[]).length ? t2('Kuo kakato kotoa! 🎉','Everyone on the list has completed it! 🎉') : t2('Heʻeki ai ha taha ʻoku kau','No one is tracked yet — tap Add Person.')}</div>` : `
                     <div style="display:flex;flex-direction:column;gap:8px;">
-                        ${state.promisePeople.map(p => `
+                        ${state.promisePeople.filter(p=>!p.completeDate).map(p => `
                         <div class="p21-row">
                             <input class="ss-input" value="${esc(p.name||'')}" oninput="promiseUpdatePerson('${p.id}','name',this.value)" placeholder="${t2('Hingoa','Name')}">
                             <div>
@@ -5829,9 +5889,13 @@
                                 </div>
                                 ${p.startDate && !p.completeDate ? (() => { const n = Math.floor((parseLocalDate(todayISO()) - parseLocalDate(p.startDate)) / 86400000) + 1; return n >= 1 ? `<div style="font-size:11px;font-weight:700;color:var(--ss-gold);margin-top:4px;">${t2('ʻAho','Day')} ${Math.min(n,21)}/21${n>21?' · '+t2('kuo ʻosi','past due'):''}</div>` : ''; })() : ''}
                             </div>
-                            <button onclick="promiseRemovePerson('${p.id}')" style="background:none;border:0;color:var(--ss-muted);cursor:pointer;font-size:16px;">🗑️</button>
+                            <div style="display:flex;flex-direction:column;gap:6px;align-items:stretch;">
+                                <button type="button" class="done-btn" onclick="promiseComplete('${p.id}')">✅ ${t2('Kakato','Completed')}</button>
+                                <button onclick="promiseRemovePerson('${p.id}')" style="background:none;border:0;color:var(--ss-muted);cursor:pointer;font-size:14px;">🗑️</button>
+                            </div>
                         </div>`).join('')}
                     </div>`}
+                    ${doneRollHTML(t2('Kuo kakato ʻa e ʻAho ʻe 21','Completed the 21-Day Promise'), (state.promisePeople||[]).filter(p=>p.completeDate).sort((a,b)=>(b.completeDate||'').localeCompare(a.completeDate||'')).map(p=>({ id:p.id, name:p.name, date:p.completeDate, sub: p.startDate ? t2('kamata ','started ') + fmtNice(p.startDate) : '' })), 'promiseReopen')}
                 </div>
 
                 <div class="ss-blockhead"><h3>${t2('Lisi ʻo e Kakai Te ke Lotuá','People I Will Pray For')}</h3><span class="en">${t2('Mei he Tracker Māhiná — Muimui & Foki Mai','Auto-filled from the Friends tab')}</span></div>
@@ -5928,6 +5992,7 @@
         function renderBomChallenge(){
             const list = (state.bomChallenge||[]);
             const thisWeek = list.filter(c=>isThisWeek(c.weekOf));
+            const open = list.filter(c=>!c.done);
             const givenAll = list.filter(c=>c.status==='given'||c.status==='reading'||c.status==='referred').length;
             const referredAll = list.filter(c=>c.status==='referred').length;
             const invitedAll = list.filter(c=>c.invited).length;
@@ -5958,6 +6023,7 @@
                         <span>${t('Week of')} ${fmtWeek(c.weekOf)}${c.org?' · 🏛️ '+esc(bomOrgLabel(c.org)):''}</span>
                         <button onclick="bomDelete('${c.id}')" style="background:none;border:0;color:var(--ss-muted);cursor:pointer;font-size:12px;">${t('Remove')}</button>
                     </div>
+                    <button type="button" class="done-btn" style="width:100%;" onclick="bomComplete('${c.id}')">✅ ${t2('Kakato','Completed')}</button>
                 </div>`;
             };
 
@@ -5965,7 +6031,8 @@
                 <div class="ss-blockhead"><h3>${title}</h3><span class="en">${en} · ${arr.length}</span></div>
                 <div class="bom-grid">${arr.map(card).join('')}</div>` : '';
 
-            const olderWeeks = list.filter(c=>!isThisWeek(c.weekOf));
+            const olderWeeks = open.filter(c=>!isThisWeek(c.weekOf));
+            const doneRows = list.filter(c=>c.done).sort((a,b)=>(b.doneDate||'').localeCompare(a.doneDate||'')).map(c=>({ id:c.id, name:c.member, date:c.doneDate, sub:[(BOM_STATUS[c.status]||{}).emoji || '', c.org ? bomOrgLabel(c.org) : ''].filter(Boolean).join(' ') }));
 
             return `<div class="ss-panel">
                 ${challengeLink('join-bom','🚗','Hū ki he ʻAppi “The Challenge”','Open in The Challenge app','Kau ki he lova kaa — Tufa Tohi','Join the Hand-Out car race')}
@@ -6003,13 +6070,14 @@
                     <p style="font-size:12.5px;font-weight:700;color:var(--ss-gold-deep);margin:6px 0 0;">— ${t2('Eta Henry B. Eyring','Elder Henry B. Eyring')}</p>
                 </div>
 
-                ${section(t2('ʻO e Uike Ní','This Week'), t2('Toʻo ʻi he uike ní','Taken this week'), thisWeek)}
+                ${section(t2('ʻO e Uike Ní','This Week'), t2('Toʻo ʻi he uike ní','Taken this week'), thisWeek.filter(c=>!c.done))}
                 ${list.length===0 ? `<div style="text-align:center;padding:40px 16px;color:var(--ss-muted);">
                     <div style="font-size:40px;margin-bottom:10px;">🕯️</div>
                     <p style="font-weight:700;color:var(--ss-ink-soft);">${t('No one has taken the challenge yet.')}</p>
                     <p style="font-size:13px;">${t('Tap "Take the challenge" to light the first candle.')}</p>
                 </div>` : ''}
                 ${section(t2('Ngaahi Uike Kuo Hilí','Earlier Weeks'), t2('Maama kuo tutu','Lights already lit'), olderWeeks)}
+                ${doneRollHTML(t2('Kuo kakato ʻa e Tufa Tohi','Completed the Hand-Out'), doneRows, 'bomReopen')}
             </div>`;
         }
 
