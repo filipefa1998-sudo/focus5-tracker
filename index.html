@@ -3375,7 +3375,9 @@
                 const items = { ...(w.items || {}) };
                 const old = items[itemId]; if (!old) return {};
                 const it = { ...old, ...patch };
-                if (it.status !== old.status) it.statusDate = it.status === 'plan' ? '' : todayISO();   // the day it was actually completed / missed
+                if (it.status === 'plan') it.statusDate = '';
+                else if (patch.statusDate && validISO(patch.statusDate)) it.statusDate = patch.statusDate;   // the day it was actually completed / missed
+                else if (!it.statusDate) it.statusDate = todayISO();
                 const progress = { ...(p.progress || {}) };
                 let person = p;
                 if (it.status === 'done' && old.status !== 'done') {
@@ -3538,7 +3540,7 @@
         // Tap a task (Friends tab, This Week, or Action Board) → update it. Nothing changes until Save.
         window.wkOpenItem = (id, tab, key, itemId, status) => {
             const p = findPerson(id, tab); const it = p && (wkData(p, key).items || {})[itemId]; if (!it) return;
-            Object.assign(_wkm, { mode:'item', id, tab, key, itemId, who: it.who || '', status: status || it.status || 'plan', followUp: it.followUp || addDaysISO(7), day: it.day, note: it.note || '' });
+            Object.assign(_wkm, { mode:'item', id, tab, key, itemId, who: it.who || '', status: status || it.status || 'plan', followUp: it.followUp || addDaysISO(7), statusDate: it.statusDate || it.day, day: it.day, note: it.note || '' });
             wkDrawItem();
         };
         function wkDrawItem() {
@@ -3552,6 +3554,12 @@
                     <div class="wk-ml">${t2('Tuʻunga','Status')}</div>
                     <div class="grid grid-cols-3 gap-2">${['plan','done','miss'].map(s => `<button type="button" class="wk-st ${s} ${_wkm.status === s ? 'on' : ''}" onclick="wkPickStatus('${s}')">${WK_STATUS[s].icon}<br>${t2(WK_STATUS[s].to, WK_STATUS[s].en)}</button>`).join('')}</div>
                     ${_wkm.status === 'done' ? `
+                    <div class="wk-ml" style="margin-top:14px;">✅ ${t2('Naʻe kakato ʻi he ʻaho','Completed on')}</div>
+                    <div class="flex flex-wrap gap-1.5">
+                        <button type="button" class="wk-chip ${_wkm.statusDate === it.day ? 'on' : ''}" onclick="wkPickDone('${it.day}')">${t2('ʻAho naʻe palani','Planned day')} · ${dayShort(it.day)} ${fmtNice(it.day)}</button>
+                        ${it.day !== todayISO() ? `<button type="button" class="wk-chip ${_wkm.statusDate === todayISO() ? 'on' : ''}" onclick="wkPickDone('${todayISO()}')">${t2('ʻAho ni','Today')}</button>` : ''}
+                        <input type="date" class="ss-input" style="width:auto;padding:6px 10px;font-size:13px;" max="${todayISO()}" value="${_wkm.statusDate}" onchange="wkPickDone(this.value)" />
+                    </div>
                     <div class="wk-ml" style="margin-top:14px;">📅 ${t2('ʻAho ke muimui ai','When should we follow up next?')}</div>
                     <div class="flex flex-wrap gap-1.5">${chips.map(([d, lab]) => { const iso = addDaysISO(d); return `<button type="button" class="wk-chip ${_wkm.followUp === iso ? 'on' : ''}" onclick="wkPickFollow('${iso}')">${lab}</button>`; }).join('')}
                         <input type="date" class="ss-input" style="width:auto;padding:6px 10px;font-size:13px;" value="${_wkm.followUp}" onchange="wkPickFollow(this.value)" /></div>` : ''}
@@ -3570,6 +3578,7 @@
         window.wkPickDay = d => { wkKeep(); _wkm.day = d; wkDrawItem(); };
         window.wkPickStatus = s => { wkKeep(); _wkm.status = s; wkDrawItem(); };
         window.wkPickFollow = iso => { if (!validISO(iso)) return; wkKeep(); _wkm.followUp = iso; wkDrawItem(); };
+        window.wkPickDone = iso => { if (!iso || !validISO(iso)) return; wkKeep(); _wkm.statusDate = iso; wkDrawItem(); };
         window.wkSaveItem = () => {
             wkKeep();
             const who = (_wkm.who || '').trim();
@@ -3578,7 +3587,7 @@
             const st = _wkm.status, newlyDone = st === 'done' && it0.status !== 'done';
             const moves = newlyDone && (it0.code === 'B' || it0.code === 'ACTIVE');
             if (moves && !confirm(it0.code === 'B' ? `Mark ${p0.name} as baptized and move them to the Covenant Path?` : `Mark ${p0.name} as an active member and move them to the Covenant Path?`)) return;
-            wkApplyItem(_wkm.id, _wkm.tab, _wkm.key, _wkm.itemId, { who, day: _wkm.day, note: (_wkm.note || '').trim(), status: st, followUp: st === 'done' ? _wkm.followUp : '' });
+            wkApplyItem(_wkm.id, _wkm.tab, _wkm.key, _wkm.itemId, { who, day: _wkm.day, note: (_wkm.note || '').trim(), status: st, statusDate: st !== 'plan' ? _wkm.statusDate : '', followUp: st === 'done' ? _wkm.followUp : '' });
             if (moves) {
                 const list = _wkm.tab === 'returning' ? 'returning' : 'friends';
                 const p1 = findPerson(_wkm.id, _wkm.tab);
@@ -3586,7 +3595,7 @@
             }
             wkClose(); saveToFirebase(); render();
             if (newlyDone && it0.code === 'BD') { const pp = findPerson(_wkm.id, _wkm.tab); if (pp) { announceBaptismalDate(pp); return; } }
-            showSaveMessage(st === 'done' ? `✅ ${t2('Kakato','Completed')}${_wkm.followUp ? ' · ' + t2('muimui','follow up') + ' ' + fmtNice(_wkm.followUp) : ''}` : st === 'miss' ? '✖️ ' + t2('ʻIkai fai','Not done') : '🗓️ ' + t2('Palani','Planned'));
+            showSaveMessage(st === 'done' ? `✅ ${t2('Kakato','Completed')} · ${fmtNice(_wkm.statusDate)}${_wkm.followUp ? ' · ' + t2('muimui','follow up') + ' ' + fmtNice(_wkm.followUp) : ''}` : st === 'miss' ? '✖️ ' + t2('ʻIkai fai','Not done') : '🗓️ ' + t2('Palani','Planned'));
         };
         window.wkDelItem = () => {
             if (!confirm(t2('Toʻo ʻa e palani ko ʻeni?','Remove this planned task?'))) return;
