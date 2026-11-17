@@ -481,6 +481,12 @@
         .dr .nm{ font-weight:800; color:var(--ss-ink); flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; } .dr .dt{ color:var(--ss-muted); font-size:12px; font-weight:700; white-space:nowrap; }
         .dr button{ background:transparent; border:1px solid var(--ss-line-2); border-radius:8px; padding:3px 8px; cursor:pointer; color:var(--ss-ink-soft); font-size:12px; font-weight:800; font-family:'Manrope',sans-serif; }
         .dr button.ok{ background:#2E9E5B; border-color:#2E9E5B; color:#fff; }
+        .ptt-tile{ display:inline-flex; align-items:center; gap:9px; text-decoration:none; padding:7px 14px 7px 11px; border-radius:14px;
+            background:linear-gradient(135deg,#2E9070,#26795C); color:#fff; border:1px solid transparent; box-shadow:0 8px 20px rgba(46,144,112,.28); font-family:'Manrope',sans-serif; }
+        .ptt-tile:hover{ filter:brightness(1.05); }
+        .ptt-tile .e{ font-size:24px; line-height:1; }
+        .ptt-tile .tx{ display:flex; flex-direction:column; line-height:1.1; }
+        .ptt-tile .tx b{ font-size:14px; font-weight:800; } .ptt-tile .tx small{ font-size:11px; font-weight:700; opacity:.9; }
         .wk-none{ font-size:12.5px; color:var(--ss-muted); font-style:italic; padding:4px 2px; }
         .wk-day .dh{ display:flex; justify-content:space-between; align-items:baseline; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.06em; color:var(--ss-muted); }
         .wk-day .dh b{ font-family:'Fraunces',Georgia,serif; font-size:17px; color:var(--ss-ink); letter-spacing:0; }
@@ -2659,7 +2665,6 @@
             let name=''; try { name = localStorage.getItem('f5_checkin_name') || ''; } catch(e){}
             if(!name){
                 return `<div style="max-width:440px;margin:0 auto;">
-                    ${challengeLink('join','🐢','Palaimelí: Primary Turtle Trek','For Primary: open Primary Turtle Trek','ʻOfa · Vahevahe · Fakaafe maʻa e fānau','Love · Share · Invite missions for children')}
                     ${wardThermometerHTML()}
                     <div class="ngatu-panel" style="background:var(--ss-surface);border:1px solid var(--ss-line);border-radius:18px;padding:24px;text-align:center;box-shadow:0 14px 40px rgba(0,0,0,.18);">
                         <div style="font-size:36px;">📖</div>
@@ -2677,7 +2682,6 @@
             const today = todayISO();
             const doneToday = dates.includes(today);
             return `<div style="max-width:440px;margin:0 auto;">
-                ${challengeLink('join','🐢','Palaimelí: Primary Turtle Trek','For Primary: open Primary Turtle Trek','ʻOfa · Vahevahe · Fakaafe maʻa e fānau','Love · Share · Invite missions for children')}
                 ${wardThermometerHTML()}
                 <div class="ngatu-panel" style="background:var(--ss-surface);border:1px solid var(--ss-line);border-radius:18px;padding:24px;text-align:center;box-shadow:0 14px 40px rgba(0,0,0,.18);">
                     <p style="color:var(--ss-ink-soft);font-size:13px;margin:0;">${t2('Mālō e lelei','Welcome back')},</p>
@@ -2973,7 +2977,12 @@
         function renderChallenges() {
             const v = ['library','promise','bom','checkin'].includes(state.challengeView) ? state.challengeView : 'library';
             return `<div class="space-y-4">
-                ${subSeg([['library','✉️ '+t2('ʻOfa · Vahevahe · Fakaafe','Love · Share · Invite')], ['promise','🙏 '+t('21-Day Promise')], ['bom','🚗 '+t2('Tufa Tohi Molomona','B.O.M. Hand-Out')+(bomWeekBadge()?' · '+bomWeekBadge():'')], ['checkin','🐢 '+t2('Lau Tohi','Reading Check-in')]], v, 'setChallengeView')}
+                <div class="flex items-center gap-2 flex-wrap">
+                    ${subSeg([['library','✉️ '+t2('ʻOfa · Vahevahe · Fakaafe','Love · Share · Invite')], ['promise','🙏 '+t('21-Day Promise')], ['bom','🚗 '+t2('Tufa Tohi Molomona','B.O.M. Hand-Out')+(bomWeekBadge()?' · '+bomWeekBadge():'')], ['checkin','🐢 '+t2('Lau Tohi','Reading Check-in')]], v, 'setChallengeView')}
+                    <a href="${CHALLENGE_URL}/#join" target="_blank" rel="noopener" class="ptt-tile" title="${t2('Hū ki he Primary Turtle Trek','Open the Primary Turtle Trek app')}">
+                        <span class="e">🐢</span><span class="tx"><b>${t2('Palaimelí','Primary')}</b><small>Turtle Trek ↗</small></span>
+                    </a>
+                </div>
                 ${v === 'library' ? renderInviteLibrary() : v === 'bom' ? renderBomChallenge() : v === 'checkin' ? renderCheckin() : renderPromise()}
             </div>`;
         }
