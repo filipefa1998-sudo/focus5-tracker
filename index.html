@@ -1784,8 +1784,18 @@
         };
 
         // Add someone straight onto the Covenant Path (already baptized — this year or earlier)
-        window.cpToggleAdd = () => { state.cpAddOpen = !state.cpAddOpen; render(); if (state.cpAddOpen) setTimeout(() => document.getElementById('cpAddName')?.focus(), 40); };
+        const CP_ADD_CODE = 'r24';
+        let cpUnlocked = false;   // stays unlocked until the page is closed or reloaded
+        function cpUnlock() {
+            if (cpUnlocked) return true;
+            const code = prompt(t2('Fakahū ʻa e fika ke tānaki ki he Hala ʻo e Fuakavá:','Enter the code to add to the Covenant Path:'));
+            if (code === null) return false;
+            if (code.trim().toLowerCase() !== CP_ADD_CODE) { showSaveMessage(t2('🔒 Fika hala','🔒 Wrong code')); return false; }
+            cpUnlocked = true; return true;
+        }
+        window.cpToggleAdd = () => { if (!state.cpAddOpen && !cpUnlock()) return; state.cpAddOpen = !state.cpAddOpen; render(); if (state.cpAddOpen) setTimeout(() => document.getElementById('cpAddName')?.focus(), 40); };
         window.cpAddPerson = () => {
+            if (!cpUnlock()) return;
             const name = (document.getElementById('cpAddName')?.value || '').trim();
             if (!name) { showSaveMessage(t2('Fakahū ha hingoa','Please enter a name')); document.getElementById('cpAddName')?.focus(); return; }
             const date = document.getElementById('cpAddDate')?.value || '';
@@ -5392,7 +5402,7 @@
                             <div class="wk-l" style="color:var(--ss-gold-deep);">➕ ${t2('Tānaki ha mēmipa kuo papitaiso','Add a baptized member')}</div>
                             <div style="font-size:12.5px;color:var(--ss-muted);margin-top:3px;">${t2('','For anyone already baptized — recently or in a past year — whose progress you want to track.')}</div>
                         </div>
-                        <button class="wk-btn ${state.cpAddOpen ? '' : 'gold'}" onclick="cpToggleAdd()">${state.cpAddOpen ? '✕ ' + t('Close') : '➕ ' + t2('Tānaki','Add person')}</button>
+                        <button class="wk-btn ${state.cpAddOpen ? '' : 'gold'}" onclick="cpToggleAdd()">${state.cpAddOpen ? '✕ ' + t('Close') : (cpUnlocked ? '➕ ' : '🔒 ') + t2('Tānaki','Add person')}</button>
                     </div>
                     ${state.cpAddOpen ? `
                     <div class="grid md:grid-cols-2 gap-3" style="margin-top:14px;">
