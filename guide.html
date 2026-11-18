@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Focus Five Tracker — User Guide | Riverton 24th Tongan Ward</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap');
+:root{
+  --ink:#2F2A22; --ink-soft:#574E40; --bg:#F6F1E7; --surface:#FFFFFF; --surface-2:#FBF6EC;
+  --line:rgba(194,155,69,.30); --line-2:rgba(60,48,25,.10); --muted:#8A8070;
+  --gold:#B8913E; --gold-deep:#8F6C22; --gold-wash:rgba(214,180,100,.16);
+  --blue:#4E79AD;
+  --love:#C0607F; --share:#2E9070; --invite:#B5892F; --prog:#4C7DD9;
+  --red:#B24A57; --sage:#2E9070;
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Manrope',-apple-system,BlinkMacSystemFont,sans-serif;}
+h1,h2,h3,h4,.serif{font-family:'Fraunces',Georgia,serif;letter-spacing:-.01em;}
+body{background:var(--bg);color:var(--ink);line-height:1.6;
+  background-image:radial-gradient(900px 500px at 50% -10%,rgba(255,236,190,.4),transparent 60%);}
+
+.topbar{position:sticky;top:0;z-index:20;background:rgba(246,241,231,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);}
+.topbar .in{max-width:1080px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.topbar .t{font-family:'Fraunces',serif;font-weight:600;font-size:16px;}
+.topbar .t small{display:block;font-family:'Manrope';font-weight:700;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-deep);}
+.btn{background:var(--surface);border:1px solid var(--line);color:var(--ink);font-weight:800;font-size:13px;border-radius:10px;padding:8px 14px;cursor:pointer;text-decoration:none;}
+.btn.gold{background:linear-gradient(135deg,#E2C377,#CDA450);border-color:transparent;color:#2B2010;}
+
+.hero{max-width:1080px;margin:0 auto;padding:46px 20px 10px;}
+.hero .band{height:5px;width:66px;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--gold-deep));margin-bottom:18px;}
+.hero .eyebrow{font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-deep);}
+.hero h1{font-size:clamp(32px,5.5vw,54px);font-weight:600;margin:10px 0;}
+.hero p{font-size:clamp(15px,2vw,19px);color:var(--ink-soft);max-width:62ch;}
+
+.layout{max-width:1080px;margin:18px auto 80px;padding:0 20px;display:grid;grid-template-columns:230px 1fr;gap:34px;align-items:start;}
+nav.toc{position:sticky;top:76px;max-height:calc(100vh-96px);overflow:auto;font-size:14px;}
+nav.toc .h{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px;}
+nav.toc a{display:block;color:var(--ink-soft);text-decoration:none;padding:5px 10px;border-radius:8px;border-left:2px solid transparent;font-weight:600;}
+nav.toc a:hover{background:var(--gold-wash);color:var(--ink);}
+nav.toc a.on{border-left-color:var(--gold);color:var(--gold-deep);background:var(--gold-wash);}
+
+main{min-width:0;}
+section{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:clamp(20px,3vw,34px);margin-bottom:22px;box-shadow:0 10px 26px rgba(120,95,40,.07);scroll-margin-top:80px;}
+section h2{font-size:clamp(22px,3.2vw,30px);font-weight:600;display:flex;align-items:center;gap:12px;}
+section h2 .ic{font-size:1.1em;}
+section h2 .tab{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:var(--blue);padding:3px 9px;border-radius:999px;font-family:'Manrope';}
+section > p{margin:12px 0;color:var(--ink-soft);}
+section h3{font-size:18px;font-weight:600;margin:20px 0 8px;}
+p,li{font-size:15.5px;}
+ul,ol{margin:10px 0 10px 4px;padding-left:22px;}
+li{margin:5px 0;}
+b,strong{color:var(--ink);}
+.lead-in{font-size:16.5px;color:var(--ink);}
+
+.steps{list-style:none;padding:0;counter-reset:s;}
+.steps li{counter-increment:s;position:relative;padding:10px 0 10px 44px;border-bottom:1px dashed var(--line-2);}
+.steps li:last-child{border-bottom:0;}
+.steps li::before{content:counter(s);position:absolute;left:0;top:9px;width:30px;height:30px;border-radius:50%;background:var(--gold-wash);color:var(--gold-deep);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px;}
+
+.callout{border-radius:14px;padding:14px 16px;margin:14px 0;border:1px solid var(--line);border-left:5px solid var(--gold);background:var(--gold-wash);}
+.callout.tip{border-left-color:var(--sage);background:rgba(46,144,112,.08);}
+.callout.warn{border-left-color:var(--red);background:rgba(178,74,87,.07);}
+.callout .k{font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold-deep);}
+.callout.tip .k{color:var(--sage);} .callout.warn .k{color:var(--red);}
+
+.lanes{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:14px 0;}
+.lanebox{border:1px solid var(--line);border-top:4px solid var(--c);border-radius:14px;padding:12px 14px;background:var(--surface-2);}
+.lanebox h4{color:var(--c);font-size:16px;}
+.lanebox p{font-size:13.5px;color:var(--ink-soft);margin:2px 0 8px;}
+.code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;font-weight:700;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:var(--ink);}
+
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px;}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line-2);}
+th{background:var(--surface-2);font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
+td .code{white-space:nowrap;}
+
+.key{display:inline-block;font-weight:800;font-size:13px;background:var(--ink);color:#fff;border-radius:7px;padding:3px 10px;letter-spacing:.05em;}
+.faq details{border:1px solid var(--line);border-radius:12px;margin-bottom:8px;padding:0 14px;background:var(--surface-2);}
+.faq summary{cursor:pointer;font-weight:800;padding:12px 0;list-style:none;}
+.faq summary::-webkit-details-marker{display:none;}
+.faq summary::before{content:"＋ ";color:var(--gold-deep);font-weight:900;}
+.faq details[open] summary::before{content:"－ ";}
+.faq details p{padding-bottom:12px;margin:0;}
+
+.pills span{display:inline-block;font-size:12.5px;font-weight:800;padding:3px 10px;border-radius:999px;border:1px solid;margin:3px 4px 0 0;}
+footer{max-width:1080px;margin:0 auto;padding:10px 20px 60px;text-align:center;color:var(--muted);font-size:13px;font-weight:700;}
+
+@media(max-width:820px){ .layout{grid-template-columns:1fr;} nav.toc{position:static;max-height:none;border:1px solid var(--line);border-radius:14px;padding:10px;background:var(--surface);margin-bottom:6px;} .lanes{grid-template-columns:1fr;} }
+@media print{ .topbar,nav.toc,.btn{display:none!important;} body{background:#fff;} section{box-shadow:none;border-color:#ddd;page-break-inside:avoid;} .layout{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="topbar"><div class="in">
+  <div class="t">Focus Five Tracker<small>Riverton 24th · User Guide</small></div>
+  <div style="display:flex;gap:8px;">
+    <a class="btn" href="index.html">← Open the tracker</a>
+    <button class="btn gold" onclick="window.print()">🖨️ Print</button>
+  </div>
+</div></div>
+
+<div class="hero">
+  <div class="band"></div>
+  <div class="eyebrow">How to use the tracker</div>
+  <h1>Love, Share, Invite — together</h1>
+  <p>Everything you need to plan the week, follow up with friends and returning members, track the covenant path, and see the whole ward's progress. Start anywhere — or read it through once and you'll know every corner.</p>
+</div>
+
+<div class="layout">
+<nav class="toc" id="toc">
+  <div class="h">Start here</div>
+  <a href="#basics">The basics</a>
+  <a href="#lanes">Love · Share · Invite · Progress</a>
+  <div class="h">The tabs</div>
+  <a href="#friends">1 · Friends (weekly plan)</a>
+  <a href="#thisweek">2 · This Week</a>
+  <a href="#board">Action Board</a>
+  <a href="#covenant">3 · Covenant Path</a>
+  <a href="#calendar">4 · Calendar</a>
+  <a href="#invite">5 · Invite</a>
+  <a href="#dashboard">6 · Dashboard</a>
+  <div class="h">More</div>
+  <a href="#leaders">Leaders &amp; the huddle</a>
+  <a href="#primary">Primary Turtle Trek</a>
+  <a href="#codes">Codes &amp; settings</a>
+  <a href="#faq">Questions</a>
+</nav>
+
+<main>
+
+<section id="basics">
+  <h2><span class="ic">🧭</span> The basics</h2>
+  <p class="lead-in">The tracker is a web app. There's nothing to install — open the link and it works on a phone, tablet, or computer, and everyone sees the same live information.</p>
+  <ul>
+    <li><b>It saves by itself.</b> Every change syncs for the whole ward within a second. You'll see "Synced" with the time at the top.</li>
+    <li><b>Two languages.</b> Tap <b>🇹🇴 Lea Faka Tonga</b> at the top to switch between English and Tongan.</li>
+    <li><b>Light or night.</b> The 🌙 / ☀️ button switches between the bright temple look and a darker evening look.</li>
+    <li><b>Add to your home screen.</b> In your phone browser, choose "Add to Home Screen" and it opens like a normal app.</li>
+    <li><b>Friends vs Returning.</b> Most tabs have a toggle between <b>👤 Friends</b> (people being taught or met) and <b>💙 Returning</b> (members coming back).</li>
+  </ul>
+  <div class="callout tip"><div class="k">Good to know</div>Almost everything is open to everyone so the whole ward can help. Only a few things are locked with a code — adding photos, adding to the Covenant Path, and the leaders' huddle. Those codes are listed near the end of this guide.</div>
+</section>
+
+<section id="lanes">
+  <h2><span class="ic">🎨</span> Love · Share · Invite · Progress</h2>
+  <p>Every action you log belongs to one of four lanes. The lane's color appears everywhere, so a glance tells you how someone is being ministered to.</p>
+  <div class="lanes">
+    <div class="lanebox" style="--c:var(--love);"><h4>💛 Love</h4><p>Serve, pray for, welcome and care.</p><div class="pills"><span style="color:var(--love);border-color:var(--love);">Ministering visit</span><span style="color:var(--love);border-color:var(--love);">Texted / called</span><span style="color:var(--love);border-color:var(--love);">Served</span><span style="color:var(--love);border-color:var(--love);">Prayed for</span><span style="color:var(--love);border-color:var(--love);">Welcomed</span><span style="color:var(--love);border-color:var(--love);">Comforted</span></div></div>
+    <div class="lanebox" style="--c:var(--share);"><h4>🤲 Share</h4><p>Share what we love about the gospel.</p><div class="pills"><span style="color:var(--share);border-color:var(--share);">Scripture / video</span><span style="color:var(--share);border-color:var(--share);">Activity link</span><span style="color:var(--share);border-color:var(--share);">Book of Mormon</span><span style="color:var(--share);border-color:var(--share);">Gospel talk</span><span style="color:var(--share);border-color:var(--share);">Church resource</span></div></div>
+    <div class="lanebox" style="--c:var(--invite);"><h4>✉️ Invite</h4><p>"Come and see, come and help, come and stay."</p><div class="pills"><span style="color:var(--invite);border-color:var(--invite);">To church</span><span style="color:var(--invite);border-color:var(--invite);">To read the Book of Mormon</span><span style="color:var(--invite);border-color:var(--invite);">To an activity</span><span style="color:var(--invite);border-color:var(--invite);">To meet missionaries</span><span style="color:var(--invite);border-color:var(--invite);">To baptism</span></div></div>
+    <div class="lanebox" style="--c:var(--prog);"><h4>🌱 Progress</h4><p>What they are choosing to do.</p><div class="pills"><span style="color:var(--prog);border-color:var(--prog);">Came to church</span><span style="color:var(--prog);border-color:var(--prog);">Reading</span><span style="color:var(--prog);border-color:var(--prog);">Taking lessons</span><span style="color:var(--prog);border-color:var(--prog);">Baptismal date</span><span style="color:var(--prog);border-color:var(--prog);">Baptized</span></div></div>
+  </div>
+  <div class="callout"><div class="k">Keep loving</div>When someone declines an invitation, mark it and they move to a gentle <b>Keep loving</b> status — a declined invitation is still a real act of love. The moment they choose to act again, they come back out on their own.</div>
+</section>
+
+<section id="friends">
+  <h2><span class="tab">Tab 1</span><span class="ic">👥</span> Friends — the weekly plan</h2>
+  <p class="lead-in">This is where the work starts. Each person has a card, and you plan their week day by day.</p>
+  <h3>Set up a person's card</h3>
+  <ul>
+    <li><b>Name</b> — type it right on the card.</li>
+    <li><b>Type</b> — New Friend, Part Member, or OAY (over-aged youth).</li>
+    <li><b>Organization</b> — who is responsible (Elders Quorum, Relief Society, and so on). This is what the Action Board sorts by.</li>
+    <li><b>Next Ordinance</b> — the covenant you're helping them toward: Sacrament Meeting, Baptism &amp; Confirmation, Aaronic Priesthood, Melchizedek Priesthood, Baptism for the Dead Recommend, Temple Endowment, or Family Sealing. Below it you'll see the <b>doctrine</b> that prepares them, plus a box for your own focus (a scripture, lesson, or talk).</li>
+  </ul>
+  <h3>Plan the week</h3>
+  <ol class="steps">
+    <li>On a day of the week, tap <b>＋ Plan</b>.</li>
+    <li>Pick one or more missions from Love, Share, Invite, and Progress.</li>
+    <li>Type <b>who</b> will make the contact (it suggests the missionaries and organizations).</li>
+    <li>Add the doctrine to teach or how it will happen, then tap <b>Add to plan</b>.</li>
+  </ol>
+  <p>The plan shows on that day in its lane color, and it immediately appears on the This Week tab and the Action Board.</p>
+  <h3>Mark it done</h3>
+  <ul>
+    <li>Tap the task (here, on This Week, or on the Action Board), choose <b>Completed</b> or <b>Not done</b>, and save.</li>
+    <li>On <b>Completed</b>, pick the <b>day it actually happened</b> — it defaults to the planned day, so past weeks stay accurate — and set the next follow-up date.</li>
+    <li>The day turns green (or red for not done), and the completed act is counted in the month it was done.</li>
+  </ul>
+  <div class="callout tip"><div class="k">Tip</div>Use the week arrows at the top to plan ahead or to fill in a week that already passed. Completing a past task records the real date, not today.</div>
+  <p>Prefer the old grid? The <b>Quarterly</b> and <b>Full Year</b> buttons show every person's indicators by month.</p>
+</section>
+
+<section id="thisweek">
+  <h2><span class="tab">Tab 2</span><span class="ic">📋</span> This Week</h2>
+  <p class="lead-in">Everything planned for the current week, gathered in one place and grouped by day. You don't plan here — you work the plan.</p>
+  <ul>
+    <li>Each row shows the person and their next ordinance, plus <b>How</b> (the activity), <b>Who</b> (the name and organization), <b>When</b>, and the <b>doctrine</b> to teach.</li>
+    <li>Tap ✅ or ✖️ on a row to mark it done or not done without leaving the page.</li>
+    <li>The tiles at the top show <b>Overdue follow-ups</b>, <b>Planned</b>, <b>Tasks completed</b>, and <b>Awaiting date</b>.</li>
+    <li><b>Share plan</b> creates a clean summary you can paste into the missionary WhatsApp chat.</li>
+  </ul>
+</section>
+
+<section id="board">
+  <h2><span class="ic">🗂️</span> Action Board</h2>
+  <p class="lead-in">A sub-view of This Week (tap <b>Action Board</b>). It shows <b>every organization's plan for the week</b>, one box each.</p>
+  <ul>
+    <li>See at a glance what the EQ, RS, Young Men, Young Women, Primary, Sunday School, and YSA each have planned.</li>
+    <li>An organization with nothing planned says "No plans yet this week," so gaps are easy to spot in a council meeting.</li>
+    <li>Tap any task to update it.</li>
+  </ul>
+</section>
+
+<section id="covenant">
+  <h2><span class="tab">Tab 3</span><span class="ic">✨</span> Covenant Path</h2>
+  <p class="lead-in">For members who are baptized — recently or years ago — and the steps still ahead of them.</p>
+  <h3>Add a baptized member</h3>
+  <ol class="steps">
+    <li>Tap <b>Add person</b> at the top (this is locked — enter the code).</li>
+    <li>Type the name and the <b>real baptism date</b> (any past date works).</li>
+    <li>Pick the type (Male, Female, OAY) and the organization, then <b>Add to Covenant Path</b>.</li>
+  </ol>
+  <p>The form stays open so you can add several in a row. Anyone you mark <b>Baptized</b> on the Friends tab also moves here automatically.</p>
+  <h3>Track their progress</h3>
+  <p>Each card tracks the ordinances ahead — the priesthood for the brethren, temple baptisms, patriarchal blessing, the endowment, and the sealing — plus a covenant-needs checklist (a ministering friend, a class companion, a calling, My Covenant Path), self-reliance steps, and notes.</p>
+  <div class="callout warn"><div class="k">Locked</div>Adding to the Covenant Path needs the code <span class="code">r24</span> so people aren't added by accident. Editing and removing existing cards is open.</div>
+</section>
+
+<section id="calendar">
+  <h2><span class="tab">Tab 4</span><span class="ic">🎉</span> Calendar</h2>
+  <p class="lead-in">Ward activities and events. Add an event with its date, time, and place, and it shows up in the weekly summary you share, so friends are invited to what's coming.</p>
+</section>
+
+<section id="invite">
+  <h2><span class="tab">Tab 5</span><span class="ic">✉️</span> Invite</h2>
+  <p class="lead-in">Two things live here: the Church's Love · Share · Invite library, and three ward challenges.</p>
+  <h3>The library</h3>
+  <ul>
+    <li>A <b>video</b> at the top. A leader can change it with the <b>Change video</b> button — upload a video or paste a YouTube link, and it stays for everyone (unlock with the Photos code first).</li>
+    <li>The <b>articles</b>, grouped for Everyone, Leaders, and Sharing. Each opens the official page on ChurchofJesusChrist.org, so the wording is always exact and current.</li>
+  </ul>
+  <h3>The three challenges</h3>
+  <p>Each one now has a <b>Completed</b> button — when someone finishes, their name moves into a "Completed" list with the date, and it counts in the totals.</p>
+  <ul>
+    <li><b>21-Day Promise</b> — pray morning and evening for 21 days for missionary moments. Track who's taking it, with start and finish dates.</li>
+    <li><b>Book of Mormon Hand-Out</b> — write your testimony in a copy and give it away. Track copies given and invitations.</li>
+    <li><b>Reading Check-in</b> — a daily reading streak, with a Readers list showing everyone's progress.</li>
+  </ul>
+  <div class="callout tip"><div class="k">On a phone</div>If an article opens to only the first page, tap the ↗ to open it full screen on the Church site.</div>
+</section>
+
+<section id="dashboard">
+  <h2><span class="tab">Tab 6</span><span class="ic">📊</span> Dashboard</h2>
+  <p class="lead-in">The numbers, updated the moment any task is marked.</p>
+  <ul>
+    <li><b>Weekly Plan</b> at the top: Planned, Tasks completed, Not done, Follow-through %, and People with no plan.</li>
+    <li>Completed-versus-planned <b>bars</b> by lane (Love / Share / Invite / Progress), by organization, and over the last four weeks.</li>
+    <li><b>Individual Progress</b> — a bar for each person's activity through the year.</li>
+    <li>Scope toggle for <b>Friends</b>, <b>Returning</b>, or <b>Both</b>.</li>
+  </ul>
+</section>
+
+<section id="leaders">
+  <h2><span class="ic">🤝</span> Leaders &amp; the weekly huddle</h2>
+  <p class="lead-in">A tap from the top opens the leadership huddle — the weekly coordination agenda built from everyone on the tracker.</p>
+  <ul>
+    <li>The four coordination groups (finding, teaching, returning, new members) fill in from the Friends, Returning, and Covenant Path lists.</li>
+    <li>For each person: the organization, a helper, the next ordinance, the plan of action, and a date.</li>
+    <li>The note taker updates the plan during the huddle, marks it done, and posts the summary to the missionary chat.</li>
+  </ul>
+  <p>Pair this with the <b>Action Board</b> (who's doing what this week) and the <b>Dashboard</b> (how it's going) and a whole coordination meeting fits on one screen.</p>
+</section>
+
+<section id="primary">
+  <h2><span class="ic">🐢</span> Primary Turtle Trek</h2>
+  <p class="lead-in">Primary has its own app, made for children. It lives at its own link and works the same way — open it, no install.</p>
+  <ul>
+    <li>Tap the class, then the child's name (a parent or teacher can do it for them).</li>
+    <li>The child taps a <b>mission</b> they did — pray for a friend, make a new friend, invite a friend to Primary — in Love, Share, and Invite colors.</li>
+    <li>Their <b>turtle grows</b> from egg to captain, they earn <b>stickers</b>, and their <b>class swims to the island together</b> (no child is ranked last).</li>
+    <li>A <b>Big Screen</b> view is made for sharing time; a <b>Leader</b> page sets the goal, celebration, and classes.</li>
+  </ul>
+  <div class="callout"><div class="k">Note</div>The old boat, car, and reading races are now Primary-only, as one app. Youth and adults use the challenges on the tracker's Invite tab instead.</div>
+</section>
+
+<section id="codes">
+  <h2><span class="ic">🔑</span> Codes &amp; settings</h2>
+  <p>A few actions are locked so they aren't changed by accident. These keep honest mistakes out — they are not strong security.</p>
+  <table>
+    <tr><th>What it unlocks</th><th>Where</th><th>Code</th></tr>
+    <tr><td>Add, change, or remove <b>photos</b>, and change the Invite <b>video</b></td><td>🔒 Photos button, top of the tracker</td><td><span class="code">f524</span></td></tr>
+    <tr><td><b>Add</b> a person to the Covenant Path</td><td>Covenant Path → Add person</td><td><span class="code">r24</span></td></tr>
+    <tr><td>Leader page in <b>Primary Turtle Trek</b></td><td>🔑 Leader button in the Primary app</td><td><span class="code">riverton24</span></td></tr>
+  </table>
+  <div class="callout warn"><div class="k">Keep in mind</div>Because the app is a web page, anyone who knows how to view a page's source could find these codes. They're meant to prevent accidents, not to protect private information.</div>
+  <h3>Backups</h3>
+  <p>Use the 📥 and 📤 buttons at the top to export or import the tracker's data as a file. Export once in a while so you always have a copy.</p>
+</section>
+
+<section id="faq" class="faq">
+  <h2><span class="ic">❓</span> Questions</h2>
+  <details><summary>Do I need an account or password?</summary><p>No. Open the link and start. Only the few actions above use a code.</p></details>
+  <details><summary>Will my changes show up for everyone?</summary><p>Yes — everything saves live. If two people edit at the same time, both changes are kept.</p></details>
+  <details><summary>A task got marked complete on the wrong day.</summary><p>Tap the task, keep it on Completed, and change the "Completed on" date. It updates the calendar and the monthly totals.</p></details>
+  <details><summary>Someone declined — do I delete them?</summary><p>No. Mark the declined invitation and they move to "Keep loving." Keep serving; they return on their own when they choose to act.</p></details>
+  <details><summary>How do I add a member who was baptized last year?</summary><p>Covenant Path → Add person (code <span class="code">r24</span>), then enter their real baptism date.</p></details>
+  <details><summary>The video on the Invite tab won't play.</summary><p>A leader taps Photos to unlock, then Change video, and uploads it or pastes a YouTube link. It then plays for everyone.</p></details>
+  <details><summary>Can I print this guide?</summary><p>Yes — the Print button up top makes a clean copy.</p></details>
+</section>
+
+</main>
+</div>
+
+<footer>Riverton 24th Tongan Ward · Focus Five Tracker · Love · Share · Invite 🐢</footer>
+
+<script>
+// highlight the current section in the table of contents
+const links=[...document.querySelectorAll('nav.toc a')];
+const map=new Map(links.map(a=>[a.getAttribute('href').slice(1),a]));
+const obs=new IntersectionObserver(es=>{
+  es.forEach(e=>{ if(e.isIntersecting){ links.forEach(l=>l.classList.remove('on')); const a=map.get(e.target.id); if(a) a.classList.add('on'); } });
+},{rootMargin:'-20% 0px -70% 0px'});
+document.querySelectorAll('main section[id]').forEach(s=>obs.observe(s));
+links.forEach(a=>a.addEventListener('click',e=>{ e.preventDefault(); document.getElementById(a.getAttribute('href').slice(1)).scrollIntoView({behavior:'smooth'}); }));
+</script>
+</body>
+</html>
