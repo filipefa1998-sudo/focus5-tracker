@@ -1661,7 +1661,7 @@
                     const hasIndicator = monthData.includes(indicator);
                     const newMonthData = hasIndicator ? monthData.filter(i => i !== indicator) : [...monthData, indicator];
                     if (indicator === 'B' && !hasIndicator) { moveToCovenantPath(person); return null; }
-                    if (indicator === 'BD' && !hasIndicator) setTimeout(() => announceBaptismalDate(person), 0);
+                    if (indicator === 'BD' && !hasIndicator) { const _t = state.activeTab === 'returning' ? 'returning' : 'friends'; setTimeout(() => announceBaptismalDate(person, _t), 0); }
                     return laneSideEffects({ ...person, progress: { ...person.progress, [month]: newMonthData } }, indicator, !hasIndicator);
                 }
                 return person;
@@ -1740,14 +1740,42 @@
         document.addEventListener('click', (e) => { if (e.target && e.target.id === 'ssCalBackdrop') closeCal(); });
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && _cal.btn) closeCal(); });
 
-        // BD checked in the Monthly Tracker → person shows up in the Action Board's Baptismal Dates section
-        function announceBaptismalDate(person) {
-            const nm = person.name || (currentLang==='to' ? 'Kakai' : 'This person');
-            showSaveMessage(
-                currentLang==='to' ? `📅 ${nm} — kuo tānaki ki he Palanga Ngāué` : `📅 ${nm} added to Action Board — set the baptism date`,
-                currentLang==='to' ? 'Tohi ʻaho →' : 'Set date →',
-                () => { closeTopModal(); setViewMode('actionboard'); setTimeout(() => document.getElementById('bdSection')?.scrollIntoView({ behavior:'smooth', block:'start' }), 50); }
-            );
+        // BD set anywhere (weekly plan, This Week, Monthly Tracker, quick log) → ask for the baptism date right away;
+        // the person shows up in the Action Board's Baptismal Dates section.
+        function announceBaptismalDate(person, tab, suggest) {
+            if (!person) return;
+            tab = tab || (state.returning.some(x => x.id === person.id && x.name === person.name) ? 'returning' : 'friends');
+            const p = findPerson(person.id, tab) || person;
+            const nm = esc(p.name || t2('Kakai','This person'));
+            const val = p.baptismDate || (suggest && validISO(suggest) ? suggest : '');
+            const chips = [[7,'+1 wk'],[14,'+2 wks'],[21,'+3 wks'],[28,'+4 wks'],[42,'+6 wks']];
+            wkModalShell(`
+                <div class="wk-mh"><div><div class="wk-mk">📅 ${t2('ʻAho Papitaiso','Baptismal date set')}</div><div class="wk-mt">${nm}</div></div><button class="wk-x" onclick="wkClose()">✕</button></div>
+                <div class="wk-mb">
+                    <div class="wk-ml">📅 ${t2('Ko e ʻaho fē ʻa e papitaisó?','What is the baptism date?')}</div>
+                    <input id="bdPromptDate" type="date" class="ss-input" value="${val}" />
+                    <div class="flex flex-wrap gap-1.5 mt-2">${chips.map(([d, lab]) => `<button type="button" class="wk-chip" onclick="document.getElementById('bdPromptDate').value='${addDaysISO(d)}'">${lab} · ${fmtNice(addDaysISO(d))}</button>`).join('')}</div>
+                    <div style="font-size:12.5px;color:var(--ss-muted);margin-top:10px;">${t2('ʻE hā ʻa e hingoa ni ʻi he Palanga Ngāué ʻi he Ngaahi ʻAho Papitaiso.','They now appear on the Action Board under Baptismal Dates.')}</div>
+                </div>
+                <div class="wk-mf">
+                    <button class="wk-btn" onclick="wkClose()">${t2('Toki fai','Later')}</button>
+                    <button class="wk-btn" onclick="bdPromptSave('${p.id}','${tab}',true)">📋 ${t2('Palanga Ngāue','Save & open Action Board')}</button>
+                    <button class="wk-btn gold" onclick="bdPromptSave('${p.id}','${tab}',false)">✓ ${t('Save')}</button>
+                </div>`);
+        }
+        window.bdPromptSave = (id, tab, goBoard) => {
+            const v = (document.getElementById('bdPromptDate')?.value || '').trim();
+            if (v && !validISO(v)) { document.getElementById('bdPromptDate')?.classList.add('wk-need'); return; }
+            wkClose();
+            if (v) setBaptismDate(id, tab, v);
+            if (goBoard) { closeTopModal(); setViewMode('actionboard'); setTimeout(() => document.getElementById('bdSection')?.scrollIntoView({ behavior:'smooth', block:'start' }), 80); }
+        };
+        // Who belongs in Baptismal Dates: BD logged in the tracker OR a BD planned/completed on the weekly plan — and not baptized yet
+        function hasBDFlag(p) {
+            const acts = Object.values(p.progress || {}).flat();
+            if (acts.includes('B')) return false;
+            if (acts.includes('BD')) return true;
+            return Object.values(p.weekly || {}).some(w => (w.codes || {}).BD === 'done' || Object.values(w.items || {}).some(it => it.code === 'BD' && it.status !== 'miss'));
         }
 
         function moveToCovenantPath(person) {
@@ -1929,7 +1957,7 @@
             const contacted30 = all.filter(p => p.lastContactDate && days(p.lastContactDate) >= -30).length;
             const engagedMonth = all.filter(p => acts(p,[mKey]).length).length;
             const overdue = all.filter(p => !p.taskDone && p.nextContactDate && days(p.nextContactDate) < 0).sort((a,b)=>a.nextContactDate.localeCompare(b.nextContactDate));
-            const bdPeople = all.filter(p => allActs(p).includes('BD') && !allActs(p).includes('B')).sort((a,b)=>(a.baptismDate||'9999').localeCompare(b.baptismDate||'9999'));
+            const bdPeople = all.filter(hasBDFlag).sort((a,b)=>(a.baptismDate||'9999').localeCompare(b.baptismDate||'9999'));
             const yr = String(today.getFullYear());
             const baptizedYTD = cp.filter(p => (p.baptismDate||'').startsWith(yr)).length;
             const churchNow = all.filter(p => acts(p,[mKey]).includes('AC')).length;
@@ -2530,7 +2558,7 @@
                         setTimeout(() => { closeTopModal(); moveToCovenantPath(person); saveToFirebase(); render(); }, 500);
                         return null;
                     }
-                    if (indicatorCode === 'BD' && isChecked && !monthData.includes('BD')) setTimeout(() => announceBaptismalDate(person), 0);
+                    if (indicatorCode === 'BD' && isChecked && !monthData.includes('BD')) { const _t = state.activeTab === 'returning' ? 'returning' : 'friends'; setTimeout(() => announceBaptismalDate(person, _t), 0); }
                     if (indicatorCode === 'DEC' && isChecked) setTimeout(() => showSaveMessage(t2('💛 Hokohoko atu ʻa e ʻofa','💛 Moved to Keep Loving — any effort to love, share, and invite is positive')), 0);
                     return laneSideEffects({ ...person, progress: { ...person.progress, [month]: newMonthData } }, indicatorCode, isChecked && !monthData.includes(indicatorCode));
                 }
@@ -3452,7 +3480,7 @@
                 return { week: { ...w, codes, synced }, person };
             });
             saveToFirebase(); render();
-            if (!on && code === 'BD') { const pp = findPerson(id, tab); if (pp) announceBaptismalDate(pp); }
+            if (!on && code === 'BD') { const pp = findPerson(id, tab); if (pp) announceBaptismalDate(pp, tab); }
         };
 
         window.wkSet = (id, tab, key, field, val) => { wkPatch(id, tab, key, w => ({ week: { ...w, [field]: val } })); saveToFirebase(); };
@@ -3545,6 +3573,7 @@
             if (!_wkm.codes.length) return;
             wkAddItems(_wkm.id, _wkm.tab, _wkm.key, _wkm.day, _wkm.codes, who, (_wkm.note || '').trim());
             wkClose(); saveToFirebase(); render();
+            if (_wkm.codes.includes('BD')) { const pp = findPerson(_wkm.id, _wkm.tab); if (pp) { announceBaptismalDate(pp, _wkm.tab, _wkm.day); return; } }
             showSaveMessage(`🗓️ ${t2('Kuo palani','Planned')} · ${dayShort(_wkm.day)} · 👤 ${who}`);
         };
 
@@ -3605,7 +3634,7 @@
                 moveToCovenantPath(p1); state[list] = state[list].filter(x => x.id !== p1.id);
             }
             wkClose(); saveToFirebase(); render();
-            if (newlyDone && it0.code === 'BD') { const pp = findPerson(_wkm.id, _wkm.tab); if (pp) { announceBaptismalDate(pp); return; } }
+            if (newlyDone && it0.code === 'BD') { const pp = findPerson(_wkm.id, _wkm.tab); if (pp) { announceBaptismalDate(pp, _wkm.tab, it0.day); return; } }
             showSaveMessage(st === 'done' ? `✅ ${t2('Kakato','Completed')} · ${fmtNice(_wkm.statusDate)}${_wkm.followUp ? ' · ' + t2('muimui','follow up') + ' ' + fmtNice(_wkm.followUp) : ''}` : st === 'miss' ? '✖️ ' + t2('ʻIkai fai','Not done') : '🗓️ ' + t2('Palani','Planned'));
         };
         window.wkDelItem = () => {
@@ -4060,7 +4089,7 @@
             render();
             const ind = INDICATORS.find(i => i.code === code);
             const person = (tab === 'friends' ? state.friends : state.returning).find(p => p.id === idNum);
-            if (code === 'BD' && person) { announceBaptismalDate(person); return; }
+            if (code === 'BD' && person) { announceBaptismalDate(person, tab); return; }
             if (code === 'DEC') { showSaveMessage(t2('💛 Hokohoko atu ʻa e ʻofa','💛 Logged · moved to Keep Loving')); return; }
             showSaveMessage('✓ ' + (ind ? ind.emoji+' '+code : code) + ' · ' + (currentLang==='to'?'fetuʻutaki ʻosi':'logged & contacted'));
         };
@@ -4198,10 +4227,7 @@
             }
 
             // ── Baptismal Dates: everyone marked BD in the Monthly Tracker who isn't baptized yet ──
-            const bdPeople = allPeople.filter(p => {
-                const acts = Object.values(p.progress||{}).flat();
-                return acts.includes('BD') && !acts.includes('B');
-            }).sort((a,b) => (a.baptismDate||'9999').localeCompare(b.baptismDate||'9999'));
+            const bdPeople = allPeople.filter(hasBDFlag).sort((a,b) => (a.baptismDate||'9999').localeCompare(b.baptismDate||'9999'));
             const bdNoDate = bdPeople.filter(p => !p.baptismDate).length;
             const fieldCss = 'background:rgba(255,255,255,.06);border:1px solid var(--ss-line-2);color:var(--ss-ink)';
             const orgSelect = (p, extra='') => `<select onchange="quickSetOrg('${p.id}','${p._tab}',this.value); this.blur();" class="tw-field text-xs rounded-lg px-2 py-1.5 focus:outline-none ${extra}" style="${fieldCss}">
